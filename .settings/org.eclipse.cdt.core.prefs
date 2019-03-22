@@ -1,0 +1,11 @@
+eclipse.preferences.version=1
+environment/project/org.eclipse.linuxtools.cdt.autotools.core.configuration.build.1562680719/PATH/delimiter=\:
+environment/project/org.eclipse.linuxtools.cdt.autotools.core.configuration.build.1562680719/PATH/operation=append
+environment/project/org.eclipse.linuxtools.cdt.autotools.core.configuration.build.1562680719/PATH/value=/usr/bin\:/bin\:/usr/sbin\:/sbin\:/usr/local/bin\:/opt/local/bin\:${PATH}
+environment/project/org.eclipse.linuxtools.cdt.autotools.core.configuration.build.1562680719/append=true
+environment/project/org.eclipse.linuxtools.cdt.autotools.core.configuration.build.1562680719/appendContributed=true
+environment/project/org.eclipse.linuxtools.cdt.autotools.core.configuration.build.debug.1551656597/PATH/delimiter=\:
+environment/project/org.eclipse.linuxtools.cdt.autotools.core.configuration.build.debug.1551656597/PATH/operation=append
+environment/project/org.eclipse.linuxtools.cdt.autotools.core.configuration.build.debug.1551656597/PATH/value=/usr/local/bin\:/opt/local/bin\:${PATH}
+environment/project/org.eclipse.linuxtools.cdt.autotools.core.configuration.build.debug.1551656597/append=true
+environment/project/org.eclipse.linuxtools.cdt.autotools.core.configuration.build.debug.1551656597/appendContributed=true

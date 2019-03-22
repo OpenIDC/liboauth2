@@ -1,0 +1,8 @@
+/*.lo
+/*.o
+/*.la
+/*.gcno
+/*.gcno
+/.deps/
+/.libs/
+/.dirstamp
