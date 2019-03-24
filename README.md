@@ -1,7 +1,7 @@
 # liboauth2
 Generic library that can be used to build OAuth 2.0 and OpenID Connect C-based servers and clients e.g. web-server plugins.
 
-## Features
+## Overview
 
 - extends [cjose](https://github.com/cisco/cjose) into OAuth 2.0 and OpenID Connect specific claims, secrets and hashes
 - adds OAuth 2.0 / OpenID Connect protocols by abstracting HTTP requests/responses from web server implementation specifics
