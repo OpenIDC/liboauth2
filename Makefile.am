@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS=-I m4
 
-EXTRA_DIST = autogen.sh ChangeLog README.md LICENSE DISCLAIMER src/config.h.in
+EXTRA_DIST = autogen.sh ChangeLog README.md LICENSE include/oauth2/config.h.in
 
 #
 # generic
