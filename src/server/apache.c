@@ -219,6 +219,28 @@ static int oauth2_apache_http_request_hdr_add(void *rec, const char *key,
 					       value) == true);
 }
 
+static const char *oauth2_apache_get_server_name(request_rec *r)
+{
+	const char *rv = NULL;
+#ifdef APACHE2_0
+	rv = (char *)ap_get_server_name(r);
+#else
+	rv = (char *)ap_get_server_name_for_url(r);
+#endif
+	return rv;
+}
+
+static const char *oauth2_apache_http_scheme(request_rec *r)
+{
+	const char *rv = NULL;
+#ifdef APACHE2_0
+	rv = ap_http_method(r);
+#else
+	rv = ap_http_scheme(r);
+#endif
+	return rv;
+}
+
 static oauth2_apache_request_ctx_t *
 oauth2_apache_request_context_init(request_rec *r,
 				   oauth2_log_function_t request_log_cb)
@@ -244,15 +266,9 @@ oauth2_apache_request_context_init(request_rec *r,
 	ctx->request = oauth2_http_request_init(ctx->log);
 
 	oauth2_http_request_scheme_set(ctx->log, ctx->request,
-#ifdef APACHE2_0
-				       (char *)ap_http_method(r)
-#else
-				       (char *)ap_http_scheme(r)
-#endif
-	);
-
+				       oauth2_apache_http_scheme(r));
 	oauth2_http_request_hostname_set(ctx->log, ctx->request,
-					 ap_get_server_name(r));
+					 oauth2_apache_get_server_name(r));
 	oauth2_http_request_port_set(ctx->log, ctx->request,
 				     r->connection->local_addr->port);
 	oauth2_http_request_path_set(ctx->log, ctx->request, r->uri);

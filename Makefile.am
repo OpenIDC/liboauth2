@@ -179,7 +179,8 @@ check_liboauth2_SOURCES = \
 	test/check_http.c \
 	test/check_proto.c \
 	test/check_oauth2.c \
-	test/check_openidc.c
+	test/check_openidc.c \
+	test/server_stubs.c
 
 endif
 
