@@ -19,6 +19,7 @@
  *
  **************************************************************************/
 
+#include "check_liboauth2.h"
 #include "oauth2/mem.h"
 #include "oauth2/oauth2.h"
 #include "oauth2_int.h"

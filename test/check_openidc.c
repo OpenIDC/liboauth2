@@ -19,10 +19,10 @@
  *
  **************************************************************************/
 
+#include "check_liboauth2.h"
 #include "oauth2/mem.h"
 #include "oauth2/openidc.h"
 #include "oauth2/util.h"
-
 #include <check.h>
 #include <stdlib.h>
 
