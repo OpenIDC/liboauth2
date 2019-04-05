@@ -54,6 +54,16 @@ void EVP_MD_CTX_free(EVP_MD_CTX *ctx)
 }
 #endif
 
+#ifndef cjose_jwk_import_json
+cjose_jwk_t *cjose_jwk_import_json(cjose_header_t *json, cjose_err *err)
+{
+	char *s_json = json_dumps(json, 0);
+	cjose_jwk_t *jwk = cjose_jwk_import(s_json, strlen(s_json), err);
+	oauth2_mem_free(s_json);
+	return jwk;
+}
+#endif
+
 static oauth2_jose_jwk_t *oauth2_jose_jwk_new()
 {
 	oauth2_jose_jwk_t *jwk = oauth2_mem_alloc(sizeof(oauth2_jose_jwk_t));
