@@ -708,6 +708,264 @@ end:
 	return rc;
 }
 
+#define OAUTH2_APACHE_USERDATA_KEY "oauth2_apache_userdata"
+
+static apr_table_t *
+oauth2_apache_request_state(oauth2_apache_request_ctx_t *ctx)
+{
+	request_rec *r = (ctx->r->main != NULL) ? ctx->r->main : ctx->r;
+	apr_table_t *state = NULL;
+	apr_pool_userdata_get((void **)&state, OAUTH2_APACHE_USERDATA_KEY,
+			      r->pool);
+	if (state == NULL) {
+		state = apr_table_make(r->pool, 5);
+		apr_pool_userdata_set(state, OAUTH2_APACHE_USERDATA_KEY, NULL,
+				      r->pool);
+	}
+	return state;
+}
+
+static void oauth2_apache_request_state_set(oauth2_apache_request_ctx_t *ctx,
+					    const char *key, const char *value)
+{
+	apr_table_t *state = oauth2_apache_request_state(ctx);
+	apr_table_setn(state, key, apr_pstrdup(ctx->r->pool, value));
+}
+
+static const char *
+oauth2_apache_request_state_get(oauth2_apache_request_ctx_t *ctx,
+				const char *key)
+{
+	apr_table_t *state = oauth2_apache_request_state(ctx);
+	return apr_table_get(state, key);
+}
+
+void oauth2_apache_request_state_set_json(oauth2_apache_request_ctx_t *ctx,
+					  const char *key, json_t *claims)
+{
+	char *s = oauth2_json_encode(ctx->log, claims, 0);
+	oauth2_apache_request_state_set(ctx, key, s);
+	oauth2_mem_free(s);
+}
+
+void oauth2_apache_request_state_get_json(oauth2_apache_request_ctx_t *ctx,
+					  const char *key, json_t **claims)
+{
+	const char *s_claims = oauth2_apache_request_state_get(ctx, key);
+	if (s_claims != NULL)
+		oauth2_json_decode_object(ctx->log, s_claims, claims);
+}
+
+static bool oauth2_apache_authz_match_value(oauth2_apache_request_ctx_t *ctx,
+					    const char *spec_c, json_t *val,
+					    const char *key)
+{
+
+	int i = 0;
+
+	oauth2_debug(ctx->log, "matching: spec_c=%s, key=%s", spec_c, key);
+
+	/* see if it is a string and it (case-insensitively) matches the
+	 * Require'd value */
+	if (json_is_string(val)) {
+
+		if (apr_strnatcmp(json_string_value(val), spec_c) == 0)
+			return true;
+
+		/* see if it is a integer and it equals the Require'd value */
+	} else if (json_is_integer(val)) {
+
+		if (json_integer_value(val) == atoi(spec_c))
+			return true;
+
+		/* see if it is a boolean and it (case-insensitively) matches
+		 * the Require'd value */
+	} else if (json_is_boolean(val)) {
+
+		if (apr_strnatcmp(json_is_true(val) ? "true" : "false",
+				  spec_c) == 0)
+			return true;
+
+		/* if it is an array, we'll walk it */
+	} else if (json_is_array(val)) {
+
+		/* compare the claim values */
+		for (i = 0; i < json_array_size(val); i++) {
+
+			json_t *elem = json_array_get(val, i);
+
+			if (json_is_string(elem)) {
+				/*
+				 * approximately compare the claim value
+				 * (ignoring whitespace). At this point, spec_c
+				 * points to the NULL-terminated value pattern.
+				 */
+				if (apr_strnatcmp(json_string_value(elem),
+						  spec_c) == 0)
+					return true;
+
+			} else if (json_is_boolean(elem)) {
+
+				if (apr_strnatcmp(json_is_true(elem) ? "true"
+								     : "false",
+						  spec_c) == 0)
+					return true;
+
+			} else if (json_is_integer(elem)) {
+
+				if (json_integer_value(elem) == atoi(spec_c))
+					return true;
+
+			} else {
+
+				oauth2_warn(ctx->log,
+					    "unhandled in-array JSON object "
+					    "type [%d] for key \"%s\"",
+					    elem->type, (const char *)key);
+			}
+		}
+
+	} else {
+		oauth2_warn(ctx->log,
+			    "unhandled JSON object type [%d] for key \"%s\"",
+			    val->type, (const char *)key);
+	}
+
+	return false;
+}
+
+bool oauth2_apache_authz_match_claim(oauth2_apache_request_ctx_t *ctx,
+				     const char *const attr_spec,
+				     const json_t *const claims)
+{
+	const char *key;
+	json_t *val;
+
+	if (claims == NULL)
+		return false;
+
+	/* loop over all of the user claims */
+	void *iter = json_object_iter((json_t *)claims);
+	while (iter) {
+
+		key = json_object_iter_key(iter);
+		val = json_object_iter_value(iter);
+
+		oauth2_debug(ctx->log, "evaluating key \"%s\"",
+			     (const char *)key);
+
+		const char *attr_c = (const char *)key;
+		const char *spec_c = attr_spec;
+
+		/* walk both strings until we get to the end of either or we
+		 * find a differing character */
+		while ((*attr_c) && (*spec_c) && (*attr_c) == (*spec_c)) {
+			attr_c++;
+			spec_c++;
+		}
+
+		/* The match is a success if we walked the whole claim name and
+		 * the attr_spec is at a colon. */
+		if (!(*attr_c) && (*spec_c) == ':') {
+
+			/* skip the colon */
+			spec_c++;
+
+			if (oauth2_apache_authz_match_value(ctx, spec_c, val,
+							    key) == true)
+				return true;
+
+			/* a tilde denotes a string PCRE match */
+			//			} else if (!(*attr_c) && (*spec_c)
+			//== '~') {
+			//
+			//				/* skip the tilde */
+			//				spec_c++;
+			//
+			//				if
+			//(oauth2_authz_match_expression(r, spec_c, val) ==
+			//TRUE) 					return true;
+			/* dot means child nodes must be evaluated */
+		} else if (!(*attr_c) && (*spec_c) == '.') {
+
+			/* skip the dot */
+			spec_c++;
+
+			if (json_is_object(val)) {
+				oauth2_debug(
+				    ctx->log,
+				    "attribute chunk matched, evaluating "
+				    "children of key: \"%s\".",
+				    key);
+				return oauth2_apache_authz_match_claim(
+				    ctx, spec_c, json_object_get(claims, key));
+			} else if (json_is_array(val)) {
+				oauth2_debug(
+				    ctx->log,
+				    "attribute chunk matched, evaluating array "
+				    "values of key: \"%s\".",
+				    key);
+				return oauth2_apache_authz_match_value(
+				    ctx, spec_c, json_object_get(claims, key),
+				    key);
+			} else {
+				oauth2_debug(
+				    ctx->log,
+				    "\"%s\" matched, and child nodes or array "
+				    "values should be evaluated, but value is "
+				    "not an object or array.",
+				    key);
+				return false;
+			}
+		}
+
+		iter = json_object_iter_next((json_t *)claims, iter);
+	}
+
+	return false;
+}
+
+authz_status
+oauth2_apache_authorize(oauth2_apache_request_ctx_t *ctx,
+			const json_t *const claims, const char *require_args,
+			oauth2_apache_authz_match_claim_fn_type match_claim_fn)
+{
+
+	int count_oauth_claims = 0;
+	const char *t, *w;
+
+	if (ctx->r->user == NULL)
+		return AUTHZ_DENIED_NO_USER;
+
+	/* if no claims, impossible to satisfy */
+	if (!claims)
+		return AUTHZ_DENIED;
+
+	t = require_args;
+	while ((w = ap_getword_conf(ctx->r->pool, &t)) && w[0]) {
+
+		count_oauth_claims++;
+
+		oauth2_debug(ctx->log,
+			     "evaluating claim/expr specification: %s", w);
+
+		if (match_claim_fn(ctx, w, claims) == TRUE) {
+
+			oauth2_debug(ctx->log,
+				     "require claim/expr '%s' matched", w);
+			return AUTHZ_GRANTED;
+		}
+	}
+
+	if (count_oauth_claims == 0) {
+		oauth2_warn(ctx->log,
+			    "'require claim/expr' missing specification(s) in "
+			    "configuration, denying");
+	}
+
+	return AUTHZ_DENIED;
+}
+
 // clang-format off
 oauth2_cfg_server_callback_funcs_t oauth2_apache_server_callback_funcs = {
     _oauth2_apache_env_get_cb,

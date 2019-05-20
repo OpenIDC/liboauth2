@@ -36,6 +36,8 @@
 #include <http_config.h>
 #include <http_log.h>
 
+#include <mod_auth.h>
+
 // override ap_config_auto "" but to allow that we first have to undefine
 #undef PACKAGE_BUGREPORT
 #undef PACKAGE_NAME
@@ -303,5 +305,21 @@ bool oauth2_apache_set_request_user(oauth2_cfg_target_pass_t *target_pass,
 void oauth2_apache_target_pass(oauth2_apache_request_ctx_t *ctx,
 			       oauth2_cfg_target_pass_t *target_pass,
 			       const char *target_token, json_t *json_token);
+
+void oauth2_apache_request_state_set_json(oauth2_apache_request_ctx_t *ctx,
+					  const char *key, json_t *claims);
+void oauth2_apache_request_state_get_json(oauth2_apache_request_ctx_t *ctx,
+					  const char *key, json_t **claims);
+
+typedef bool (*oauth2_apache_authz_match_claim_fn_type)(
+    oauth2_apache_request_ctx_t *, const char *const, const json_t *const);
+
+bool oauth2_apache_authz_match_claim(oauth2_apache_request_ctx_t *ctx,
+				     const char *const attr_spec,
+				     const json_t *const claims);
+authz_status
+oauth2_apache_authorize(oauth2_apache_request_ctx_t *ctx,
+			const json_t *const claims, const char *require_args,
+			oauth2_apache_authz_match_claim_fn_type match_claim_fn);
 
 #endif /* _OAUTH2_APACHE_H_ */
