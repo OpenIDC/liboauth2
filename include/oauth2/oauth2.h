@@ -40,6 +40,7 @@
 
 #define OAUTH2_ERROR_INVALID_TOKEN "invalid_token"
 #define OAUTH2_ERROR_INVALID_REQUEST "invalid_request"
+#define OAUTH2_ERROR_INSUFFICIENT_SCOPE "insufficient_scope"
 
 bool oauth2_http_ctx_auth_add(oauth2_log_t *log, oauth2_http_call_ctx_t *ctx,
 			      oauth2_cfg_endpoint_auth_t *auth,
