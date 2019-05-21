@@ -40,6 +40,7 @@ Suite *oauth2_check_http_suite();
 Suite *oauth2_check_proto_suite();
 Suite *oauth2_check_oauth2_suite();
 Suite *oauth2_check_openidc_suite();
+Suite *oauth2_check_apache_suite();
 
 char *oauth2_check_http_serve(const char *request);
 char *oauth2_check_jose_serve(const char *request);

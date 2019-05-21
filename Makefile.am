@@ -157,7 +157,7 @@ check_liboauth2_LDADD = liboauth2.la
 if HAVE_APACHE
 check_liboauth2_CPPFLAGS += $(liboauth2_apache_la_CPPFLAGS)
 check_liboauth2_CFLAGS += $(liboauth2_apache_la_CFLAGS)
-check_liboauth2_LDADD += liboauth2_apache.la
+check_liboauth2_LDADD += liboauth2_apache.la ${liboauth2_apache_la_LIBADD}
 endif
 if HAVE_NGINX
 check_liboauth2_CPPFLAGS += $(liboauth2_nginx_la_CPPFLAGS)
@@ -181,6 +181,10 @@ check_liboauth2_SOURCES = \
 	test/check_oauth2.c \
 	test/check_openidc.c \
 	test/server_stubs.c
+if HAVE_APACHE
+check_liboauth2_SOURCES += \
+	test/check_apache.c
+endif
 
 endif
 

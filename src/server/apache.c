@@ -876,7 +876,8 @@ bool oauth2_apache_authz_match_claim(oauth2_apache_request_ctx_t *ctx,
 				return true;
 
 			/* a tilde denotes a string PCRE match */
-			//			} else if (!(*attr_c) && (*spec_c)
+			//			} else if (!(*attr_c) &&
+			//(*spec_c)
 			//== '~') {
 			//
 			//				/* skip the tilde */
@@ -884,7 +885,8 @@ bool oauth2_apache_authz_match_claim(oauth2_apache_request_ctx_t *ctx,
 			//
 			//				if
 			//(oauth2_authz_match_expression(r, spec_c, val) ==
-			//TRUE) 					return true;
+			// TRUE) 					return
+			// true;
 			/* dot means child nodes must be evaluated */
 		} else if (!(*attr_c) && (*spec_c) == '.') {
 

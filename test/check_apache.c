@@ -1,0 +1,227 @@
+/***************************************************************************
+ *
+ * Copyright (C) 2018-2019 - ZmartZone Holding BV - www.zmartzone.eu
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @Author: Hans Zandbelt - hans.zandbelt@zmartzone.eu
+ *
+ **************************************************************************/
+
+#include "check_liboauth2.h"
+#include "oauth2/apache.h"
+#include <check.h>
+
+static apr_pool_t *pool = NULL;
+static request_rec *request = NULL;
+static oauth2_log_t *log = 0;
+
+static request_rec *setup_request(apr_pool_t *pool)
+{
+	// const unsigned int kIdx = 0;
+	// const unsigned int kEls = kIdx + 1;
+	request_rec *request =
+	    (request_rec *)apr_pcalloc(pool, sizeof(request_rec));
+
+	request->pool = pool;
+
+	request->headers_in = apr_table_make(request->pool, 0);
+	request->headers_out = apr_table_make(request->pool, 0);
+	request->err_headers_out = apr_table_make(request->pool, 0);
+
+	apr_table_set(request->headers_in, "Host", "www.example.com");
+	apr_table_set(request->headers_in, "OIDC_foo", "some-value");
+	apr_table_set(request->headers_in, "Cookie",
+		      "foo=bar; "
+		      "oauth2_openidc_session"
+		      "=0123456789abcdef; baz=zot");
+
+	request->server = apr_pcalloc(request->pool, sizeof(struct server_rec));
+	request->server->process =
+	    apr_pcalloc(request->pool, sizeof(struct process_rec));
+	request->server->process->pool = request->pool;
+	request->connection =
+	    apr_pcalloc(request->pool, sizeof(struct conn_rec));
+	request->connection->bucket_alloc =
+	    apr_bucket_alloc_create(request->pool);
+	request->connection->local_addr =
+	    apr_pcalloc(request->pool, sizeof(apr_sockaddr_t));
+
+	apr_pool_userdata_set("https", "scheme", NULL, request->pool);
+	request->server->server_hostname = "www.example.com";
+	request->connection->local_addr->port = 443;
+	request->unparsed_uri = "/bla?foo=bar&param1=value1";
+	request->args = "foo=bar&param1=value1";
+	apr_uri_parse(request->pool,
+		      "https://www.example.com/bla?foo=bar&param1=value1",
+		      &request->parsed_uri);
+	/*
+		auth_openidc_module.module_index = kIdx;
+		oidc_cfg *cfg = oidc_create_server_config(request->pool,
+	   request->server); cfg->provider.issuer = "https://idp.example.com";
+		cfg->provider.authorization_endpoint_url =
+				"https://idp.example.com/authorize";
+		cfg->provider.scope = "openid";
+		cfg->provider.client_id = "client_id";
+		cfg->provider.token_binding_policy =
+	   OIDC_TOKEN_BINDING_POLICY_OPTIONAL; cfg->redirect_uri =
+	   "https://www.example.com/protected/";
+
+		oidc_dir_cfg *d_cfg = oidc_create_dir_config(request->pool,
+	   NULL);
+	*/
+	/*
+		request->server->module_config = apr_pcalloc(request->pool,
+				sizeof(ap_conf_vector_t *) * kEls);
+		request->per_dir_config = apr_pcalloc(request->pool,
+				sizeof(ap_conf_vector_t *) * kEls);
+	*/
+	/*
+		ap_set_module_config(request->server->module_config,
+	   &auth_openidc_module, cfg);
+		ap_set_module_config(request->per_dir_config,
+	   &auth_openidc_module, d_cfg);
+
+		cfg->crypto_passphrase = "12345678901234567890123456789012";
+		cfg->cache = &oidc_cache_shm;
+		cfg->cache_cfg = NULL;
+		cfg->cache_shm_size_max = 500;
+		cfg->cache_shm_entry_size_max = 16384 + 255 + 17;
+		cfg->cache_encrypt = 1;
+		if (cfg->cache->post_config(request->server) != OK) {
+			printf("cfg->cache->post_config failed!\n");
+			exit(-1);
+		}
+	*/
+	return request;
+}
+
+static void check_apache_log_request(oauth2_log_sink_t *sink,
+				     const char *filename, unsigned long line,
+				     const char *function,
+				     oauth2_log_level_t level, const char *msg)
+{
+	oauth2_log(log, filename, line, function, level, "%s", msg);
+}
+
+static void setup(void)
+{
+	log = oauth2_init(OAUTH2_LOG_TRACE1, 0);
+
+	apr_initialize();
+	apr_pool_create(&pool, NULL);
+	request = setup_request(pool);
+}
+
+static void teardown(void)
+{
+	apr_pool_destroy(pool);
+	apr_terminate();
+
+	oauth2_shutdown(log);
+}
+
+START_TEST(test_apache_request_state)
+{
+	json_error_t err;
+	const char *s_claims = "{ \"sub\": \"joe\" }";
+	json_t *in_claims = NULL, *out_claims = NULL;
+	const char *key = "C";
+	char *value = NULL;
+	oauth2_apache_request_ctx_t *ctx = NULL;
+
+	ctx = oauth2_apache_request_context(request, check_apache_log_request,
+					    "check_apache");
+	in_claims = json_loads(s_claims, 0, &err);
+
+	oauth2_apache_request_state_set_json(ctx, key, in_claims);
+
+	oauth2_apache_request_state_get_json(ctx, key, &out_claims);
+	ck_assert_ptr_ne(out_claims, NULL);
+
+	oauth2_json_string_get(log, out_claims, "sub", &value, NULL);
+	ck_assert_ptr_ne(value, NULL);
+	ck_assert_str_eq(value, "joe");
+
+	json_decref(in_claims);
+	json_decref(out_claims);
+}
+END_TEST
+
+START_TEST(test_apache_authz_match_claim)
+{
+	json_error_t err;
+	oauth2_apache_request_ctx_t *ctx = NULL;
+	const char *s_claims = "{ \"sub\": \"joe\" }";
+	json_t *claims = NULL;
+	bool rc = false;
+
+	ctx = oauth2_apache_request_context(request, check_apache_log_request,
+					    "check_apache");
+	claims = json_loads(s_claims, 0, &err);
+
+	rc = oauth2_apache_authz_match_claim(ctx, "sub:joe", claims);
+	ck_assert_int_eq(rc, true);
+
+	rc = oauth2_apache_authz_match_claim(ctx, "sub:hans", claims);
+	ck_assert_int_eq(rc, false);
+
+	json_decref(claims);
+}
+END_TEST
+
+START_TEST(test_apache_authorize)
+{
+	json_error_t err;
+	oauth2_apache_request_ctx_t *ctx = NULL;
+	const char *s_claims = "{ \"sub\": \"joe\" }";
+	json_t *claims = NULL;
+	authz_status rc = AUTHZ_DENIED;
+
+	ctx = oauth2_apache_request_context(request, check_apache_log_request,
+					    "check_apache");
+	claims = json_loads(s_claims, 0, &err);
+
+	rc = oauth2_apache_authorize(ctx, claims, "sub:hans",
+				     oauth2_apache_authz_match_claim);
+	ck_assert_int_eq(rc, AUTHZ_DENIED_NO_USER);
+
+	request->user = "joe";
+	rc = oauth2_apache_authorize(ctx, claims, "sub:hans",
+				     oauth2_apache_authz_match_claim);
+	ck_assert_int_eq(rc, AUTHZ_DENIED);
+
+	rc = oauth2_apache_authorize(ctx, claims, "sub:joe",
+				     oauth2_apache_authz_match_claim);
+	ck_assert_int_eq(rc, AUTHZ_GRANTED);
+
+	json_decref(claims);
+}
+END_TEST
+
+Suite *oauth2_check_apache_suite()
+{
+	Suite *s = suite_create("apache");
+	TCase *c = tcase_create("core");
+
+	tcase_add_checked_fixture(c, setup, teardown);
+
+	tcase_add_test(c, test_apache_request_state);
+	tcase_add_test(c, test_apache_authz_match_claim);
+	tcase_add_test(c, test_apache_authorize);
+
+	suite_add_tcase(s, c);
+
+	return s;
+}
