@@ -112,14 +112,12 @@ void *oauth2_apache_cfg_srv_create(apr_pool_t *pool, server_rec *s,
 	    (oauth2_apache_cfg_srv_t *)oauth2_mem_alloc(
 		sizeof(oauth2_apache_cfg_srv_t));
 
-	cfg->sink = oauth2_mem_alloc(sizeof(oauth2_log_sink_t));
-	cfg->sink->callback = server_log_cb;
 	// NB: this is not actually set to the/a configured level here...
-	cfg->sink->level = (s && (s->log.level != -1))
-			       ? log_level_apache2oauth2[s->log.level]
-			       : OAUTH2_LOG_TRACE1;
-	cfg->sink->ctx = s;
-	cfg->log = oauth2_log_init(cfg->sink->level, cfg->sink);
+	oauth2_uint_t level = (s && (s->log.level != -1))
+				  ? log_level_apache2oauth2[s->log.level]
+				  : OAUTH2_LOG_TRACE1;
+	cfg->sink = oauth2_log_sink_create(level, server_log_cb, s);
+	cfg->log = oauth2_log_init(level, cfg->sink);
 
 	return cfg;
 }
@@ -128,7 +126,8 @@ void *oauth2_apache_cfg_srv_merge(apr_pool_t *pool, void *b, void *a)
 {
 	oauth2_apache_cfg_srv_t *add = (oauth2_apache_cfg_srv_t *)a;
 	oauth2_apache_cfg_srv_t *cfg = oauth2_apache_cfg_srv_create(
-	    pool, (server_rec *)add->sink->ctx, add->sink->callback);
+	    pool, (server_rec *)oauth2_log_sink_ctx_get(add->sink),
+	    oauth2_log_sink_ctx_get(add->sink));
 	return cfg;
 }
 
@@ -194,9 +193,10 @@ int oauth2_apache_post_config(apr_pool_t *pool, apr_pool_t *p1, apr_pool_t *p2,
 		cfg = (oauth2_apache_cfg_srv_t *)ap_get_module_config(
 		    sp->module_config, m);
 		// only now the level has been set according to the config!
-		cfg->sink->level = (sp && (sp->log.level != -1))
-				       ? log_level_apache2oauth2[sp->log.level]
-				       : OAUTH2_LOG_TRACE1;
+		oauth2_log_sink_level_set(
+		    cfg->sink, (sp && (sp->log.level != -1))
+				   ? log_level_apache2oauth2[sp->log.level]
+				   : OAUTH2_LOG_TRACE1);
 	}
 
 	apr_pool_cleanup_register(pool, s, parent_cleanup, child_cleanup);
@@ -254,14 +254,11 @@ oauth2_apache_request_context_init(request_rec *r,
 	ctx->r = r;
 
 	// TODO: more elegant log-for-request handling
-	log_sink_apache = oauth2_mem_alloc(sizeof(oauth2_log_sink_t));
-	log_sink_apache->callback = request_log_cb;
-	log_sink_apache->level = (r && r->log)
-				     ? log_level_apache2oauth2[r->log->level]
-				     : OAUTH2_LOG_TRACE1;
-	log_sink_apache->level = OAUTH2_LOG_TRACE1;
-	log_sink_apache->ctx = r;
-	ctx->log = oauth2_log_init(log_sink_apache->level, log_sink_apache);
+	oauth2_log_level_t level = (r && r->log)
+				       ? log_level_apache2oauth2[r->log->level]
+				       : OAUTH2_LOG_TRACE1;
+	log_sink_apache = oauth2_log_sink_create(level, request_log_cb, r);
+	ctx->log = oauth2_log_init(level, log_sink_apache);
 
 	ctx->request = oauth2_http_request_init(ctx->log);
 

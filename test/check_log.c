@@ -51,6 +51,34 @@ START_TEST(test_log)
 }
 END_TEST
 
+static int check_log_test_sink_callback_dummy = 0;
+
+static void
+check_log_test_sink_callback(oauth2_log_sink_t *sink, const char *filename,
+			     unsigned long line, const char *function,
+			     oauth2_log_level_t level, const char *msg)
+{
+	check_log_test_sink_callback_dummy = 1;
+}
+
+START_TEST(test_sink)
+{
+	char *dummy = "dummy";
+	oauth2_log_sink_t *sink = oauth2_log_sink_create(
+	    OAUTH2_LOG_TRACE1, check_log_test_sink_callback, dummy);
+
+	oauth2_log_sink_add(log, sink);
+
+	ck_assert_ptr_eq(oauth2_log_sink_callback_get(sink),
+			 check_log_test_sink_callback);
+	ck_assert_ptr_eq(oauth2_log_sink_ctx_get(sink), dummy);
+
+	check_log_test_sink_callback_dummy = 0;
+	oauth2_info(log, "");
+	ck_assert_int_eq(check_log_test_sink_callback_dummy, 1);
+}
+END_TEST
+
 Suite *oauth2_check_log_suite()
 {
 	Suite *s = suite_create("log");
@@ -59,6 +87,7 @@ Suite *oauth2_check_log_suite()
 	tcase_add_checked_fixture(c, setup, teardown);
 
 	tcase_add_test(c, test_log);
+	tcase_add_test(c, test_sink);
 
 	suite_add_tcase(s, c);
 

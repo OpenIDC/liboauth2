@@ -71,24 +71,26 @@ extern oauth2_uint_t log_level_apache2oauth2[];
 	    oauth2_log_sink_t *sink, const char *filename, unsigned long line, \
 	    const char *function, oauth2_log_level_t level, const char *msg)   \
 	{                                                                      \
-		ap_log_error(filename, line,                                   \
-			     aplog_module_index ? *aplog_module_index          \
-						: APLOG_NO_MODULE,             \
-			     log_level_log2apache[level], 0,                   \
-			     (const server_rec *)sink->ctx, "%s: %s",          \
-			     function, msg);                                   \
+		ap_log_error(                                                  \
+		    filename, line,                                            \
+		    aplog_module_index ? *aplog_module_index                   \
+				       : APLOG_NO_MODULE,                      \
+		    log_level_log2apache[level], 0,                            \
+		    (const server_rec *)oauth2_log_sink_ctx_get(sink),         \
+		    "%s: %s", function, msg);                                  \
 	}                                                                      \
                                                                                \
 	static void foo##_log_request(                                         \
 	    oauth2_log_sink_t *sink, const char *filename, unsigned long line, \
 	    const char *function, oauth2_log_level_t level, const char *msg)   \
 	{                                                                      \
-		ap_log_rerror(filename, line,                                  \
-			      aplog_module_index ? *aplog_module_index         \
-						 : APLOG_NO_MODULE,            \
-			      log_level_log2apache[level], 0,                  \
-			      (const request_rec *)sink->ctx, "%s: %s",        \
-			      function, msg);                                  \
+		ap_log_rerror(                                                 \
+		    filename, line,                                            \
+		    aplog_module_index ? *aplog_module_index                   \
+				       : APLOG_NO_MODULE,                      \
+		    log_level_log2apache[level], 0,                            \
+		    (const request_rec *)oauth2_log_sink_ctx_get(sink),        \
+		    "%s: %s", function, msg);                                  \
 	}
 
 /*

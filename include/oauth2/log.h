@@ -91,12 +91,6 @@ typedef void (*oauth2_log_function_t)(oauth2_log_sink_t *sink,
 				      oauth2_log_level_t level,
 				      const char *msg);
 
-typedef struct oauth2_log_sink_t {
-	oauth2_log_level_t level;
-	oauth2_log_function_t callback;
-	void *ctx;
-} oauth2_log_sink_t;
-
 /*
  * API
  */
@@ -108,6 +102,11 @@ void oauth2_log(oauth2_log_t *log, const char *filename, unsigned long line,
 		const char *function, oauth2_log_level_t level, const char *fmt,
 		...);
 
+oauth2_log_sink_t *oauth2_log_sink_create(oauth2_log_level_t level,
+					  oauth2_log_function_t callback,
+					  void *ctx);
+void *oauth2_log_sink_ctx_get(oauth2_log_sink_t *sink);
+oauth2_log_function_t oauth2_log_sink_callback_get(oauth2_log_sink_t *sink);
 void oauth2_log_sink_add(oauth2_log_t *log, oauth2_log_sink_t *add);
 void oauth2_log_sink_level_set(oauth2_log_sink_t *sink,
 			       oauth2_log_level_t level);

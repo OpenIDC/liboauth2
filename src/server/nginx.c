@@ -62,8 +62,9 @@ void oauth2_nginx_log(oauth2_log_sink_t *sink, const char *filename,
 		      oauth2_log_level_t level, const char *msg)
 {
 	// TODO: ngx_err_t?
-	ngx_log_error_core(log_level_log2nginx[level], (ngx_log_t *)sink->ctx,
-			   0, "# %s: %s", function, msg);
+	ngx_log_error_core(log_level_log2nginx[level],
+			   (ngx_log_t *)oauth2_log_sink_ctx_get(sink), 0,
+			   "# %s: %s", function, msg);
 }
 
 oauth2_nginx_request_context_t *
@@ -80,13 +81,11 @@ oauth2_nginx_request_context_init(ngx_http_request_t *r)
 
 	ctx->r = r;
 
-	// TODO: more elegant log-for-request handling
-	log_sink_nginx = oauth2_mem_alloc(sizeof(oauth2_log_sink_t));
-	log_sink_nginx->callback = oauth2_nginx_log;
 	// TODO: get the log level from NGINX...
-	log_sink_nginx->level = OAUTH2_LOG_TRACE1;
-	log_sink_nginx->ctx = r->connection->log;
-	ctx->log = oauth2_log_init(log_sink_nginx->level, log_sink_nginx);
+	oauth2_log_level_t level = OAUTH2_LOG_TRACE1;
+	log_sink_nginx =
+	    oauth2_log_sink_create(level, oauth2_nginx_log, r->connection->log);
+	ctx->log = oauth2_log_init(level, log_sink_nginx);
 
 	oauth2_debug(ctx->log, "created NGINX request context: %p", ctx);
 

@@ -26,6 +26,12 @@
 #include <stdarg.h>
 #include <stdlib.h>
 
+typedef struct oauth2_log_sink_t {
+	oauth2_log_level_t level;
+	oauth2_log_function_t callback;
+	void *ctx;
+} oauth2_log_sink_t;
+
 // note this is fastest, but must maintain the order of the enum...
 static const char *_oauth2_log_level2str[] = {"ERR", "WRN", "NOT", "INF",
 					      "DBG", "TR1", "TR2"};
@@ -43,6 +49,27 @@ typedef struct oauth2_log_sink_list_t {
 typedef struct oauth2_log_t {
 	oauth2_log_sink_list_t sinks;
 } oauth2_log_t;
+
+oauth2_log_sink_t *oauth2_log_sink_create(oauth2_log_level_t level,
+					  oauth2_log_function_t callback,
+					  void *ctx)
+{
+	oauth2_log_sink_t *sink = oauth2_mem_alloc(sizeof(oauth2_log_sink_t));
+	sink->callback = callback;
+	sink->level = level;
+	sink->ctx = ctx;
+	return sink;
+}
+
+void *oauth2_log_sink_ctx_get(oauth2_log_sink_t *sink)
+{
+	return sink->ctx;
+}
+
+oauth2_log_function_t oauth2_log_sink_callback_get(oauth2_log_sink_t *sink)
+{
+	return sink->callback;
+}
 
 void oauth2_log_sink_add(oauth2_log_t *log, oauth2_log_sink_t *add)
 {

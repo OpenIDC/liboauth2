@@ -1,3 +1,7 @@
+07/01/2019
+- encapsulate oauth2_log_sink_t
+- bump to version 1.1.0
+
 05/20/2019
 - add Apache Require claim authorization functions
 - bump to version 1.0.1
