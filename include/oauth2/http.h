@@ -68,6 +68,8 @@ typedef enum {
 	OAUTH2_HTTP_METHOD_OPTIONS
 } oauth2_http_method_t;
 
+typedef oauth2_uint_t oauth2_http_status_code_t;
+
 /*
  * TODO: make sure the caller calls:
  *       1. oauth2_http_request_scheme_set to set the "native" URL scheme on
@@ -170,18 +172,19 @@ bool oauth2_http_call_ctx_basic_auth_set(oauth2_log_t *log,
 
 bool oauth2_http_call(oauth2_log_t *log, const char *url, const char *data,
 		      oauth2_http_call_ctx_t *ctx, char **response,
-		      oauth2_uint_t *status_code);
+		      oauth2_http_status_code_t *status_code);
 bool oauth2_http_get(oauth2_log_t *log, const char *url,
 		     const oauth2_nv_list_t *params,
 		     oauth2_http_call_ctx_t *ctx, char **response,
-		     oauth2_uint_t *status_code);
+		     oauth2_http_status_code_t *status_code);
 bool oauth2_http_post_form(oauth2_log_t *log, const char *url,
 			   const oauth2_nv_list_t *params,
 			   oauth2_http_call_ctx_t *ctx, char **response,
-			   oauth2_uint_t *status_code);
+			   oauth2_http_status_code_t *status_code);
 bool oauth2_http_post_json(oauth2_log_t *log, const char *url,
 			   const json_t *json, oauth2_http_call_ctx_t *ctx,
-			   char **response, oauth2_uint_t *status_code);
+			   char **response,
+			   oauth2_http_status_code_t *status_code);
 
 /*
  * http cookie functions

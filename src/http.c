@@ -853,7 +853,7 @@ end:
 
 bool oauth2_http_call(oauth2_log_t *log, const char *url, const char *data,
 		      oauth2_http_call_ctx_t *ctx, char **response,
-		      oauth2_uint_t *status_code)
+		      oauth2_http_status_code_t *status_code)
 {
 	bool rc = false;
 	char *str = NULL;
@@ -861,6 +861,7 @@ bool oauth2_http_call(oauth2_log_t *log, const char *url, const char *data,
 
 	char err[CURL_ERROR_SIZE];
 	CURL *curl = NULL;
+	CURLcode errornum = CURLE_OK;
 	struct curl_slist *h_list = NULL;
 	oauth2_http_curl_buf_t buf;
 	buf.log = log;
@@ -977,9 +978,15 @@ bool oauth2_http_call(oauth2_log_t *log, const char *url, const char *data,
 
 	curl_easy_setopt(curl, CURLOPT_URL, url);
 
-	if (curl_easy_perform(curl) != CURLE_OK) {
-		oauth2_error(log, "curl_easy_perform() failed on: %s (%s)", url,
+	errornum = curl_easy_perform(curl);
+	if (errornum != CURLE_OK) {
+		oauth2_error(log, "curl_easy_perform() failed on: %s (%s: %s)",
+			     url, curl_easy_strerror(errornum),
 			     err[0] ? err : "");
+		if (errornum == CURLE_OPERATION_TIMEDOUT)
+			// 408 Request Timeout
+			// 504 Gateway Timeout
+			*status_code = 504;
 		goto end;
 	}
 
@@ -1011,7 +1018,7 @@ end:
 bool oauth2_http_get(oauth2_log_t *log, const char *url,
 		     const oauth2_nv_list_t *params,
 		     oauth2_http_call_ctx_t *ctx, char **response,
-		     oauth2_uint_t *status_code)
+		     oauth2_http_status_code_t *status_code)
 {
 	bool rc = false;
 	char *query_url = NULL;
@@ -1032,7 +1039,7 @@ bool oauth2_http_get(oauth2_log_t *log, const char *url,
 bool oauth2_http_post_form(oauth2_log_t *log, const char *url,
 			   const oauth2_nv_list_t *params,
 			   oauth2_http_call_ctx_t *ctx, char **response,
-			   oauth2_uint_t *status_code)
+			   oauth2_http_status_code_t *status_code)
 {
 	bool rc = false;
 	char *data = NULL;
@@ -1051,7 +1058,8 @@ bool oauth2_http_post_form(oauth2_log_t *log, const char *url,
 
 bool oauth2_http_post_json(oauth2_log_t *log, const char *url,
 			   const json_t *json, oauth2_http_call_ctx_t *ctx,
-			   char **response, oauth2_uint_t *status_code)
+			   char **response,
+			   oauth2_http_status_code_t *status_code)
 {
 	bool rc = false;
 	char *json_str = NULL;

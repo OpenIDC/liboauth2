@@ -1,3 +1,7 @@
+07/03/2019
+- return status code from HTTP callouts
+- bump to version 1.1.1
+
 07/01/2019
 - encapsulate oauth2_log_sink_t
 - bump to version 1.1.0
