@@ -1,5 +1,5 @@
-#ifndef _OAUTH2_OPENIDC_H_
-#define _OAUTH2_OPENIDC_H_
+#ifndef _OAUTH2_SESSION_H_
+#define _OAUTH2_SESSION_H_
 
 /***************************************************************************
  *
@@ -22,33 +22,14 @@
  *
  **************************************************************************/
 
-#include "oauth2/http.h"
+#include "oauth2/openidc.h"
 #include "oauth2/util.h"
 
-/*
- * location-based OpenID Connect configuration
- */
+OAUTH2_TYPE_DECLARE(session, rec)
+// OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(session, rec, user, char *)
 
-OAUTH2_TYPE_DECLARE(openidc, cfg)
-OAUTH2_TYPE_DECLARE_MEMBER_SET(openidc, cfg, redirect_uri, char *)
+bool oauth2_session_load(oauth2_log_t *log, const oauth2_openidc_cfg_t *c,
+			 const oauth2_http_request_t *r,
+			 oauth2_session_rec_t **session);
 
-char *oauth2_openidc_cfg_redirect_uri_get(oauth2_log_t *,
-					  const oauth2_openidc_cfg_t *,
-					  const oauth2_http_request_t *);
-
-/*
- * OpenID Connect provider configuration
- */
-
-OAUTH2_TYPE_DECLARE(openidc, provider)
-OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, issuer, char *)
-
-char *oauth2_openidc_cfg_redirect_uri_get_iss(
-    oauth2_log_t *, const oauth2_openidc_cfg_t *, const oauth2_http_request_t *,
-    const oauth2_openidc_provider_t *);
-
-oauth2_http_status_code_t oauth2_openidc_handle(oauth2_log_t *log,
-						const oauth2_openidc_cfg_t *c,
-						const oauth2_http_request_t *r);
-
-#endif /* _OAUTH2_OPENIDC_H_ */
+#endif /* _OAUTH2_SESSION_H_ */

@@ -29,6 +29,7 @@ includesub_HEADERS = \
 	include/oauth2/proto.h \
 	include/oauth2/oauth2.h \
 	include/oauth2/openidc.h \
+	include/oauth2/session.h \
 	include/oauth2/cfg.h \
 	include/oauth2/util.h
 
@@ -71,6 +72,7 @@ liboauth2_la_SOURCES = \
 	src/proto.c \
 	src/oauth2_int.h \
 	src/oauth2.c \
+	src/session.c \
 	src/openidc.c
 
 #

@@ -1,3 +1,6 @@
+08/19/2019
+- add first outline of openidc and sessions
+
 07/03/2019
 - return status code from HTTP callouts
 - bump to version 1.1.1

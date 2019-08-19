@@ -19,10 +19,12 @@
  *
  **************************************************************************/
 
-#include "oauth2/openidc.h"
-
+#include "oauth2/log.h"
 #include "oauth2/mem.h"
-#include "oauth2/util.h"
+
+#include "oauth2/openidc.h"
+#include "oauth2/session.h"
+
 #include "util_int.h"
 
 #include <string.h>
@@ -168,4 +170,31 @@ end:
 		oauth2_mem_free(issuer);
 
 	return redirect_uri;
+}
+
+oauth2_http_status_code_t oauth2_openidc_handle(oauth2_log_t *log,
+						const oauth2_openidc_cfg_t *c,
+						const oauth2_http_request_t *r)
+{
+
+	oauth2_http_status_code_t status_code = 0;
+	oauth2_session_rec_t *session = NULL;
+
+	oauth2_debug(log, "incoming request: %s%s%s",
+		     oauth2_http_request_path_get(log, r),
+		     oauth2_http_request_path_get(log, r) ? "?" : "",
+		     oauth2_http_request_path_get(log, r)
+			 ? oauth2_http_request_path_get(log, r)
+			 : "");
+
+	if (oauth2_session_load(log, c, r, &session) == false)
+		goto end;
+
+	// check session->user
+
+end:
+
+	oauth2_session_rec_free(log, session);
+
+	return status_code;
 }
