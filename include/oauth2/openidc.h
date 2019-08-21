@@ -23,6 +23,7 @@
  **************************************************************************/
 
 #include "oauth2/http.h"
+#include "oauth2/oauth2.h"
 #include "oauth2/util.h"
 
 /*
@@ -31,6 +32,8 @@
 
 OAUTH2_TYPE_DECLARE(openidc, cfg)
 OAUTH2_TYPE_DECLARE_MEMBER_SET(openidc, cfg, redirect_uri, char *)
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, cfg, unauth_action,
+				   oauth2_unauth_action_t)
 
 char *oauth2_openidc_cfg_redirect_uri_get(oauth2_log_t *,
 					  const oauth2_openidc_cfg_t *,

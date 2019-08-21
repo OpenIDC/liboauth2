@@ -714,6 +714,44 @@ START_TEST(test_auth)
 }
 END_TEST
 
+START_TEST(test_xml_http_request)
+{
+	bool rc = false;
+	oauth2_http_request_t *r = NULL;
+
+	r = oauth2_http_request_init(log);
+
+	rc = oauth2_http_request_hdr_in_set(log, r, "Accept", "text/html");
+	ck_assert_int_eq(rc, true);
+	rc = oauth2_http_is_xml_http_request(log, r);
+	ck_assert_int_eq(rc, false);
+
+	rc = oauth2_http_request_hdr_in_set(log, r, "Accept",
+					    "application/json");
+	ck_assert_int_eq(rc, true);
+	rc = oauth2_http_is_xml_http_request(log, r);
+	ck_assert_int_eq(rc, true);
+
+	rc = oauth2_http_request_hdr_in_set(log, r, "Accept", "*/*");
+	ck_assert_int_eq(rc, true);
+	rc = oauth2_http_is_xml_http_request(log, r);
+	ck_assert_int_eq(rc, false);
+
+	rc = oauth2_http_request_hdr_in_set(log, r, "X-Requested-With",
+					    "XMLHttpRequest");
+	ck_assert_int_eq(rc, true);
+	rc = oauth2_http_request_hdr_in_set(
+	    log, r, "Accept",
+	    "text/html, application/xhtml+xml, application/xml;q=0.9, "
+	    "image/webp, */*;q=0.8");
+	ck_assert_int_eq(rc, true);
+	rc = oauth2_http_is_xml_http_request(log, r);
+	ck_assert_int_eq(rc, true);
+
+	oauth2_http_request_free(log, r);
+}
+END_TEST
+
 Suite *oauth2_check_http_suite()
 {
 	Suite *s = suite_create("http");
@@ -733,6 +771,7 @@ Suite *oauth2_check_http_suite()
 	tcase_add_test(c, test_http_post_form);
 	tcase_add_test(c, test_cookies);
 	tcase_add_test(c, test_auth);
+	tcase_add_test(c, test_xml_http_request);
 
 	suite_add_tcase(s, c);
 

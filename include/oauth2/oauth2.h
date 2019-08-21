@@ -42,6 +42,14 @@
 #define OAUTH2_ERROR_INVALID_REQUEST "invalid_request"
 #define OAUTH2_ERROR_INSUFFICIENT_SCOPE "insufficient_scope"
 
+typedef enum {
+	OAUTH2_UNAUTH_ACTION_UNDEFINED,
+	OAUTH2_UNAUTH_ACTION_AUTHENTICATE,
+	OAUTH2_UNAUTH_ACTION_PASS,
+	OAUTH2_UNAUTH_ACTION_HTTP_401,
+	OAUTH2_UNAUTH_ACTION_HTTP_410
+} oauth2_unauth_action_t;
+
 bool oauth2_http_ctx_auth_add(oauth2_log_t *log, oauth2_http_call_ctx_t *ctx,
 			      oauth2_cfg_endpoint_auth_t *auth,
 			      oauth2_nv_list_t *params);

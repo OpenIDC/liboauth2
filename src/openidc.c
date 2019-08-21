@@ -32,6 +32,7 @@
 // TODO: set add log
 typedef struct oauth2_openidc_cfg_t {
 	char *redirect_uri;
+	oauth2_unauth_action_t unauth_action;
 } oauth2_openidc_cfg_t;
 
 oauth2_openidc_cfg_t *oauth2_openidc_cfg_init(oauth2_log_t *log)
@@ -96,6 +97,9 @@ end:
 
 	return redirect_uri;
 }
+
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, cfg, unauth_action,
+				      oauth2_unauth_action_t, uint)
 
 typedef struct oauth2_openidc_provider_t {
 	char *issuer;
@@ -172,6 +176,70 @@ end:
 	return redirect_uri;
 }
 
+static oauth2_http_status_code_t
+_oauth2_openidc_authenticate(oauth2_log_t *log, const oauth2_openidc_cfg_t *cfg,
+			     const oauth2_http_request_t *request,
+			     oauth2_session_rec_t *session)
+{
+	oauth2_http_status_code_t status_code = 0;
+
+	goto end;
+
+end:
+
+	return status_code;
+}
+
+static oauth2_http_status_code_t _oauth2_openidc_unauthenticated_request(
+    oauth2_log_t *log, const oauth2_openidc_cfg_t *cfg,
+    const oauth2_http_request_t *request, oauth2_session_rec_t *session)
+{
+	oauth2_http_status_code_t status_code = 0;
+
+	switch (oauth2_openidc_cfg_unauth_action_get(log, cfg)) {
+	case OAUTH2_UNAUTH_ACTION_PASS:
+		// r->user = "";
+		// oidc_scrub_headers(r);
+		goto end;
+		break;
+	case OAUTH2_UNAUTH_ACTION_HTTP_401:
+		status_code = 401;
+		goto end;
+		break;
+	case OAUTH2_UNAUTH_ACTION_HTTP_410:
+		status_code = 410;
+		goto end;
+		break;
+	case OAUTH2_UNAUTH_ACTION_AUTHENTICATE:
+	case OAUTH2_UNAUTH_ACTION_UNDEFINED:
+	default:
+		if (oauth2_http_is_xml_http_request(log, request)) {
+			status_code = 401;
+			goto end;
+		}
+		break;
+	}
+
+	status_code = _oauth2_openidc_authenticate(log, cfg, request, session);
+
+end:
+
+	return status_code;
+}
+
+static oauth2_http_status_code_t _oauth2_openidc_existing_session(
+    oauth2_log_t *log, const oauth2_openidc_cfg_t *c,
+    const oauth2_http_request_t *r, oauth2_session_rec_t *session)
+{
+	oauth2_http_status_code_t status_code = 200;
+
+	goto end;
+
+end:
+
+	return status_code;
+}
+
 oauth2_http_status_code_t oauth2_openidc_handle(oauth2_log_t *log,
 						const oauth2_openidc_cfg_t *c,
 						const oauth2_http_request_t *r)
@@ -190,7 +258,20 @@ oauth2_http_status_code_t oauth2_openidc_handle(oauth2_log_t *log,
 	if (oauth2_session_load(log, c, r, &session) == false)
 		goto end;
 
-	// check session->user
+	// TODO: handle requests to the redirect uri
+	// TODO: handle other custom request handlers:
+	// - session info
+	// - key materials
+	// - 3rd-party init SSO
+
+	if (oauth2_session_rec_user_get(log, session) != NULL) {
+		status_code =
+		    _oauth2_openidc_existing_session(log, c, r, session);
+		goto end;
+	}
+
+	status_code =
+	    _oauth2_openidc_unauthenticated_request(log, c, r, session);
 
 end:
 

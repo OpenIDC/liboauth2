@@ -244,6 +244,21 @@ oauth2_http_hdr_in_content_length_get(oauth2_log_t *log,
 					      OAUTH2_HTTP_HDR_CONTENT_LENGTH);
 }
 
+const char *
+oauth2_http_hdr_in_x_requested_with_get(oauth2_log_t *log,
+					const oauth2_http_request_t *request)
+{
+	return oauth2_http_request_hdr_in_get(log, request,
+					      OAUTH2_HTTP_HDR_X_REQUESTED_WITH);
+}
+
+const char *oauth2_http_hdr_in_accept_get(oauth2_log_t *log,
+					  const oauth2_http_request_t *request)
+{
+	return oauth2_http_request_hdr_in_get(log, request,
+					      OAUTH2_HTTP_HDR_ACCEPT);
+}
+
 #define OAUTH2_HTTP_HDR_CONTENT_LENGTH_MAX 256
 
 bool oauth2_http_hdr_in_content_length_set(oauth2_log_t *log,
@@ -1351,4 +1366,71 @@ bool oauth2_http_auth_basic(oauth2_log_t *log, const char *username,
 {
 	return oauth2_http_call_ctx_basic_auth_set(log, ctx, username, passwd,
 						   false);
+}
+
+static bool oauth2_http_hdr_in_contains(oauth2_log_t *log,
+					const oauth2_http_request_t *request,
+					const char *name, char sepchar,
+					const char *needle)
+{
+	bool rc = false;
+	char *save_input = NULL, *val = NULL;
+	const char *value = NULL, *p = NULL;
+
+	if (name == NULL)
+		goto end;
+
+	value = oauth2_http_request_hdr_in_get(log, request, name);
+	if (value == NULL)
+		goto end;
+
+	save_input = oauth2_strdup(value);
+	p = save_input;
+
+	while (p && *p) {
+		val = oauth2_getword(&p, sepchar);
+		if (val == NULL)
+			break;
+		rc = (strncasecmp(val, needle, strlen(needle)) == 0);
+		oauth2_mem_free(val);
+		if (rc == true)
+			break;
+	}
+
+end:
+
+	if (save_input)
+		oauth2_mem_free(save_input);
+
+	return rc;
+}
+
+bool oauth2_http_is_xml_http_request(oauth2_log_t *log,
+				     const oauth2_http_request_t *request)
+{
+	bool rc = false;
+
+	if ((oauth2_http_hdr_in_x_requested_with_get(log, request) != NULL) &&
+	    (strcasecmp(oauth2_http_hdr_in_x_requested_with_get(log, request),
+			OAUTH2_HTTP_HDR_XML_HTTP_REQUEST) == 0)) {
+		rc = true;
+		goto end;
+	}
+
+	if ((oauth2_http_hdr_in_contains(
+		 log, request, OAUTH2_HTTP_HDR_ACCEPT, _OAUTH2_CHAR_COMMA,
+		 OAUTH2_CONTENT_TYPE_TEXT_HTML) == false) &&
+	    (oauth2_http_hdr_in_contains(
+		 log, request, OAUTH2_HTTP_HDR_ACCEPT, _OAUTH2_CHAR_COMMA,
+		 OAUTH2_CONTENT_TYPE_APP_XHTML_XML) == false) &&
+	    (oauth2_http_hdr_in_contains(log, request, OAUTH2_HTTP_HDR_ACCEPT,
+					 _OAUTH2_CHAR_COMMA,
+					 OAUTH2_CONTENT_TYPE_ANY) == false)) {
+		rc = true;
+		goto end;
+	}
+
+end:
+
+	return rc;
 }

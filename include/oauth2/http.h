@@ -38,6 +38,8 @@
 #define OAUTH2_HTTP_HDR_CONTENT_TYPE "Content-Type"
 #define OAUTH2_HTTP_HDR_CONTENT_LENGTH "Content-Length"
 #define OAUTH2_HTTP_HDR_AUTHORIZATION "Authorization"
+#define OAUTH2_HTTP_HDR_X_REQUESTED_WITH "X-Requested-With"
+#define OAUTH2_HTTP_HDR_ACCEPT "Accept"
 
 #define OAUTH2_HTTP_HDR_BEARER "Bearer"
 #define OAUTH2_HTTP_HDR_BASIC "Basic"
@@ -45,12 +47,16 @@
 #define OAUTH2_HTTP_HDR_REALM "realm"
 
 #define OAUTH2_HTTP_HDR_WWW_AUTHENTICATE "WWW-Authenticate"
+#define OAUTH2_HTTP_HDR_XML_HTTP_REQUEST "XMLHttpRequest"
 
 /*
  * content type
  */
 #define OAUTH2_CONTENT_TYPE_FORM_ENCODED "application/x-www-form-urlencoded"
 #define OAUTH2_CONTENT_TYPE_JSON "application/json"
+#define OAUTH2_CONTENT_TYPE_TEXT_HTML "text/html"
+#define OAUTH2_CONTENT_TYPE_APP_XHTML_XML "application/xhtml+xml"
+#define OAUTH2_CONTENT_TYPE_ANY "*/*"
 
 /*
  * protocol
@@ -127,6 +133,14 @@ oauth2_http_hdr_in_content_length_get(oauth2_log_t *log,
 bool oauth2_http_hdr_in_content_length_set(oauth2_log_t *log,
 					   oauth2_http_request_t *r,
 					   size_t len);
+const char *
+oauth2_http_hdr_in_x_requested_with_get(oauth2_log_t *log,
+					const oauth2_http_request_t *r);
+const char *oauth2_http_hdr_in_accept_get(oauth2_log_t *log,
+					  const oauth2_http_request_t *request);
+
+bool oauth2_http_is_xml_http_request(oauth2_log_t *log,
+				     const oauth2_http_request_t *request);
 
 /*
  * request args functions

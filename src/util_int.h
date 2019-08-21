@@ -53,6 +53,7 @@
 #define _OAUTH2_CHAR_SEMICOL ';'
 #define _OAUTH2_CHAR_AMP '&'
 #define _OAUTH2_CHAR_DOT '.'
+#define _OAUTH2_CHAR_COMMA ','
 
 #define _OAUTH2_STR_COMMA ","
 #define _OAUTH2_STR_COLON ":"
