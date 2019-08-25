@@ -1410,6 +1410,8 @@ bool oauth2_http_is_xml_http_request(oauth2_log_t *log,
 {
 	bool rc = false;
 
+	oauth2_debug(log, "enter");
+
 	if ((oauth2_http_hdr_in_x_requested_with_get(log, request) != NULL) &&
 	    (strcasecmp(oauth2_http_hdr_in_x_requested_with_get(log, request),
 			OAUTH2_HTTP_HDR_XML_HTTP_REQUEST) == 0)) {
@@ -1432,5 +1434,91 @@ bool oauth2_http_is_xml_http_request(oauth2_log_t *log,
 
 end:
 
+	oauth2_debug(log, "return: %d", rc);
+
 	return rc;
+}
+
+typedef struct oauth2_http_response_t {
+	oauth2_nv_list_t *headers;
+	oauth2_http_status_code_t status_code;
+} oauth2_http_response_t;
+
+oauth2_http_response_t *oauth2_http_response_init(oauth2_log_t *log)
+{
+	oauth2_http_response_t *response = NULL;
+
+	response = oauth2_mem_alloc(sizeof(oauth2_http_response_t));
+	if (response == NULL)
+		goto end;
+
+	response->headers = oauth2_nv_list_init(log);
+	response->status_code = 0;
+
+end:
+
+	return response;
+}
+
+oauth2_http_response_t *
+oauth2_http_response_clone(oauth2_log_t *log, oauth2_http_response_t *response)
+{
+	return NULL;
+}
+
+void oauth2_http_response_free(oauth2_log_t *log,
+			       oauth2_http_response_t *response)
+{
+	if (response == NULL)
+		goto end;
+
+	if (response->headers)
+		oauth2_nv_list_free(log, response->headers);
+
+	oauth2_mem_free(response);
+
+end:
+
+	return;
+}
+
+bool oauth2_http_response_headers_set(oauth2_log_t *log,
+				      oauth2_http_response_t *response,
+				      const oauth2_nv_list_t *hdrs)
+{
+	return false;
+}
+
+oauth2_nv_list_t *
+oauth2_http_response_headers_get(oauth2_log_t *log,
+				 const oauth2_http_response_t *response)
+{
+	return response->headers;
+}
+
+/*
+bool oauth2_http_response_status_code_set(oauth2_log_t *, oauth2_http_response_t
+*, const oauth2_http_status_code_t) { return false;
+}
+
+oauth2_http_status_code_t  oauth2_http_response_status_code_get(oauth2_log_t *,
+const oauth2_http_response_t *) { return 0;
+}
+*/
+
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(http, response, status_code,
+				      oauth2_http_status_code_t, uint)
+
+bool oauth2_http_response_header_set(oauth2_log_t *log,
+				     oauth2_http_response_t *response,
+				     const char *name, const char *value)
+{
+	return oauth2_nv_list_set(log, response->headers, name, value);
+}
+
+const char *oauth2_http_response_header_get(oauth2_log_t *log,
+					    oauth2_http_response_t *response,
+					    const char *name)
+{
+	return oauth2_nv_list_get(log, response->headers, name);
 }

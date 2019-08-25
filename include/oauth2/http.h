@@ -40,6 +40,7 @@
 #define OAUTH2_HTTP_HDR_AUTHORIZATION "Authorization"
 #define OAUTH2_HTTP_HDR_X_REQUESTED_WITH "X-Requested-With"
 #define OAUTH2_HTTP_HDR_ACCEPT "Accept"
+#define OAUTH2_HTTP_HDR_LOCATION "Location"
 
 #define OAUTH2_HTTP_HDR_BEARER "Bearer"
 #define OAUTH2_HTTP_HDR_BASIC "Basic"
@@ -95,6 +96,18 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(http, request, hostname, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(http, request, path, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(http, request, method, oauth2_http_method_t)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(http, request, query, char *)
+
+OAUTH2_TYPE_DECLARE(http, response)
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(http, response, headers, oauth2_nv_list_t *)
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(http, response, status_code,
+				   oauth2_http_status_code_t)
+
+bool oauth2_http_response_header_set(oauth2_log_t *log,
+				     oauth2_http_response_t *response,
+				     const char *name, const char *value);
+const char *oauth2_http_response_header_get(oauth2_log_t *log,
+					    oauth2_http_response_t *response,
+					    const char *name);
 
 // typedef bool (*oauth2_http_read_post_callback_t)(oauth2_log_t *log,
 // oauth2_http_request_t *request, char **data);

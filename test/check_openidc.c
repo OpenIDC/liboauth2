@@ -94,6 +94,35 @@ START_TEST(test_openidc_cfg)
 }
 END_TEST
 
+START_TEST(test_openidc_handle)
+{
+	bool rc = false;
+	oauth2_openidc_cfg_t *c = NULL;
+	oauth2_http_request_t *r = NULL;
+	oauth2_http_response_t *response = NULL;
+
+	c = oauth2_openidc_cfg_init(log);
+	r = oauth2_http_request_init(log);
+
+	rc = oauth2_http_request_hdr_in_set(log, r, "Accept", "text/html");
+	ck_assert_int_eq(rc, true);
+
+	rc = oauth2_openidc_handle(log, c, r, &response);
+	ck_assert_int_eq(rc, true);
+	ck_assert_ptr_ne(NULL, response);
+
+	ck_assert_uint_eq(oauth2_http_response_status_code_get(log, response),
+			  302);
+	ck_assert_ptr_ne(NULL, strstr(oauth2_http_response_header_get(
+					  log, response, "Location"),
+				      "response_type=code"));
+
+	oauth2_http_response_free(log, response);
+	oauth2_http_request_free(log, r);
+	oauth2_openidc_cfg_free(log, c);
+}
+END_TEST
+
 Suite *oauth2_check_openidc_suite()
 {
 	Suite *s = suite_create("openidc");
@@ -102,6 +131,7 @@ Suite *oauth2_check_openidc_suite()
 	tcase_add_checked_fixture(c, setup, teardown);
 
 	tcase_add_test(c, test_openidc_cfg);
+	tcase_add_test(c, test_openidc_handle);
 
 	suite_add_tcase(s, c);
 

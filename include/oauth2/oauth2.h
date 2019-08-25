@@ -32,6 +32,14 @@
 #define OAUTH2_GRANT_TYPE "grant_type"
 #define OAUTH2_ACCESS_TOKEN "access_token"
 
+#define OAUTH2_SCOPE "scope"
+#define OAUTH2_NONCE "nonce"
+#define OAUTH2_STATE "state"
+#define OAUTH2_RESPONSE_TYPE "response_type"
+#define OAUTH2_REDIRECT_URI "redirect_uri"
+
+#define OAUTH2_RESPONSE_TYPE_CODE "code"
+
 #define OAUTH2_CLIENT_ID "client_id"
 #define OAUTH2_CLIENT_SECRET "client_secret"
 

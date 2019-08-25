@@ -80,5 +80,7 @@ bool oauth2_session_load(oauth2_log_t *log, const oauth2_openidc_cfg_t *c,
 
 end:
 
+	oauth2_debug(log, "rc=%d, *session=%p", rc, *session);
+
 	return rc;
 }

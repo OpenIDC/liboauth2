@@ -45,13 +45,18 @@ char *oauth2_openidc_cfg_redirect_uri_get(oauth2_log_t *,
 
 OAUTH2_TYPE_DECLARE(openidc, provider)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, issuer, char *)
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, authorization_endpoint,
+				   char *)
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, scope, char *)
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, client_id, char *)
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, client_secret, char *)
 
 char *oauth2_openidc_cfg_redirect_uri_get_iss(
     oauth2_log_t *, const oauth2_openidc_cfg_t *, const oauth2_http_request_t *,
     const oauth2_openidc_provider_t *);
 
-oauth2_http_status_code_t oauth2_openidc_handle(oauth2_log_t *log,
-						const oauth2_openidc_cfg_t *c,
-						const oauth2_http_request_t *r);
+bool oauth2_openidc_handle(oauth2_log_t *log, const oauth2_openidc_cfg_t *c,
+			   const oauth2_http_request_t *r,
+			   oauth2_http_response_t **response);
 
 #endif /* _OAUTH2_OPENIDC_H_ */
