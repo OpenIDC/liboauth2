@@ -144,7 +144,7 @@ static bool oauth2_auth_client_secret_jwt(oauth2_log_t *log,
 
 	if ((auth->client_secret_jwt.client_id == NULL) ||
 	    (auth->client_secret_jwt.jwk == NULL) ||
-	    (auth->client_secret_jwt.aud = NULL))
+	    (auth->client_secret_jwt.aud == NULL))
 		goto end;
 
 	rc = _oauth2_add_signed_jwt(log, auth->client_secret_jwt.jwk,

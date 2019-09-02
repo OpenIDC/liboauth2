@@ -1,3 +1,6 @@
+09/02/2019
+- fix type (auth->client_secret_jwt.aud = NULL); closes #3; thanks @pengjiaoyang
+
 08/19/2019
 - add first outline of openidc and sessions
 
