@@ -94,6 +94,22 @@ START_TEST(test_openidc_cfg)
 }
 END_TEST
 
+bool test_openidc_provider_resolver(oauth2_log_t *log,
+				    const oauth2_http_request_t *request,
+				    oauth2_openidc_provider_t **provider)
+{
+	// TODO: free/global
+	*provider = oauth2_openidc_provider_init(log);
+	oauth2_openidc_provider_issuer_set(log, *provider,
+					   "https://op.example.org");
+	oauth2_openidc_provider_authorization_endpoint_set(
+	    log, *provider, "https://op.example.org/authorize");
+	oauth2_openidc_provider_scope_set(log, *provider, "openid");
+	oauth2_openidc_provider_client_id_set(log, *provider, "myclient");
+	oauth2_openidc_provider_client_secret_set(log, *provider, "secret");
+	return true;
+}
+
 START_TEST(test_openidc_handle)
 {
 	bool rc = false;
@@ -103,6 +119,9 @@ START_TEST(test_openidc_handle)
 
 	c = oauth2_openidc_cfg_init(log);
 	r = oauth2_http_request_init(log);
+
+	oauth2_openidc_cfg_provider_resolver_set(
+	    log, c, test_openidc_provider_resolver);
 
 	rc = oauth2_http_request_hdr_in_set(log, r, "Accept", "text/html");
 	ck_assert_int_eq(rc, true);
@@ -116,6 +135,9 @@ START_TEST(test_openidc_handle)
 	ck_assert_ptr_ne(NULL, strstr(oauth2_http_response_header_get(
 					  log, response, "Location"),
 				      "response_type=code"));
+	ck_assert_ptr_ne(NULL, strstr(oauth2_http_response_header_get(
+					  log, response, "Location"),
+				      "https://op.example.org/authorize"));
 
 	oauth2_http_response_free(log, response);
 	oauth2_http_request_free(log, r);

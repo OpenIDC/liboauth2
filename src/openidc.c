@@ -32,6 +32,7 @@
 // TODO: set add log
 typedef struct oauth2_openidc_cfg_t {
 	char *redirect_uri;
+	oauth2_openidc_provider_resolver_t *provider_resolver;
 	oauth2_unauth_action_t unauth_action;
 } oauth2_openidc_cfg_t;
 
@@ -67,6 +68,21 @@ end:
 }
 
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(openidc, cfg, redirect_uri, char *, str)
+
+bool oauth2_openidc_cfg_provider_resolver_set(
+    oauth2_log_t *log, oauth2_openidc_cfg_t *cfg,
+    oauth2_openidc_provider_resolver_t *resolver)
+{
+	cfg->provider_resolver = resolver;
+	return true;
+}
+
+oauth2_openidc_provider_resolver_t *
+oauth2_openidc_cfg_provider_resolver_get(oauth2_log_t *log,
+					 const oauth2_openidc_cfg_t *cfg)
+{
+	return cfg->provider_resolver;
+}
 
 char *oauth2_openidc_cfg_redirect_uri_get(oauth2_log_t *log,
 					  const oauth2_openidc_cfg_t *c,
@@ -147,8 +163,12 @@ end:
 }
 
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, issuer, char *, str)
-
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, authorization_endpoint,
+				      char *, str)
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, scope, char *, str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, client_id, char *, str)
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, client_secret, char *,
+				      str)
 
 char *oauth2_openidc_cfg_redirect_uri_get_iss(
     oauth2_log_t *log, const oauth2_openidc_cfg_t *c,
@@ -197,9 +217,8 @@ static bool _oauth2_openidc_authenticate(oauth2_log_t *log,
 	if (response == NULL)
 		goto end;
 
-	// TODO: get provider handle
-	provider = oauth2_openidc_provider_init(log);
-	if (provider == NULL)
+	if ((cfg->provider_resolver(log, request, &provider) == false) ||
+	    (provider == NULL))
 		goto end;
 
 	oauth2_nv_list_add(log, params, OAUTH2_RESPONSE_TYPE,

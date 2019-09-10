@@ -220,5 +220,5 @@ docker-valgrind-%: docker
 docker-gdb: docker
 	docker run --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -it --rm -e CK_FORK=no $(TAG):latest /bin/bash -c "./start.sh && /usr/bin/gdb .libs/check_liboauth2"
 
-docker-gdb-%:
+docker-gdb-%: docker
 	docker run --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -it --rm -e CK_FORK=no -e CK_RUN_SUITE=${subst docker-gdb-,,$@} $(TAG):latest /bin/bash -c "./start.sh && /usr/bin/gdb .libs/check_liboauth2"

@@ -275,11 +275,8 @@ static char *oauth2_cfg_endpoint_auth_client_secret_jwt_options_set(
 	// end;
 	//	}
 
-	// TODO: ???????
-	// auth->client_secret_jwt.aud =
-	//    oauth2_strdup(oauth2_nv_list_get(log, params, "aud"));
 	auth->client_secret_jwt.aud =
-	    (char *)oauth2_nv_list_get(log, params, "aud");
+	    oauth2_strdup(oauth2_nv_list_get(log, params, "aud"));
 	if (auth->client_secret_jwt.aud == NULL) {
 		rv = oauth2_stradd(NULL, "aud", " must be set for ",
 				   OAUTH2_ENDPOINT_AUTH_CLIENT_SECRET_JWT_STR);
