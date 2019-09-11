@@ -167,8 +167,14 @@ void oauth2_openidc_provider_free(oauth2_log_t *log,
 
 	if (p->issuer)
 		oauth2_mem_free(p->issuer);
+	if (p->authorization_endpoint)
+		oauth2_mem_free(p->authorization_endpoint);
+	if (p->scope)
+		oauth2_mem_free(p->scope);
 	if (p->client_id)
 		oauth2_mem_free(p->client_id);
+	if (p->client_secret)
+		oauth2_mem_free(p->client_secret);
 
 	oauth2_mem_free(p);
 
@@ -216,6 +222,48 @@ end:
 	return redirect_uri;
 }
 
+#define _OAUTH2_OPENIDC_PROTO_STATE_KEY_ISSUER "i"
+#define _OAUTH2_OPENIDC_PROTO_STATE_KEY_TARGET_LINK_URI "i"
+#define _OAUTH2_OPENIDC_PROTO_STATE_KEY_REQUEST_METHOD "m"
+#define _OAUTH2_OPENIDC_PROTO_STATE_KEY_RESPONSE_MODE "r"
+#define _OAUTH2_OPENIDC_PROTO_STATE_KEY_RESPONSE_TYPE "y"
+#define _OAUTH2_OPENIDC_PROTO_STATE_KEY_TIMESTAMP "t"
+
+static json_t *_oauth2_openidc_proto_state_create(
+    oauth2_log_t *log, oauth2_openidc_provider_t *provider,
+    const char *target_link_uri, const oauth2_http_request_t *request)
+{
+	json_t *proto_state = json_object();
+
+	json_object_set_new(
+	    proto_state, _OAUTH2_OPENIDC_PROTO_STATE_KEY_ISSUER,
+	    json_string(oauth2_openidc_provider_issuer_get(log, provider)));
+	json_object_set_new(proto_state,
+			    _OAUTH2_OPENIDC_PROTO_STATE_KEY_TARGET_LINK_URI,
+			    json_string(target_link_uri));
+	json_object_set_new(
+	    proto_state, _OAUTH2_OPENIDC_PROTO_STATE_KEY_REQUEST_METHOD,
+	    json_integer(oauth2_http_request_method_get(log, request)));
+	// json_object_set_new(proto_state,
+	// _OAUTH2_OPENIDC_PROTO_STATE_KEY_RESPONSE_MODE,
+	// provider->response_mode); json_object_set_new(proto_state,
+	// _OAUTH2_OPENIDC_PROTO_STATE_KEY_RESPONSE_TYPE,
+	// provider->response_type);
+	json_object_set_new(proto_state,
+			    _OAUTH2_OPENIDC_PROTO_STATE_KEY_TIMESTAMP,
+			    json_integer(oauth2_time_now_sec()));
+
+	return proto_state;
+}
+
+static bool _oauth2_openidc_proto_state_delete(oauth2_log_t *log,
+					       json_t *proto_state)
+{
+	if (proto_state)
+		json_decref(proto_state);
+	return true;
+}
+
 static bool _oauth2_openidc_set_state_cookie(
     oauth2_log_t *log, const oauth2_openidc_cfg_t *cfg,
     oauth2_openidc_provider_t *provider, const oauth2_http_request_t *request,
@@ -232,20 +280,8 @@ static bool _oauth2_openidc_set_state_cookie(
 		goto end;
 
 	target_link_uri = oauth2_http_request_url_get(log, request);
-
-	// TODO: encapsulate proto state handling
-	proto_state = json_object();
-	json_object_set_new(
-	    proto_state, "i",
-	    json_string(oauth2_openidc_provider_issuer_get(log, provider)));
-	json_object_set_new(proto_state, "l", json_string(target_link_uri));
-	json_object_set_new(
-	    proto_state, "m",
-	    json_integer(oauth2_http_request_method_get(log, request)));
-	// json_object_set_new(proto_state, "rm", provider->response_mode);
-	// json_object_set_new(proto_state, "rt", provider->response_type);
-	json_object_set_new(proto_state, "t",
-			    json_integer(oauth2_time_now_sec()));
+	proto_state = _oauth2_openidc_proto_state_create(
+	    log, provider, target_link_uri, request);
 
 	if (oauth2_jose_jwt_encrypt(log,
 				    oauth2_openidc_cfg_passphrase_get(log, cfg),
@@ -257,13 +293,11 @@ static bool _oauth2_openidc_set_state_cookie(
 end:
 
 	if (proto_state)
-		json_decref(proto_state);
-
+		_oauth2_openidc_proto_state_delete(log, proto_state);
 	if (name)
 		oauth2_mem_free(name);
 	if (value)
 		oauth2_mem_free(value);
-
 	if (target_link_uri)
 		oauth2_mem_free(target_link_uri);
 
