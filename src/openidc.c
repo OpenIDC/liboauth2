@@ -223,7 +223,7 @@ end:
 }
 
 #define _OAUTH2_OPENIDC_PROTO_STATE_KEY_ISSUER "i"
-#define _OAUTH2_OPENIDC_PROTO_STATE_KEY_TARGET_LINK_URI "i"
+#define _OAUTH2_OPENIDC_PROTO_STATE_KEY_TARGET_LINK_URI "l"
 #define _OAUTH2_OPENIDC_PROTO_STATE_KEY_REQUEST_METHOD "m"
 #define _OAUTH2_OPENIDC_PROTO_STATE_KEY_RESPONSE_MODE "r"
 #define _OAUTH2_OPENIDC_PROTO_STATE_KEY_RESPONSE_TYPE "y"
@@ -281,10 +281,11 @@ static bool _oauth2_openidc_set_state_cookie(
 
 	target_link_uri = oauth2_http_request_url_get(log, request);
 
-	// TODO: add different state policy that keeps track in the shared cache of
-	// outstanding parallel requests from the same client (ip/user-agent)
-	// against a configurable maximum and uses only a single shared cookie across
-	// those requests (accepting consecutive responses, or take the last one)
+	// TODO: add different state policy that keeps track in the shared cache
+	// of outstanding parallel requests from the same client (ip/user-agent)
+	// against a configurable maximum and uses only a single shared cookie
+	// across those requests (accepting consecutive responses, or take the
+	// last one)
 
 	proto_state = _oauth2_openidc_proto_state_create(
 	    log, provider, target_link_uri, request);
