@@ -120,9 +120,14 @@ START_TEST(test_openidc_handle)
 	c = oauth2_openidc_cfg_init(log);
 	r = oauth2_http_request_init(log);
 
+	oauth2_openidc_cfg_passphrase_set(log, c, "mypassphrase1234");
 	oauth2_openidc_cfg_provider_resolver_set(
 	    log, c, test_openidc_provider_resolver);
 
+	rc = oauth2_http_request_path_set(log, r, "/secure");
+	ck_assert_int_eq(rc, true);
+	rc = oauth2_http_request_hdr_in_set(log, r, "Host", "app.example.org");
+	ck_assert_int_eq(rc, true);
 	rc = oauth2_http_request_hdr_in_set(log, r, "Accept", "text/html");
 	ck_assert_int_eq(rc, true);
 
@@ -138,6 +143,9 @@ START_TEST(test_openidc_handle)
 	ck_assert_ptr_ne(NULL, strstr(oauth2_http_response_header_get(
 					  log, response, "Location"),
 				      "https://op.example.org/authorize"));
+	ck_assert_ptr_ne(NULL, strstr(oauth2_http_response_header_get(
+					  log, response, "Set-Cookie"),
+				      "openidc_state_"));
 
 	oauth2_http_response_free(log, response);
 	oauth2_http_request_free(log, r);

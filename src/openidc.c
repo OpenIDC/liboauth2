@@ -22,6 +22,7 @@
 #include "oauth2/log.h"
 #include "oauth2/mem.h"
 
+#include "oauth2/jose.h"
 #include "oauth2/openidc.h"
 #include "oauth2/session.h"
 
@@ -34,6 +35,8 @@ typedef struct oauth2_openidc_cfg_t {
 	char *redirect_uri;
 	oauth2_openidc_provider_resolver_t *provider_resolver;
 	oauth2_unauth_action_t unauth_action;
+	char *state_cookie_name_prefix;
+	char *passphrase;
 } oauth2_openidc_cfg_t;
 
 oauth2_openidc_cfg_t *oauth2_openidc_cfg_init(oauth2_log_t *log)
@@ -68,6 +71,9 @@ end:
 }
 
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(openidc, cfg, redirect_uri, char *, str)
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(openidc, cfg, state_cookie_name_prefix,
+				  char *, str)
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, cfg, passphrase, char *, str)
 
 bool oauth2_openidc_cfg_provider_resolver_set(
     oauth2_log_t *log, oauth2_openidc_cfg_t *cfg,
@@ -112,6 +118,15 @@ char *oauth2_openidc_cfg_redirect_uri_get(oauth2_log_t *log,
 end:
 
 	return redirect_uri;
+}
+
+char *
+oauth2_openidc_cfg_state_cookie_name_prefix_get(oauth2_log_t *log,
+						const oauth2_openidc_cfg_t *c)
+{
+	return c->state_cookie_name_prefix
+		   ? c->state_cookie_name_prefix
+		   : OAUTH2_OPENIDC_STATE_COOKIE_NAME_PREFIX_DEFAULT;
 }
 
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, cfg, unauth_action,
@@ -201,10 +216,63 @@ end:
 	return redirect_uri;
 }
 
+static bool _oauth2_openidc_set_state_cookie(
+    oauth2_log_t *log, const oauth2_openidc_cfg_t *cfg,
+    oauth2_openidc_provider_t *provider, const oauth2_http_request_t *request,
+    oauth2_http_response_t *response, const char *state)
+{
+	bool rc = false;
+	char *name = NULL, *value = NULL, *target_link_uri = NULL;
+	json_t *proto_state = NULL;
+
+	name = oauth2_stradd(
+	    name, oauth2_openidc_cfg_state_cookie_name_prefix_get(log, cfg),
+	    state, NULL);
+	if (name == NULL)
+		goto end;
+
+	target_link_uri = oauth2_http_request_url_get(log, request);
+
+	// TODO: encapsulate proto state handling
+	proto_state = json_object();
+	json_object_set_new(
+	    proto_state, "i",
+	    json_string(oauth2_openidc_provider_issuer_get(log, provider)));
+	json_object_set_new(proto_state, "l", json_string(target_link_uri));
+	json_object_set_new(
+	    proto_state, "m",
+	    json_integer(oauth2_http_request_method_get(log, request)));
+	// json_object_set_new(proto_state, "rm", provider->response_mode);
+	// json_object_set_new(proto_state, "rt", provider->response_type);
+	json_object_set_new(proto_state, "t",
+			    json_integer(oauth2_time_now_sec()));
+
+	if (oauth2_jose_jwt_encrypt(log,
+				    oauth2_openidc_cfg_passphrase_get(log, cfg),
+				    proto_state, &value) == false)
+		goto end;
+
+	rc = oauth2_http_response_cookie_set(log, response, name, value);
+
+end:
+
+	if (proto_state)
+		json_decref(proto_state);
+
+	if (name)
+		oauth2_mem_free(name);
+	if (value)
+		oauth2_mem_free(value);
+
+	if (target_link_uri)
+		oauth2_mem_free(target_link_uri);
+
+	return rc;
+}
+
 static bool _oauth2_openidc_authenticate(oauth2_log_t *log,
 					 const oauth2_openidc_cfg_t *cfg,
 					 const oauth2_http_request_t *request,
-					 oauth2_session_rec_t *session,
 					 oauth2_http_response_t **response)
 {
 	bool rc = false;
@@ -240,19 +308,21 @@ static bool _oauth2_openidc_authenticate(oauth2_log_t *log,
 	state = oauth2_rand_str(log, 10);
 	oauth2_nv_list_add(log, params, OAUTH2_STATE, state);
 
-	// TODO: set state cookie
 	// TODO: handle POST binding as well
 
 	*response = oauth2_http_response_init(log);
 	if (*response == NULL)
 		goto end;
 
+	if (_oauth2_openidc_set_state_cookie(log, cfg, provider, request,
+					     *response, state) == false)
+		goto end;
+
 	location = oauth2_http_url_query_encode(
 	    log, provider->authorization_endpoint, params);
 
-	rc = oauth2_http_response_header_set(
-	    log, *response, OAUTH2_HTTP_HDR_LOCATION, location);
-	if (rc == false)
+	if (oauth2_http_response_header_set(
+		log, *response, OAUTH2_HTTP_HDR_LOCATION, location) == false)
 		goto end;
 
 	rc = oauth2_http_response_status_code_set(log, *response, 302);
@@ -314,7 +384,7 @@ static bool _oauth2_openidc_unauthenticated_request(
 		break;
 	}
 
-	rc = _oauth2_openidc_authenticate(log, cfg, request, session, response);
+	rc = _oauth2_openidc_authenticate(log, cfg, request, response);
 
 end:
 

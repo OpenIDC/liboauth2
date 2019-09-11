@@ -41,6 +41,7 @@
 #define OAUTH2_HTTP_HDR_X_REQUESTED_WITH "X-Requested-With"
 #define OAUTH2_HTTP_HDR_ACCEPT "Accept"
 #define OAUTH2_HTTP_HDR_LOCATION "Location"
+#define OAUTH2_HTTP_HDR_SET_COOKIE "Set-Cookie"
 
 #define OAUTH2_HTTP_HDR_BEARER "Bearer"
 #define OAUTH2_HTTP_HDR_BASIC "Basic"
@@ -108,6 +109,9 @@ bool oauth2_http_response_header_set(oauth2_log_t *log,
 const char *oauth2_http_response_header_get(oauth2_log_t *log,
 					    oauth2_http_response_t *response,
 					    const char *name);
+bool oauth2_http_response_cookie_set(oauth2_log_t *log,
+				     oauth2_http_response_t *response,
+				     const char *name, const char *value);
 
 // typedef bool (*oauth2_http_read_post_callback_t)(oauth2_log_t *log,
 // oauth2_http_request_t *request, char **data);

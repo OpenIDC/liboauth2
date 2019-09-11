@@ -1522,3 +1522,31 @@ const char *oauth2_http_response_header_get(oauth2_log_t *log,
 {
 	return oauth2_nv_list_get(log, response->headers, name);
 }
+
+bool oauth2_http_response_cookie_set(oauth2_log_t *log,
+				     oauth2_http_response_t *response,
+				     const char *name, const char *value)
+{
+	bool rc = false;
+	char *str = NULL;
+	oauth2_nv_list_t *cookies = NULL;
+
+	cookies = oauth2_nv_list_init(log);
+	oauth2_nv_list_set(log, cookies, name, value);
+
+	str = _oauth2_http_cookies_encode(log, cookies);
+	if (str == NULL)
+		goto end;
+
+	rc = oauth2_http_response_header_set(log, response,
+					     OAUTH2_HTTP_HDR_SET_COOKIE, str);
+
+end:
+
+	if (cookies)
+		oauth2_nv_list_free(log, cookies);
+	if (str)
+		oauth2_mem_free(str);
+
+	return rc;
+}
