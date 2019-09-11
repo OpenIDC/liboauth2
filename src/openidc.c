@@ -280,6 +280,12 @@ static bool _oauth2_openidc_set_state_cookie(
 		goto end;
 
 	target_link_uri = oauth2_http_request_url_get(log, request);
+
+	// TODO: add different state policy that keeps track in the shared cache of
+	// outstanding parallel requests from the same client (ip/user-agent)
+	// against a configurable maximum and uses only a single shared cookie across
+	// those requests (accepting consecutive responses, or take the last one)
+
 	proto_state = _oauth2_openidc_proto_state_create(
 	    log, provider, target_link_uri, request);
 
