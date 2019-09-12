@@ -215,7 +215,7 @@ static int oauth2_apache_http_request_hdr_add(void *rec, const char *key,
 					      const char *value)
 {
 	oauth2_apache_request_ctx_t *ctx = (oauth2_apache_request_ctx_t *)rec;
-	return (oauth2_http_request_hdr_in_set(ctx->log, ctx->request, key,
+	return (oauth2_http_request_header_set(ctx->log, ctx->request, key,
 					       value) == true);
 }
 
@@ -365,11 +365,40 @@ bool oauth2_apache_http_request_set(oauth2_log_t *log,
 	if (request == NULL)
 		goto end;
 
-	oauth2_http_request_hdr_in_loop(log, request,
-					oauth2_apache_request_header_set, r);
+	oauth2_http_request_headers_loop(log, request,
+					 oauth2_apache_request_header_set, r);
 
 	r->args =
 	    apr_pstrdup(r->pool, oauth2_http_request_query_get(log, request));
+
+	rc = true;
+
+end:
+
+	return rc;
+}
+
+bool oauth2_apache_response_header_set(oauth2_log_t *log, void *rec,
+				       const char *name, const char *value)
+{
+	request_rec *r = (request_rec *)rec;
+	oauth2_apache_hdr_out_add(log, r, name, value);
+	return true;
+}
+
+bool oauth2_apache_http_response_set(oauth2_log_t *log,
+				     oauth2_http_response_t *response,
+				     request_rec *r)
+{
+	bool rc = false;
+
+	if ((response == NULL) || (r == NULL))
+		goto end;
+
+	oauth2_http_response_headers_loop(log, response,
+					  oauth2_apache_response_header_set, r);
+
+	r->status = oauth2_http_response_status_code_get(log, response);
 
 	rc = true;
 

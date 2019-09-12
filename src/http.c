@@ -35,7 +35,7 @@
 
 typedef struct oauth2_http_request_t {
 	//	oauth2_http_server_t *server;
-	oauth2_nv_list_t *hdr_in;
+	oauth2_nv_list_t *header;
 	char *scheme;
 	unsigned long port;
 	char *hostname;
@@ -55,8 +55,8 @@ oauth2_http_request_t *oauth2_http_request_init(oauth2_log_t *log)
 	if (request == NULL)
 		goto end;
 
-	request->hdr_in = oauth2_nv_list_init(log);
-	oauth2_nv_list_case_sensitive_set(log, request->hdr_in, false);
+	request->header = oauth2_nv_list_init(log);
+	oauth2_nv_list_case_sensitive_set(log, request->header, false);
 
 	request->scheme = NULL;
 	request->hostname = NULL;
@@ -81,7 +81,7 @@ void oauth2_http_request_free(oauth2_log_t *log, oauth2_http_request_t *request)
 	oauth2_nv_list_free(log, request->_parsed_query);
 	oauth2_nv_list_free(log, request->_parsed_cookies);
 
-	oauth2_nv_list_free(log, request->hdr_in);
+	oauth2_nv_list_free(log, request->header);
 
 	if (request->scheme)
 		oauth2_mem_free(request->scheme);
@@ -99,14 +99,14 @@ end:
 	return;
 }
 
-_OAUTH2_MEMBER_LIST_IMPLEMENT_UNSET_GET(http, request, hdr_in)
+_OAUTH2_MEMBER_LIST_IMPLEMENT_UNSET_GET(http, request, header)
 
-void oauth2_http_request_hdr_in_loop(oauth2_log_t *log,
-				     oauth2_http_request_t *request,
-				     oauth2_nv_list_loop_cb_t *callback,
-				     void *rec)
+void oauth2_http_request_headers_loop(oauth2_log_t *log,
+				      oauth2_http_request_t *request,
+				      oauth2_nv_list_loop_cb_t *callback,
+				      void *rec)
 {
-	oauth2_nv_list_loop(log, request->hdr_in, callback, rec);
+	oauth2_nv_list_loop(log, request->header, callback, rec);
 }
 
 /*
@@ -117,7 +117,7 @@ typedef bool(_oauth2_nv_list_set_add_sanitize_cb_t)(oauth2_log_t *,
 						    oauth2_nv_list_t *,
 						    const char *, const char *);
 
-static bool _oauth2_http_request_hdr_in_set_add_sanitized(
+static bool _oauth2_http_request_header_set_add_sanitized(
     oauth2_log_t *log, oauth2_http_request_t *request, const char *name,
     const char *value, _oauth2_nv_list_set_add_sanitize_cb_t add_set_cb)
 {
@@ -153,7 +153,7 @@ static bool _oauth2_http_request_hdr_in_set_add_sanitized(
 
 	oauth2_debug(log, "%s: %s", name, s_value ? s_value : "(null)");
 
-	rc = add_set_cb(log, request->hdr_in, name, s_value);
+	rc = add_set_cb(log, request->header, name, s_value);
 
 end:
 
@@ -163,29 +163,29 @@ end:
 	return rc;
 }
 
-bool oauth2_http_request_hdr_in_set(oauth2_log_t *log,
+bool oauth2_http_request_header_set(oauth2_log_t *log,
 				    oauth2_http_request_t *request,
 				    const char *name, const char *value)
 {
-	return _oauth2_http_request_hdr_in_set_add_sanitized(
+	return _oauth2_http_request_header_set_add_sanitized(
 	    log, request, name, value, oauth2_nv_list_set);
 }
 
-bool oauth2_http_request_hdr_in_add(oauth2_log_t *log,
+bool oauth2_http_request_header_add(oauth2_log_t *log,
 				    oauth2_http_request_t *request,
 				    const char *name, const char *value)
 {
-	return _oauth2_http_request_hdr_in_set_add_sanitized(
+	return _oauth2_http_request_header_set_add_sanitized(
 	    log, request, name, value, oauth2_nv_list_add);
 }
 
-static char *oauth2_http_hdr_in_get_left_most_only(
+static char *oauth2_http_request_header_get_left_most_only(
     oauth2_log_t *log, const oauth2_http_request_t *request, const char *name)
 {
 	char *rv = NULL, *v = NULL;
 	const char *value = NULL;
 	const char *separators = ", \t";
-	value = oauth2_http_request_hdr_in_get(log, request, name);
+	value = oauth2_http_request_header_get(log, request, name);
 	if (value == NULL)
 		goto end;
 
@@ -198,91 +198,87 @@ end:
 }
 
 static char *
-oauth2_http_hdr_in_x_forwarded_proto_get(oauth2_log_t *log,
-					 const oauth2_http_request_t *r)
+oauth2_http_request_header_x_forwarded_proto_get(oauth2_log_t *log,
+						 const oauth2_http_request_t *r)
 {
-	return oauth2_http_hdr_in_get_left_most_only(
+	return oauth2_http_request_header_get_left_most_only(
 	    log, r, OAUTH2_HTTP_HDR_X_FORWARDED_PROTO);
 }
 
-static char *
-oauth2_http_hdr_in_x_forwarded_port_get(oauth2_log_t *log,
-					const oauth2_http_request_t *request)
+static char *oauth2_http_request_header_x_forwarded_port_get(
+    oauth2_log_t *log, const oauth2_http_request_t *request)
 {
-	return oauth2_http_hdr_in_get_left_most_only(
+	return oauth2_http_request_header_get_left_most_only(
 	    log, request, OAUTH2_HTTP_HDR_X_FORWARDED_PORT);
 }
 
-static char *
-oauth2_http_hdr_in_x_forwarded_host_get(oauth2_log_t *log,
-					const oauth2_http_request_t *request)
+static char *oauth2_http_request_header_x_forwarded_host_get(
+    oauth2_log_t *log, const oauth2_http_request_t *request)
 {
-	return oauth2_http_hdr_in_get_left_most_only(
+	return oauth2_http_request_header_get_left_most_only(
 	    log, request, OAUTH2_HTTP_HDR_X_FORWARDED_HOST);
 }
 
-static char *oauth2_http_hdr_in_host_get(oauth2_log_t *log,
-					 const oauth2_http_request_t *request)
-{
-	return oauth2_strdup(
-	    oauth2_http_request_hdr_in_get(log, request, OAUTH2_HTTP_HDR_HOST));
-}
-
-const char *
-oauth2_http_hdr_in_content_type_get(oauth2_log_t *log,
+static char *
+oauth2_http_request_header_host_get(oauth2_log_t *log,
 				    const oauth2_http_request_t *request)
 {
-	return oauth2_http_request_hdr_in_get(log, request,
+	return oauth2_strdup(
+	    oauth2_http_request_header_get(log, request, OAUTH2_HTTP_HDR_HOST));
+}
+
+const char *oauth2_http_request_header_content_type_get(
+    oauth2_log_t *log, const oauth2_http_request_t *request)
+{
+	return oauth2_http_request_header_get(log, request,
 					      OAUTH2_HTTP_HDR_CONTENT_TYPE);
 }
 
-const char *
-oauth2_http_hdr_in_content_length_get(oauth2_log_t *log,
-				      const oauth2_http_request_t *request)
+const char *oauth2_http_request_header_content_length_get(
+    oauth2_log_t *log, const oauth2_http_request_t *request)
 {
-	return oauth2_http_request_hdr_in_get(log, request,
+	return oauth2_http_request_header_get(log, request,
 					      OAUTH2_HTTP_HDR_CONTENT_LENGTH);
 }
 
-const char *
-oauth2_http_hdr_in_x_requested_with_get(oauth2_log_t *log,
-					const oauth2_http_request_t *request)
+const char *oauth2_http_request_header_x_requested_with_get(
+    oauth2_log_t *log, const oauth2_http_request_t *request)
 {
-	return oauth2_http_request_hdr_in_get(log, request,
+	return oauth2_http_request_header_get(log, request,
 					      OAUTH2_HTTP_HDR_X_REQUESTED_WITH);
 }
 
-const char *oauth2_http_hdr_in_accept_get(oauth2_log_t *log,
-					  const oauth2_http_request_t *request)
+const char *
+oauth2_http_request_header_accept_get(oauth2_log_t *log,
+				      const oauth2_http_request_t *request)
 {
-	return oauth2_http_request_hdr_in_get(log, request,
+	return oauth2_http_request_header_get(log, request,
 					      OAUTH2_HTTP_HDR_ACCEPT);
 }
 
 #define OAUTH2_HTTP_HDR_CONTENT_LENGTH_MAX 256
 
-bool oauth2_http_hdr_in_content_length_set(oauth2_log_t *log,
-					   oauth2_http_request_t *request,
-					   size_t len)
+bool oauth2_http_request_header_content_length_set(
+    oauth2_log_t *log, oauth2_http_request_t *request, size_t len)
 {
 	char str[OAUTH2_HTTP_HDR_CONTENT_LENGTH_MAX];
 	oauth2_snprintf(str, OAUTH2_HTTP_HDR_CONTENT_LENGTH_MAX, "%lu", len);
-	return oauth2_http_request_hdr_in_set(
+	return oauth2_http_request_header_set(
 	    log, request, OAUTH2_HTTP_HDR_CONTENT_LENGTH, str);
 }
 
-const char *oauth2_http_hdr_in_cookie_get(oauth2_log_t *log,
-					  const oauth2_http_request_t *request)
+const char *
+oauth2_http_request_header_cookie_get(oauth2_log_t *log,
+				      const oauth2_http_request_t *request)
 {
-	return oauth2_http_request_hdr_in_get(log, request,
+	return oauth2_http_request_header_get(log, request,
 					      OAUTH2_HTTP_HDR_COOKIE);
 }
 
-static bool _oauth2_http_hdr_in_cookie_set(oauth2_log_t *log,
-					   oauth2_http_request_t *request,
-					   const char *value)
+static bool _oauth2_http_request_header_cookie_set(
+    oauth2_log_t *log, oauth2_http_request_t *request, const char *value)
 {
-	return oauth2_http_request_hdr_in_set(log, request,
+	return oauth2_http_request_header_set(log, request,
 					      OAUTH2_HTTP_HDR_COOKIE, value);
 }
 
@@ -305,7 +301,8 @@ char *oauth2_http_request_scheme_get(oauth2_log_t *log,
 	if (request == NULL)
 		goto end;
 
-	scheme_str = oauth2_http_hdr_in_x_forwarded_proto_get(log, request);
+	scheme_str =
+	    oauth2_http_request_header_x_forwarded_proto_get(log, request);
 
 	if (scheme_str == NULL)
 		scheme_str = oauth2_strdup(request->scheme);
@@ -346,11 +343,13 @@ char *oauth2_http_request_port_get(oauth2_log_t *log,
 
 	char *proto_str = NULL, *port_str = NULL, *scheme_str = NULL;
 
-	port_str = oauth2_http_hdr_in_x_forwarded_port_get(log, request);
+	port_str =
+	    oauth2_http_request_header_x_forwarded_port_get(log, request);
 	if (port_str)
 		goto end;
 
-	char *host_hdr = oauth2_http_hdr_in_x_forwarded_host_get(log, request);
+	char *host_hdr =
+	    oauth2_http_request_header_x_forwarded_host_get(log, request);
 	if (host_hdr) {
 		port_str = strchr(host_hdr, _OAUTH2_CHAR_COLON);
 		if (port_str) {
@@ -361,7 +360,7 @@ char *oauth2_http_request_port_get(oauth2_log_t *log,
 		goto end;
 	}
 
-	host_hdr = oauth2_http_hdr_in_host_get(log, request);
+	host_hdr = oauth2_http_request_header_host_get(log, request);
 	if (host_hdr) {
 		port_str = strchr(host_hdr, _OAUTH2_CHAR_COLON);
 		if (port_str) {
@@ -373,7 +372,8 @@ char *oauth2_http_request_port_get(oauth2_log_t *log,
 			goto end;
 	}
 
-	proto_str = oauth2_http_hdr_in_x_forwarded_proto_get(log, request);
+	proto_str =
+	    oauth2_http_request_header_x_forwarded_proto_get(log, request);
 	if (proto_str)
 		goto end;
 
@@ -412,10 +412,11 @@ char *oauth2_http_request_hostname_get(oauth2_log_t *log,
 	if (request == NULL)
 		goto end;
 
-	host_str = oauth2_http_hdr_in_x_forwarded_host_get(log, request);
+	host_str =
+	    oauth2_http_request_header_x_forwarded_host_get(log, request);
 
 	if (host_str == NULL)
-		host_str = oauth2_http_hdr_in_host_get(log, request);
+		host_str = oauth2_http_request_header_host_get(log, request);
 
 	if (host_str) {
 		char *p = strchr(host_str, _OAUTH2_CHAR_COLON);
@@ -1239,7 +1240,7 @@ _oauth2_http_request_get_parsed_cookies(oauth2_log_t *log,
 	if (request->_parsed_cookies == NULL)
 		goto end;
 
-	cookies = oauth2_http_hdr_in_cookie_get(log, request);
+	cookies = oauth2_http_request_header_cookie_get(log, request);
 	if (cookies == NULL) {
 		rc = true;
 		goto end;
@@ -1265,7 +1266,7 @@ static bool _oauth2_http_request_set_parsed_cookies_in_header(
 	if (cookies == NULL)
 		goto end;
 
-	_oauth2_http_hdr_in_cookie_set(log, request, cookies);
+	_oauth2_http_request_header_cookie_set(log, request, cookies);
 
 end:
 
@@ -1368,10 +1369,9 @@ bool oauth2_http_auth_basic(oauth2_log_t *log, const char *username,
 						   false);
 }
 
-static bool oauth2_http_hdr_in_contains(oauth2_log_t *log,
-					const oauth2_http_request_t *request,
-					const char *name, char sepchar,
-					const char *needle)
+static bool oauth2_http_request_header_contains(
+    oauth2_log_t *log, const oauth2_http_request_t *request, const char *name,
+    char sepchar, const char *needle)
 {
 	bool rc = false;
 	char *save_input = NULL, *val = NULL;
@@ -1380,7 +1380,7 @@ static bool oauth2_http_hdr_in_contains(oauth2_log_t *log,
 	if (name == NULL)
 		goto end;
 
-	value = oauth2_http_request_hdr_in_get(log, request, name);
+	value = oauth2_http_request_header_get(log, request, name);
 	if (value == NULL)
 		goto end;
 
@@ -1405,29 +1405,31 @@ end:
 	return rc;
 }
 
-bool oauth2_http_is_xml_http_request(oauth2_log_t *log,
-				     const oauth2_http_request_t *request)
+bool oauth2_http_request_is_xml_http_request(
+    oauth2_log_t *log, const oauth2_http_request_t *request)
 {
 	bool rc = false;
 
 	oauth2_debug(log, "enter");
 
-	if ((oauth2_http_hdr_in_x_requested_with_get(log, request) != NULL) &&
-	    (strcasecmp(oauth2_http_hdr_in_x_requested_with_get(log, request),
-			OAUTH2_HTTP_HDR_XML_HTTP_REQUEST) == 0)) {
+	if ((oauth2_http_request_header_x_requested_with_get(log, request) !=
+	     NULL) &&
+	    (strcasecmp(
+		 oauth2_http_request_header_x_requested_with_get(log, request),
+		 OAUTH2_HTTP_HDR_XML_HTTP_REQUEST) == 0)) {
 		rc = true;
 		goto end;
 	}
 
-	if ((oauth2_http_hdr_in_contains(
+	if ((oauth2_http_request_header_contains(
 		 log, request, OAUTH2_HTTP_HDR_ACCEPT, _OAUTH2_CHAR_COMMA,
 		 OAUTH2_CONTENT_TYPE_TEXT_HTML) == false) &&
-	    (oauth2_http_hdr_in_contains(
+	    (oauth2_http_request_header_contains(
 		 log, request, OAUTH2_HTTP_HDR_ACCEPT, _OAUTH2_CHAR_COMMA,
 		 OAUTH2_CONTENT_TYPE_APP_XHTML_XML) == false) &&
-	    (oauth2_http_hdr_in_contains(log, request, OAUTH2_HTTP_HDR_ACCEPT,
-					 _OAUTH2_CHAR_COMMA,
-					 OAUTH2_CONTENT_TYPE_ANY) == false)) {
+	    (oauth2_http_request_header_contains(
+		 log, request, OAUTH2_HTTP_HDR_ACCEPT, _OAUTH2_CHAR_COMMA,
+		 OAUTH2_CONTENT_TYPE_ANY) == false)) {
 		rc = true;
 		goto end;
 	}
@@ -1549,4 +1551,12 @@ end:
 		oauth2_mem_free(str);
 
 	return rc;
+}
+
+void oauth2_http_response_headers_loop(oauth2_log_t *log,
+				       oauth2_http_response_t *response,
+				       oauth2_nv_list_loop_cb_t *callback,
+				       void *rec)
+{
+	oauth2_nv_list_loop(log, response->headers, callback, rec);
 }

@@ -514,7 +514,7 @@ static bool _oauth2_openidc_unauthenticated_request(
 	case OAUTH2_UNAUTH_ACTION_AUTHENTICATE:
 	case OAUTH2_UNAUTH_ACTION_UNDEFINED:
 	default:
-		if (oauth2_http_is_xml_http_request(log, request)) {
+		if (oauth2_http_request_is_xml_http_request(log, request)) {
 			oauth2_http_response_status_code_set(log, *response,
 							     410);
 			rc = true;

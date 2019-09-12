@@ -101,7 +101,7 @@ START_TEST(test_proto_get_source_token_header)
 	ck_assert_ptr_ne(cfg, NULL);
 	rv = oauth2_cfg_source_token_set_accept_in(log, cfg, "header", NULL);
 	ck_assert_ptr_eq(rv, NULL);
-	oauth2_http_request_hdr_in_set(log, request, "Authorization",
+	oauth2_http_request_header_set(log, request, "Authorization",
 				       "bearer my_header_token");
 	token = oauth2_get_source_token(log, cfg, request,
 					&_oauth2_check_proto_callbacks, NULL);
@@ -175,7 +175,7 @@ START_TEST(test_proto_get_source_token_post)
 
 	request = oauth2_http_request_init(log);
 	oauth2_http_request_method_set(log, request, OAUTH2_HTTP_METHOD_POST);
-	oauth2_http_request_hdr_in_set(log, request, "Content-Type",
+	oauth2_http_request_header_set(log, request, "Content-Type",
 				       "application/x-www-form-urlencoded");
 
 	cfg = oauth2_cfg_source_token_init(log);
@@ -206,7 +206,7 @@ START_TEST(test_proto_get_source_token_basic)
 	ck_assert_ptr_ne(cfg, NULL);
 	rv = oauth2_cfg_source_token_set_accept_in(log, cfg, "basic", NULL);
 	ck_assert_ptr_eq(rv, NULL);
-	oauth2_http_request_hdr_in_set(log, request, "Authorization",
+	oauth2_http_request_header_set(log, request, "Authorization",
 				       "Basic ZHVtbXk6bXlfYmFzaWNfdG9rZW4=");
 	token = oauth2_get_source_token(log, cfg, request,
 					&_oauth2_check_proto_callbacks, NULL);

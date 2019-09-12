@@ -89,7 +89,7 @@ typedef oauth2_uint_t oauth2_http_status_code_t;
  *       4. oauth2_http_request_path_set for the path that is accessed
  *       5. oauth2_http_request_method_set for the HTTP method used
  *       6. oauth2_http_request_query_set for the query string
- *       7. oauth2_http_request_hdr_in_set for each incoming header
+ *       7. oauth2_http_request_header_set for each incoming header
  */
 OAUTH2_TYPE_DECLARE(http, request)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(http, request, scheme, char *)
@@ -112,6 +112,10 @@ const char *oauth2_http_response_header_get(oauth2_log_t *log,
 bool oauth2_http_response_cookie_set(oauth2_log_t *log,
 				     oauth2_http_response_t *response,
 				     const char *name, const char *value);
+void oauth2_http_response_headers_loop(oauth2_log_t *log,
+				       oauth2_http_response_t *response,
+				       oauth2_nv_list_loop_cb_t *callback,
+				       void *rec);
 
 // typedef bool (*oauth2_http_read_post_callback_t)(oauth2_log_t *log,
 // oauth2_http_request_t *request, char **data);
@@ -133,31 +137,34 @@ char *oauth2_http_request_url_get(oauth2_log_t *log,
  * request header functions
  */
 
-OAUTH2_MEMBER_LIST_DECLARE_SET_UNSET_ADD_GET(http, request, hdr_in)
+OAUTH2_MEMBER_LIST_DECLARE_SET_UNSET_ADD_GET(http, request, header)
 
-void oauth2_http_request_hdr_in_loop(oauth2_log_t *log,
-				     oauth2_http_request_t *request,
-				     oauth2_nv_list_loop_cb_t *callback,
-				     void *rec);
+void oauth2_http_request_headers_loop(oauth2_log_t *log,
+				      oauth2_http_request_t *request,
+				      oauth2_nv_list_loop_cb_t *callback,
+				      void *rec);
 
-const char *oauth2_http_hdr_in_content_type_get(oauth2_log_t *log,
-						const oauth2_http_request_t *r);
-const char *oauth2_http_hdr_in_cookie_get(oauth2_log_t *log,
-					  const oauth2_http_request_t *r);
 const char *
-oauth2_http_hdr_in_content_length_get(oauth2_log_t *log,
+oauth2_http_request_header_content_type_get(oauth2_log_t *log,
+					    const oauth2_http_request_t *r);
+const char *
+oauth2_http_request_header_cookie_get(oauth2_log_t *log,
 				      const oauth2_http_request_t *r);
-bool oauth2_http_hdr_in_content_length_set(oauth2_log_t *log,
-					   oauth2_http_request_t *r,
-					   size_t len);
 const char *
-oauth2_http_hdr_in_x_requested_with_get(oauth2_log_t *log,
-					const oauth2_http_request_t *r);
-const char *oauth2_http_hdr_in_accept_get(oauth2_log_t *log,
-					  const oauth2_http_request_t *request);
+oauth2_http_request_header_content_length_get(oauth2_log_t *log,
+					      const oauth2_http_request_t *r);
+bool oauth2_http_request_header_content_length_set(oauth2_log_t *log,
+						   oauth2_http_request_t *r,
+						   size_t len);
+const char *
+oauth2_http_request_header_x_requested_with_get(oauth2_log_t *log,
+						const oauth2_http_request_t *r);
+const char *
+oauth2_http_request_header_accept_get(oauth2_log_t *log,
+				      const oauth2_http_request_t *request);
 
-bool oauth2_http_is_xml_http_request(oauth2_log_t *log,
-				     const oauth2_http_request_t *request);
+bool oauth2_http_request_is_xml_http_request(
+    oauth2_log_t *log, const oauth2_http_request_t *request);
 
 /*
  * request args functions

@@ -68,7 +68,7 @@ START_TEST(test_openidc_cfg)
 	value = oauth2_cfg_openidc_redirect_uri_get(log, c, r);
 	ck_assert_ptr_eq(value, NULL);
 
-	rc = oauth2_http_request_hdr_in_set(log, r, "Host", "example.com");
+	rc = oauth2_http_request_header_set(log, r, "Host", "example.com");
 	ck_assert_int_eq(rc, true);
 	value = oauth2_cfg_openidc_redirect_uri_get(log, c, r);
 	ck_assert_str_eq(value, "https://example.com/redirect_uri");
@@ -126,9 +126,9 @@ START_TEST(test_openidc_handle)
 
 	rc = oauth2_http_request_path_set(log, r, "/secure");
 	ck_assert_int_eq(rc, true);
-	rc = oauth2_http_request_hdr_in_set(log, r, "Host", "app.example.org");
+	rc = oauth2_http_request_header_set(log, r, "Host", "app.example.org");
 	ck_assert_int_eq(rc, true);
-	rc = oauth2_http_request_hdr_in_set(log, r, "Accept", "text/html");
+	rc = oauth2_http_request_header_set(log, r, "Accept", "text/html");
 	ck_assert_int_eq(rc, true);
 
 	rc = oauth2_openidc_handle(log, c, r, &response);

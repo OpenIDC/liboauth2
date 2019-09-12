@@ -210,6 +210,20 @@ START_TEST(test_apache_authorize)
 }
 END_TEST
 
+START_TEST(test_apache_http_response_set)
+{
+	bool rc = false;
+	oauth2_http_response_t *response = NULL;
+
+	response = oauth2_http_response_init(log);
+
+	rc = oauth2_apache_http_response_set(log, response, request);
+	ck_assert_int_eq(rc, true);
+
+	oauth2_http_response_free(log, response);
+}
+END_TEST
+
 Suite *oauth2_check_apache_suite()
 {
 	Suite *s = suite_create("apache");
@@ -220,6 +234,7 @@ Suite *oauth2_check_apache_suite()
 	tcase_add_test(c, test_apache_request_state);
 	tcase_add_test(c, test_apache_authz_match_claim);
 	tcase_add_test(c, test_apache_authorize);
+	tcase_add_test(c, test_apache_http_response_set);
 
 	suite_add_tcase(s, c);
 

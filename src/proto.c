@@ -51,7 +51,7 @@ _oauth2_get_source_token_from_header(oauth2_log_t *log,
 		   ? cfg->accept_in.header.type
 		   : OAUTH2_CFG_SOURCE_TOKEN_HEADER_TYPE_DEFAULT;
 
-	auth_line = oauth2_http_request_hdr_in_get(log, request, name);
+	auth_line = oauth2_http_request_header_get(log, request, name);
 	if (auth_line == NULL)
 		goto end;
 
@@ -74,7 +74,7 @@ _oauth2_get_source_token_from_header(oauth2_log_t *log,
 
 	if (source_token != NULL)
 		if (oauth2_cfg_source_token_get_strip(cfg) != 0)
-			oauth2_http_request_hdr_in_unset(log, request, name);
+			oauth2_http_request_header_unset(log, request, name);
 
 end:
 
@@ -135,7 +135,8 @@ static char *_oauth2_get_source_token_from_post(
 		   ? cfg->accept_in.post.param_name
 		   : OAUTH2_CFG_SOURCE_TOKEN_POST_PARAMNAME_DEFAULT;
 
-	content_type = oauth2_http_hdr_in_content_type_get(log, request);
+	content_type =
+	    oauth2_http_request_header_content_type_get(log, request);
 	if ((oauth2_http_request_method_get(log, request) !=
 	     OAUTH2_HTTP_METHOD_POST) ||
 	    (strcasecmp(content_type, OAUTH2_CONTENT_TYPE_FORM_ENCODED) != 0)) {
@@ -247,7 +248,7 @@ static char *_oauth2_get_source_token_from_basic(oauth2_log_t *log,
 
 	oauth2_debug(log, "enter");
 
-	auth_line = oauth2_http_request_hdr_in_get(
+	auth_line = oauth2_http_request_header_get(
 	    log, request, OAUTH2_HTTP_HDR_AUTHORIZATION);
 	if (auth_line == NULL)
 		goto end;
@@ -277,7 +278,7 @@ static char *_oauth2_get_source_token_from_basic(oauth2_log_t *log,
 
 	if ((source_token != NULL) &&
 	    (oauth2_cfg_source_token_get_strip(cfg) != 0))
-		oauth2_http_request_hdr_in_unset(log, request,
+		oauth2_http_request_header_unset(log, request,
 						 OAUTH2_HTTP_HDR_AUTHORIZATION);
 
 end:

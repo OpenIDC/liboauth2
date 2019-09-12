@@ -78,7 +78,7 @@ START_TEST(test_request_scheme)
 	scheme = NULL;
 	r = oauth2_http_request_init(log);
 	oauth2_http_request_scheme_set(log, r, "http");
-	oauth2_http_request_hdr_in_set(log, r, "X-Forwarded-Proto", "https");
+	oauth2_http_request_header_set(log, r, "X-Forwarded-Proto", "https");
 	scheme = oauth2_http_request_scheme_get(log, r);
 	ck_assert_str_eq(scheme, "https");
 	oauth2_mem_free(scheme);
@@ -88,7 +88,7 @@ START_TEST(test_request_scheme)
 	scheme = NULL;
 	r = oauth2_http_request_init(log);
 	oauth2_http_request_scheme_set(log, r, "http");
-	oauth2_http_request_hdr_in_set(log, r, "x-forwarded-proto", "https");
+	oauth2_http_request_header_set(log, r, "x-forwarded-proto", "https");
 	scheme = oauth2_http_request_scheme_get(log, r);
 	ck_assert_str_eq(scheme, "https");
 	oauth2_mem_free(scheme);
@@ -98,7 +98,7 @@ START_TEST(test_request_scheme)
 	scheme = NULL;
 	r = oauth2_http_request_init(log);
 	oauth2_http_request_scheme_set(log, r, "http");
-	oauth2_http_request_hdr_in_set(log, r, "X-Forwarded-Proto",
+	oauth2_http_request_header_set(log, r, "X-Forwarded-Proto",
 				       "https, http");
 	scheme = oauth2_http_request_scheme_get(log, r);
 	ck_assert_str_eq(scheme, "https");
@@ -107,8 +107,8 @@ START_TEST(test_request_scheme)
 
 	// set no scheme and add some headers
 	r = oauth2_http_request_init(log);
-	oauth2_http_request_hdr_in_set(log, r, "One", "1");
-	oauth2_http_request_hdr_in_set(log, r, "Two", "2");
+	oauth2_http_request_header_set(log, r, "One", "1");
+	oauth2_http_request_header_set(log, r, "Two", "2");
 	scheme = oauth2_http_request_scheme_get(log, r);
 	ck_assert_str_eq(scheme, "https");
 	oauth2_mem_free(scheme);
@@ -152,7 +152,7 @@ START_TEST(test_request_hostname)
 	hostname = NULL;
 	r = oauth2_http_request_init(log);
 	oauth2_http_request_hostname_set(log, r, "internal");
-	oauth2_http_request_hdr_in_set(log, r, "X-Forwarded-Host", "external");
+	oauth2_http_request_header_set(log, r, "X-Forwarded-Host", "external");
 	hostname = oauth2_http_request_hostname_get(log, r);
 	ck_assert_str_eq(hostname, "external");
 	oauth2_mem_free(hostname);
@@ -163,7 +163,7 @@ START_TEST(test_request_hostname)
 	hostname = NULL;
 	r = oauth2_http_request_init(log);
 	oauth2_http_request_hostname_set(log, r, "internal");
-	oauth2_http_request_hdr_in_set(log, r, "X-Forwarded-Host",
+	oauth2_http_request_header_set(log, r, "X-Forwarded-Host",
 				       "external:8080");
 	hostname = oauth2_http_request_hostname_get(log, r);
 	ck_assert_str_eq(hostname, "external");
@@ -197,7 +197,7 @@ START_TEST(test_request_port)
 	// get port via X-Forwareded-Port
 	port = NULL;
 	r = oauth2_http_request_init(log);
-	oauth2_http_request_hdr_in_set(log, r, "X-Forwarded-Port", "8080");
+	oauth2_http_request_header_set(log, r, "X-Forwarded-Port", "8080");
 	port = oauth2_http_request_port_get(log, r);
 	ck_assert_str_eq(port, "8080");
 	oauth2_mem_free(port);
@@ -206,8 +206,8 @@ START_TEST(test_request_port)
 	// get port via X-Forwarded-Host overriding Host
 	port = NULL;
 	r = oauth2_http_request_init(log);
-	oauth2_http_request_hdr_in_set(log, r, "Host", "internal:8282");
-	oauth2_http_request_hdr_in_set(log, r, "X-Forwarded-Host",
+	oauth2_http_request_header_set(log, r, "Host", "internal:8282");
+	oauth2_http_request_header_set(log, r, "X-Forwarded-Host",
 				       "external:8181");
 	port = oauth2_http_request_port_get(log, r);
 	ck_assert_str_eq(port, "8181");
@@ -217,7 +217,7 @@ START_TEST(test_request_port)
 	// get port via Host that includes port
 	port = NULL;
 	r = oauth2_http_request_init(log);
-	oauth2_http_request_hdr_in_set(log, r, "Host", "internal:8282");
+	oauth2_http_request_header_set(log, r, "Host", "internal:8282");
 	port = oauth2_http_request_port_get(log, r);
 	ck_assert_str_eq(port, "8282");
 	oauth2_mem_free(port);
@@ -228,7 +228,7 @@ START_TEST(test_request_port)
 	port = NULL;
 	r = oauth2_http_request_init(log);
 	oauth2_http_request_scheme_set(log, r, "http");
-	oauth2_http_request_hdr_in_set(log, r, "Host", "internal");
+	oauth2_http_request_header_set(log, r, "Host", "internal");
 	port = oauth2_http_request_port_get(log, r);
 	ck_assert_ptr_eq(port, NULL);
 	oauth2_http_request_free(log, r);
@@ -237,8 +237,8 @@ START_TEST(test_request_port)
 	// contain a port
 	port = NULL;
 	r = oauth2_http_request_init(log);
-	oauth2_http_request_hdr_in_set(log, r, "Host", "internal");
-	oauth2_http_request_hdr_in_set(log, r, "X-Forwarded-Host", "external");
+	oauth2_http_request_header_set(log, r, "Host", "internal");
+	oauth2_http_request_header_set(log, r, "X-Forwarded-Host", "external");
 	port = oauth2_http_request_port_get(log, r);
 	ck_assert_ptr_eq(port, NULL);
 	oauth2_http_request_free(log, r);
@@ -248,7 +248,7 @@ START_TEST(test_request_port)
 	port = NULL;
 	r = oauth2_http_request_init(log);
 	oauth2_http_request_scheme_set(log, r, "https");
-	oauth2_http_request_hdr_in_set(log, r, "Host", "internal");
+	oauth2_http_request_header_set(log, r, "Host", "internal");
 	port = oauth2_http_request_port_get(log, r);
 	ck_assert_ptr_eq(port, NULL);
 	oauth2_http_request_free(log, r);
@@ -259,7 +259,7 @@ START_TEST(test_request_port)
 	rc = oauth2_http_request_port_set(log, r, 443);
 	ck_assert_int_eq(rc, true);
 	oauth2_http_request_scheme_set(log, r, "https");
-	oauth2_http_request_hdr_in_set(log, r, "Host", "internal");
+	oauth2_http_request_header_set(log, r, "Host", "internal");
 	port = oauth2_http_request_port_get(log, r);
 	ck_assert_ptr_eq(port, NULL);
 	oauth2_http_request_free(log, r);
@@ -268,7 +268,7 @@ START_TEST(test_request_port)
 	port = NULL;
 	r = oauth2_http_request_init(log);
 	rc = oauth2_http_request_port_set(log, r, 8080);
-	oauth2_http_request_hdr_in_set(log, r, "Host", "internal");
+	oauth2_http_request_header_set(log, r, "Host", "internal");
 	port = oauth2_http_request_port_get(log, r);
 	ck_assert_str_eq(port, "8080");
 	oauth2_mem_free(port);
@@ -279,8 +279,8 @@ START_TEST(test_request_port)
 	port = NULL;
 	r = oauth2_http_request_init(log);
 	rc = oauth2_http_request_port_set(log, r, 8080);
-	oauth2_http_request_hdr_in_set(log, r, "Host", "internal");
-	oauth2_http_request_hdr_in_set(log, r, "X-Forwarded-Proto", "https");
+	oauth2_http_request_header_set(log, r, "Host", "internal");
+	oauth2_http_request_header_set(log, r, "X-Forwarded-Proto", "https");
 	port = oauth2_http_request_port_get(log, r);
 	ck_assert_ptr_eq(port, NULL);
 	oauth2_http_request_free(log, r);
@@ -289,7 +289,7 @@ START_TEST(test_request_port)
 	port = NULL;
 	r = oauth2_http_request_init(log);
 	rc = oauth2_http_request_port_set(log, r, 443);
-	oauth2_http_request_hdr_in_set(log, r, "Host", "internal");
+	oauth2_http_request_header_set(log, r, "Host", "internal");
 	port = oauth2_http_request_port_get(log, r);
 	ck_assert_ptr_eq(port, NULL);
 	oauth2_http_request_free(log, r);
@@ -299,7 +299,7 @@ START_TEST(test_request_port)
 	r = oauth2_http_request_init(log);
 	oauth2_http_request_scheme_set(log, r, "http");
 	rc = oauth2_http_request_port_set(log, r, 80);
-	oauth2_http_request_hdr_in_set(log, r, "Host", "internal");
+	oauth2_http_request_header_set(log, r, "Host", "internal");
 	port = oauth2_http_request_port_get(log, r);
 	ck_assert_ptr_eq(port, NULL);
 	oauth2_http_request_free(log, r);
@@ -309,7 +309,7 @@ START_TEST(test_request_port)
 	r = oauth2_http_request_init(log);
 	rc = oauth2_http_request_port_set(log, r, 80);
 	oauth2_http_request_scheme_set(log, r, "https");
-	oauth2_http_request_hdr_in_set(log, r, "Host", "internal");
+	oauth2_http_request_header_set(log, r, "Host", "internal");
 	port = oauth2_http_request_port_get(log, r);
 	ck_assert_str_eq(port, "80");
 	oauth2_mem_free(port);
@@ -320,7 +320,7 @@ START_TEST(test_request_port)
 	r = oauth2_http_request_init(log);
 	rc = oauth2_http_request_port_set(log, r, 8080);
 	oauth2_http_request_scheme_set(log, r, "https");
-	oauth2_http_request_hdr_in_set(log, r, "Host", "internal");
+	oauth2_http_request_header_set(log, r, "Host", "internal");
 	port = oauth2_http_request_port_get(log, r);
 	ck_assert_str_eq(port, "8080");
 	oauth2_mem_free(port);
@@ -337,30 +337,30 @@ START_TEST(test_request_header)
 
 	// set a bunch of headers and retrieve one of them
 	r = oauth2_http_request_init(log);
-	rc = oauth2_http_request_hdr_in_set(log, r, "One", "1");
+	rc = oauth2_http_request_header_set(log, r, "One", "1");
 	ck_assert_int_eq(rc, true);
-	rc = oauth2_http_request_hdr_in_set(log, r, "Two", "2");
+	rc = oauth2_http_request_header_set(log, r, "Two", "2");
 	ck_assert_int_eq(rc, true);
-	rc = oauth2_http_request_hdr_in_set(log, r, "Three", "3");
+	rc = oauth2_http_request_header_set(log, r, "Three", "3");
 	ck_assert_int_eq(rc, true);
-	value = oauth2_http_request_hdr_in_get(log, r, "Two");
+	value = oauth2_http_request_header_get(log, r, "Two");
 	ck_assert_str_eq(value, "2");
 	oauth2_http_request_free(log, r);
 
 	// retrieve null header from request
 	r = oauth2_http_request_init(log);
-	value = oauth2_http_request_hdr_in_get(log, r, NULL);
+	value = oauth2_http_request_header_get(log, r, NULL);
 	ck_assert_ptr_eq(value, NULL);
 	oauth2_http_request_free(log, r);
 
 	// retrieve from null request
 	r = NULL;
-	value = oauth2_http_request_hdr_in_get(log, r, "Two");
+	value = oauth2_http_request_header_get(log, r, "Two");
 	ck_assert_ptr_eq(value, NULL);
 
 	// retrieve null header from null request
 	r = NULL;
-	value = oauth2_http_request_hdr_in_get(log, r, NULL);
+	value = oauth2_http_request_header_get(log, r, NULL);
 	ck_assert_ptr_eq(value, NULL);
 
 	// set header using failing memory allocation
@@ -371,7 +371,7 @@ START_TEST(test_request_header)
 	oauth2_mem_set_alloc_funcs(faulty_alloc, oauth2_mem_get_realloc(),
 				   oauth2_mem_get_dealloc());
 
-	rc = oauth2_http_request_hdr_in_set(log, r, "One", "1");
+	rc = oauth2_http_request_header_set(log, r, "One", "1");
 	ck_assert_int_eq(rc, false);
 	oauth2_http_request_free(log, r);
 
@@ -421,7 +421,7 @@ START_TEST(test_url_base)
 	r = oauth2_http_request_init(log);
 	oauth2_http_request_hostname_set(log, r, "internal");
 	oauth2_http_request_port_set(log, r, 8080);
-	oauth2_http_request_hdr_in_set(log, r, "X-Forwarded-Host",
+	oauth2_http_request_header_set(log, r, "X-Forwarded-Host",
 				       "external:9000");
 	base = oauth2_http_request_url_base_get(log, r);
 	ck_assert_str_eq(base, "https://external:9000");
@@ -433,8 +433,8 @@ START_TEST(test_url_base)
 	r = oauth2_http_request_init(log);
 	oauth2_http_request_hostname_set(log, r, "internal");
 	oauth2_http_request_port_set(log, r, 8080);
-	oauth2_http_request_hdr_in_set(log, r, "X-Forwarded-Proto", "http");
-	oauth2_http_request_hdr_in_set(log, r, "X-Forwarded-Host",
+	oauth2_http_request_header_set(log, r, "X-Forwarded-Proto", "http");
+	oauth2_http_request_header_set(log, r, "X-Forwarded-Host",
 				       "external:9000");
 	base = oauth2_http_request_url_base_get(log, r);
 	ck_assert_str_eq(base, "http://external:9000");
@@ -446,10 +446,10 @@ START_TEST(test_url_base)
 	r = oauth2_http_request_init(log);
 	oauth2_http_request_hostname_set(log, r, "internal");
 	oauth2_http_request_port_set(log, r, 8080);
-	oauth2_http_request_hdr_in_set(log, r, "X-Forwarded-Proto", "http");
-	oauth2_http_request_hdr_in_set(log, r, "X-Forwarded-Host",
+	oauth2_http_request_header_set(log, r, "X-Forwarded-Proto", "http");
+	oauth2_http_request_header_set(log, r, "X-Forwarded-Host",
 				       "external:9000");
-	oauth2_http_request_hdr_in_set(log, r, "X-Forwarded-Port", "8000");
+	oauth2_http_request_header_set(log, r, "X-Forwarded-Port", "8000");
 	base = oauth2_http_request_url_base_get(log, r);
 	ck_assert_str_eq(base, "http://external:8000");
 	oauth2_mem_free(base);
@@ -466,54 +466,54 @@ START_TEST(test_url_get)
 
 	url = NULL;
 	r = oauth2_http_request_init(log);
-	oauth2_http_request_hdr_in_set(log, r, "Host", "www.example.com");
+	oauth2_http_request_header_set(log, r, "Host", "www.example.com");
 	url = oauth2_http_request_url_get(log, r);
 	ck_assert_str_eq(url, "https://www.example.com");
 	oauth2_mem_free(url);
 
-	oauth2_http_request_hdr_in_set(log, r, "X-Forwarded-Host",
+	oauth2_http_request_header_set(log, r, "X-Forwarded-Host",
 				       "www.outer.com");
 	url = oauth2_http_request_url_get(log, r);
 	ck_assert_str_eq(url, "https://www.outer.com");
 	oauth2_mem_free(url);
 
-	oauth2_http_request_hdr_in_set(log, r, "X-Forwarded-Host",
+	oauth2_http_request_header_set(log, r, "X-Forwarded-Host",
 				       "www.outer.com:654");
 	url = oauth2_http_request_url_get(log, r);
 	ck_assert_str_eq(url, "https://www.outer.com:654");
 	oauth2_mem_free(url);
 
-	oauth2_http_request_hdr_in_set(log, r, "X-Forwarded-Port", "321");
+	oauth2_http_request_header_set(log, r, "X-Forwarded-Port", "321");
 	url = oauth2_http_request_url_get(log, r);
 	ck_assert_str_eq(url, "https://www.outer.com:321");
 	oauth2_mem_free(url);
 
-	oauth2_http_request_hdr_in_set(log, r, "X-Forwarded-Proto", "http");
+	oauth2_http_request_header_set(log, r, "X-Forwarded-Proto", "http");
 	url = oauth2_http_request_url_get(log, r);
 	ck_assert_str_eq(url, "http://www.outer.com:321");
 	oauth2_mem_free(url);
 
-	oauth2_http_request_hdr_in_set(log, r, "X-Forwarded-Proto",
+	oauth2_http_request_header_set(log, r, "X-Forwarded-Proto",
 				       "https, http");
 	url = oauth2_http_request_url_get(log, r);
 	ck_assert_str_eq(url, "https://www.outer.com:321");
 	oauth2_mem_free(url);
 
 	// add a space after the comma...
-	oauth2_http_request_hdr_in_set(log, r, "X-Forwarded-Proto",
+	oauth2_http_request_header_set(log, r, "X-Forwarded-Proto",
 				       "https , http");
 	url = oauth2_http_request_url_get(log, r);
 	ck_assert_str_eq(url, "https://www.outer.com:321");
 	oauth2_mem_free(url);
 
-	oauth2_http_request_hdr_in_unset(log, r, "X-Forwarded-Host");
-	oauth2_http_request_hdr_in_unset(log, r, "X-Forwarded-Port");
+	oauth2_http_request_header_unset(log, r, "X-Forwarded-Host");
+	oauth2_http_request_header_unset(log, r, "X-Forwarded-Port");
 	url = oauth2_http_request_url_get(log, r);
 	ck_assert_str_eq(url, "https://www.example.com");
 	oauth2_mem_free(url);
 
 	// test deleting first header
-	oauth2_http_request_hdr_in_set(log, r, "Host", NULL);
+	oauth2_http_request_header_set(log, r, "Host", NULL);
 	url = oauth2_http_request_url_get(log, r);
 	ck_assert_ptr_eq(url, NULL);
 
@@ -674,8 +674,8 @@ START_TEST(test_cookies)
 	oauth2_nv_list_free(log, params);
 
 	r = oauth2_http_request_init(log);
-	oauth2_http_request_hdr_in_set(log, r, "Host", "www.example.com");
-	oauth2_http_request_hdr_in_set(log, r, "Cookie",
+	oauth2_http_request_header_set(log, r, "Host", "www.example.com");
+	oauth2_http_request_header_set(log, r, "Cookie",
 				       "jan=piet; klaas=vaak; hans=zandbelt");
 
 	rv = oauth2_http_request_cookie_get(log, r, "klaas", false);
@@ -691,7 +691,7 @@ START_TEST(test_cookies)
 	rv = oauth2_http_request_cookie_get(log, r, "klaas", true);
 	ck_assert_ptr_eq(rv, NULL);
 
-	rvv = oauth2_http_request_hdr_in_get(log, r, "Cookie");
+	rvv = oauth2_http_request_header_get(log, r, "Cookie");
 	ck_assert_ptr_ne(rvv, NULL);
 	ck_assert_str_eq(rvv, "jan=piet; hans=zandbelt");
 
@@ -721,31 +721,31 @@ START_TEST(test_xml_http_request)
 
 	r = oauth2_http_request_init(log);
 
-	rc = oauth2_http_request_hdr_in_set(log, r, "Accept", "text/html");
+	rc = oauth2_http_request_header_set(log, r, "Accept", "text/html");
 	ck_assert_int_eq(rc, true);
-	rc = oauth2_http_is_xml_http_request(log, r);
+	rc = oauth2_http_request_is_xml_http_request(log, r);
 	ck_assert_int_eq(rc, false);
 
-	rc = oauth2_http_request_hdr_in_set(log, r, "Accept",
+	rc = oauth2_http_request_header_set(log, r, "Accept",
 					    "application/json");
 	ck_assert_int_eq(rc, true);
-	rc = oauth2_http_is_xml_http_request(log, r);
+	rc = oauth2_http_request_is_xml_http_request(log, r);
 	ck_assert_int_eq(rc, true);
 
-	rc = oauth2_http_request_hdr_in_set(log, r, "Accept", "*/*");
+	rc = oauth2_http_request_header_set(log, r, "Accept", "*/*");
 	ck_assert_int_eq(rc, true);
-	rc = oauth2_http_is_xml_http_request(log, r);
+	rc = oauth2_http_request_is_xml_http_request(log, r);
 	ck_assert_int_eq(rc, false);
 
-	rc = oauth2_http_request_hdr_in_set(log, r, "X-Requested-With",
+	rc = oauth2_http_request_header_set(log, r, "X-Requested-With",
 					    "XMLHttpRequest");
 	ck_assert_int_eq(rc, true);
-	rc = oauth2_http_request_hdr_in_set(
+	rc = oauth2_http_request_header_set(
 	    log, r, "Accept",
 	    "text/html, application/xhtml+xml, application/xml;q=0.9, "
 	    "image/webp, */*;q=0.8");
 	ck_assert_int_eq(rc, true);
-	rc = oauth2_http_is_xml_http_request(log, r);
+	rc = oauth2_http_request_is_xml_http_request(log, r);
 	ck_assert_int_eq(rc, true);
 
 	oauth2_http_request_free(log, r);

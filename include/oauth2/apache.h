@@ -308,6 +308,10 @@ void oauth2_apache_target_pass(oauth2_apache_request_ctx_t *ctx,
 			       oauth2_cfg_target_pass_t *target_pass,
 			       const char *target_token, json_t *json_token);
 
+bool oauth2_apache_http_response_set(oauth2_log_t *log,
+				     oauth2_http_response_t *response,
+				     request_rec *r);
+
 void oauth2_apache_request_state_set_json(oauth2_apache_request_ctx_t *ctx,
 					  const char *key, json_t *claims);
 void oauth2_apache_request_state_get_json(oauth2_apache_request_ctx_t *ctx,
