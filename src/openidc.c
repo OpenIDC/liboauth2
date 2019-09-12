@@ -60,6 +60,57 @@ end:
 	return c;
 }
 
+oauth2_cfg_openidc_t *oauth2_cfg_openidc_clone(oauth2_log_t *log,
+					       oauth2_cfg_openidc_t *src)
+{
+	oauth2_cfg_openidc_t *dst = NULL;
+
+	if (src == NULL)
+		goto end;
+
+	dst = oauth2_cfg_openidc_init(log);
+	if (dst == NULL)
+		goto end;
+
+	dst->handler_path = oauth2_strdup(src->handler_path);
+	dst->redirect_uri = oauth2_strdup(src->redirect_uri);
+	dst->provider_resolver = src->provider_resolver;
+	dst->unauth_action = src->unauth_action;
+	dst->state_cookie_name_prefix =
+	    oauth2_strdup(src->state_cookie_name_prefix);
+	dst->passphrase = oauth2_strdup(src->passphrase);
+
+end:
+
+	return dst;
+}
+
+#define _OAUTH_CFG_MERGE_STRING(cfg, base, add, x)                             \
+	cfg->x = oauth2_strdup(add->x ? add->x : base->x);
+#define _OAUTH_CFG_MERGE_VALUE(cfg, base, add, x, undefined)                   \
+	cfg->x = add->x != undefined ? add->x : base->x;
+
+void oauth2_cfg_openidc_merge(oauth2_log_t *log, oauth2_cfg_openidc_t *cfg,
+			      oauth2_cfg_openidc_t *base,
+			      oauth2_cfg_openidc_t *add)
+{
+
+	if ((cfg == NULL) || (base == NULL) || (add == NULL))
+		goto end;
+
+	_OAUTH_CFG_MERGE_STRING(cfg, base, add, handler_path);
+	_OAUTH_CFG_MERGE_STRING(cfg, base, add, redirect_uri);
+	_OAUTH_CFG_MERGE_VALUE(cfg, base, add, provider_resolver, NULL)
+	_OAUTH_CFG_MERGE_VALUE(cfg, base, add, unauth_action,
+			       OAUTH2_UNAUTH_ACTION_UNDEFINED)
+	_OAUTH_CFG_MERGE_STRING(cfg, base, add, state_cookie_name_prefix);
+	_OAUTH_CFG_MERGE_STRING(cfg, base, add, passphrase);
+
+end:
+
+	return;
+}
+
 void oauth2_cfg_openidc_free(oauth2_log_t *log, oauth2_cfg_openidc_t *c)
 {
 	if (c == NULL)
@@ -353,12 +404,23 @@ static bool _oauth2_openidc_authenticate(oauth2_log_t *log,
 
 	oauth2_debug(log, "enter");
 
-	if (response == NULL)
+	if ((cfg == NULL) || (request == NULL) || (response == NULL))
 		goto end;
 
-	if ((cfg->provider_resolver(log, request, &provider) == false) ||
-	    (provider == NULL))
+	if (cfg->provider_resolver == NULL) {
+		oauth2_error(
+		    log, "configuration error: provider_resolve is not set");
 		goto end;
+	}
+
+	if (cfg->provider_resolver(log, request, &provider) == false)
+		goto end;
+
+	if (provider == NULL) {
+		oauth2_error(log, "no provider was returned by the provider "
+				  "resolver; probably a configuration error");
+		goto end;
+	}
 
 	oauth2_nv_list_add(log, params, OAUTH2_RESPONSE_TYPE,
 			   OAUTH2_RESPONSE_TYPE_CODE);
