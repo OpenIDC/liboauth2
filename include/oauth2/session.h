@@ -28,7 +28,7 @@
 OAUTH2_TYPE_DECLARE(session, rec)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(session, rec, user, char *)
 
-bool oauth2_session_load(oauth2_log_t *log, const oauth2_openidc_cfg_t *c,
+bool oauth2_session_load(oauth2_log_t *log, const oauth2_cfg_openidc_t *c,
 			 const oauth2_http_request_t *r,
 			 oauth2_session_rec_t **session);
 

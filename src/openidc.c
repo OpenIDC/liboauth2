@@ -31,20 +31,20 @@
 #include <string.h>
 
 // TODO: set add log
-typedef struct oauth2_openidc_cfg_t {
+typedef struct oauth2_cfg_openidc_t {
 	char *handler_path;
 	char *redirect_uri;
 	oauth2_openidc_provider_resolver_t *provider_resolver;
 	oauth2_unauth_action_t unauth_action;
 	char *state_cookie_name_prefix;
 	char *passphrase;
-} oauth2_openidc_cfg_t;
+} oauth2_cfg_openidc_t;
 
-oauth2_openidc_cfg_t *oauth2_openidc_cfg_init(oauth2_log_t *log)
+oauth2_cfg_openidc_t *oauth2_cfg_openidc_init(oauth2_log_t *log)
 {
-	oauth2_openidc_cfg_t *c = NULL;
+	oauth2_cfg_openidc_t *c = NULL;
 
-	c = oauth2_mem_alloc(sizeof(oauth2_openidc_cfg_t));
+	c = oauth2_mem_alloc(sizeof(oauth2_cfg_openidc_t));
 	if (c == NULL)
 		goto end;
 
@@ -60,7 +60,7 @@ end:
 	return c;
 }
 
-void oauth2_openidc_cfg_free(oauth2_log_t *log, oauth2_openidc_cfg_t *c)
+void oauth2_cfg_openidc_free(oauth2_log_t *log, oauth2_cfg_openidc_t *c)
 {
 	if (c == NULL)
 		goto end;
@@ -81,14 +81,14 @@ end:
 	return;
 }
 
-_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(openidc, cfg, handler_path, char *, str)
-_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(openidc, cfg, redirect_uri, char *, str)
-_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(openidc, cfg, state_cookie_name_prefix,
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(cfg, openidc, handler_path, char *, str)
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(cfg, openidc, redirect_uri, char *, str)
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(cfg, openidc, state_cookie_name_prefix,
 				  char *, str)
-_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, cfg, passphrase, char *, str)
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(cfg, openidc, passphrase, char *, str)
 
-bool oauth2_openidc_cfg_provider_resolver_set(
-    oauth2_log_t *log, oauth2_openidc_cfg_t *cfg,
+bool oauth2_cfg_openidc_provider_resolver_set(
+    oauth2_log_t *log, oauth2_cfg_openidc_t *cfg,
     oauth2_openidc_provider_resolver_t *resolver)
 {
 	cfg->provider_resolver = resolver;
@@ -96,8 +96,8 @@ bool oauth2_openidc_cfg_provider_resolver_set(
 }
 
 oauth2_openidc_provider_resolver_t *
-oauth2_openidc_cfg_provider_resolver_get(oauth2_log_t *log,
-					 const oauth2_openidc_cfg_t *cfg)
+oauth2_cfg_openidc_provider_resolver_get(oauth2_log_t *log,
+					 const oauth2_cfg_openidc_t *cfg)
 {
 	return cfg->provider_resolver;
 }
@@ -105,14 +105,14 @@ oauth2_openidc_cfg_provider_resolver_get(oauth2_log_t *log,
 #define OAUTH2_OPENIDC_CFG_HANDLER_PATH_DEFAULT "/openid-connect"
 
 char *oauth2_openidc_cfg_handler_path_get(oauth2_log_t *log,
-					  const oauth2_openidc_cfg_t *c)
+					  const oauth2_cfg_openidc_t *c)
 {
 	return c->handler_path ? c->handler_path
 			       : OAUTH2_OPENIDC_CFG_HANDLER_PATH_DEFAULT;
 }
 
-char *oauth2_openidc_cfg_redirect_uri_get(oauth2_log_t *log,
-					  const oauth2_openidc_cfg_t *c,
+char *oauth2_cfg_openidc_redirect_uri_get(oauth2_log_t *log,
+					  const oauth2_cfg_openidc_t *c,
 					  const oauth2_http_request_t *r)
 {
 	char *redirect_uri = NULL, *path = NULL;
@@ -151,14 +151,14 @@ end:
 
 char *
 oauth2_openidc_cfg_state_cookie_name_prefix_get(oauth2_log_t *log,
-						const oauth2_openidc_cfg_t *c)
+						const oauth2_cfg_openidc_t *cfg)
 {
-	return c->state_cookie_name_prefix
-		   ? c->state_cookie_name_prefix
+	return cfg->state_cookie_name_prefix
+		   ? cfg->state_cookie_name_prefix
 		   : OAUTH2_OPENIDC_STATE_COOKIE_NAME_PREFIX_DEFAULT;
 }
 
-_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, cfg, unauth_action,
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(cfg, openidc, unauth_action,
 				      oauth2_unauth_action_t, uint)
 
 typedef struct oauth2_openidc_provider_t {
@@ -220,13 +220,13 @@ _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, client_id, char *, str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, client_secret, char *,
 				      str)
 
-char *oauth2_openidc_cfg_redirect_uri_get_iss(
-    oauth2_log_t *log, const oauth2_openidc_cfg_t *c,
+char *oauth2_cfg_openidc_redirect_uri_get_iss(
+    oauth2_log_t *log, const oauth2_cfg_openidc_t *c,
     const oauth2_http_request_t *r, const oauth2_openidc_provider_t *provider)
 {
 	char *redirect_uri = NULL, *issuer = NULL, *sep = NULL;
 
-	redirect_uri = oauth2_openidc_cfg_redirect_uri_get(log, c, r);
+	redirect_uri = oauth2_cfg_openidc_redirect_uri_get(log, c, r);
 	if (redirect_uri == NULL)
 		goto end;
 
@@ -294,7 +294,7 @@ static bool _oauth2_openidc_proto_state_delete(oauth2_log_t *log,
 }
 
 static bool _oauth2_openidc_set_state_cookie(
-    oauth2_log_t *log, const oauth2_openidc_cfg_t *cfg,
+    oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg,
     oauth2_openidc_provider_t *provider, const oauth2_http_request_t *request,
     oauth2_http_response_t *response, const char *state)
 {
@@ -320,7 +320,7 @@ static bool _oauth2_openidc_set_state_cookie(
 	    log, provider, target_link_uri, request);
 
 	if (oauth2_jose_jwt_encrypt(log,
-				    oauth2_openidc_cfg_passphrase_get(log, cfg),
+				    oauth2_cfg_openidc_passphrase_get(log, cfg),
 				    proto_state, &value) == false)
 		goto end;
 
@@ -341,7 +341,7 @@ end:
 }
 
 static bool _oauth2_openidc_authenticate(oauth2_log_t *log,
-					 const oauth2_openidc_cfg_t *cfg,
+					 const oauth2_cfg_openidc_t *cfg,
 					 const oauth2_http_request_t *request,
 					 oauth2_http_response_t **response)
 {
@@ -369,7 +369,7 @@ static bool _oauth2_openidc_authenticate(oauth2_log_t *log,
 
 	// redirect_uri = oauth2_openidc_cfg_redirect_uri_get_iss(log, cfg,
 	// request, provider);
-	redirect_uri = oauth2_openidc_cfg_redirect_uri_get(log, cfg, request);
+	redirect_uri = oauth2_cfg_openidc_redirect_uri_get(log, cfg, request);
 	if (redirect_uri)
 		oauth2_nv_list_add(log, params, OAUTH2_REDIRECT_URI,
 				   redirect_uri);
@@ -421,7 +421,7 @@ end:
 }
 
 static bool _oauth2_openidc_unauthenticated_request(
-    oauth2_log_t *log, const oauth2_openidc_cfg_t *cfg,
+    oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg,
     const oauth2_http_request_t *request, oauth2_session_rec_t *session,
     oauth2_http_response_t **response)
 {
@@ -433,7 +433,7 @@ static bool _oauth2_openidc_unauthenticated_request(
 		goto end;
 	*response = oauth2_http_response_init(log);
 
-	switch (oauth2_openidc_cfg_unauth_action_get(log, cfg)) {
+	switch (oauth2_cfg_openidc_unauth_action_get(log, cfg)) {
 	case OAUTH2_UNAUTH_ACTION_PASS:
 		// r->user = "";
 		// oidc_scrub_headers(r);
@@ -471,7 +471,7 @@ end:
 }
 
 static bool _oauth2_openidc_existing_session(oauth2_log_t *log,
-					     const oauth2_openidc_cfg_t *c,
+					     const oauth2_cfg_openidc_t *c,
 					     const oauth2_http_request_t *r,
 					     oauth2_session_rec_t *session,
 					     oauth2_http_response_t **response)
@@ -490,7 +490,7 @@ end:
 }
 
 static bool _oauth2_openidc_redirect_uri_handler(
-    oauth2_log_t *log, const oauth2_openidc_cfg_t *cfg,
+    oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg,
     oauth2_http_request_t *request, oauth2_session_rec_t *session,
     oauth2_http_response_t **response)
 {
@@ -521,7 +521,7 @@ end:
 }
 
 static bool _oauth2_openidc_internal_requests(oauth2_log_t *log,
-					      const oauth2_openidc_cfg_t *cfg,
+					      const oauth2_cfg_openidc_t *cfg,
 					      oauth2_http_request_t *request,
 					      oauth2_session_rec_t *session,
 					      oauth2_http_response_t **response,
@@ -536,7 +536,7 @@ static bool _oauth2_openidc_internal_requests(oauth2_log_t *log,
 	if (request_url == NULL)
 		goto end;
 
-	redirect_uri = oauth2_openidc_cfg_redirect_uri_get(log, cfg, request);
+	redirect_uri = oauth2_cfg_openidc_redirect_uri_get(log, cfg, request);
 
 	// redirect_uri handling
 	if (strcmp(redirect_uri, request_url) == 0) {
@@ -561,7 +561,7 @@ end:
 	return rc;
 }
 
-bool oauth2_openidc_handle(oauth2_log_t *log, const oauth2_openidc_cfg_t *cfg,
+bool oauth2_openidc_handle(oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg,
 			   oauth2_http_request_t *request,
 			   oauth2_http_response_t **response)
 {

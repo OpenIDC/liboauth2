@@ -62,8 +62,8 @@ void oauth2_session_rec_free(oauth2_log_t *log, oauth2_session_rec_t *s)
 
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(session, rec, user, char *, str)
 
-bool oauth2_session_load(oauth2_log_t *log, const oauth2_openidc_cfg_t *c,
-			 const oauth2_http_request_t *r,
+bool oauth2_session_load(oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg,
+			 const oauth2_http_request_t *request,
 			 oauth2_session_rec_t **session)
 {
 	bool rc = false;

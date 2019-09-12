@@ -41,56 +41,56 @@ static void teardown(void)
 START_TEST(test_openidc_cfg)
 {
 	bool rc = false;
-	oauth2_openidc_cfg_t *c = NULL;
+	oauth2_cfg_openidc_t *c = NULL;
 	oauth2_http_request_t *r = NULL;
 	oauth2_openidc_provider_t *p = NULL;
 	char *value = NULL;
 
-	c = oauth2_openidc_cfg_init(log);
+	c = oauth2_cfg_openidc_init(log);
 	r = oauth2_http_request_init(log);
 
-	rc = oauth2_openidc_cfg_redirect_uri_set(
+	rc = oauth2_cfg_openidc_redirect_uri_set(
 	    log, c, "https://example.org/redirect_uri");
 	ck_assert_int_eq(rc, true);
-	value = oauth2_openidc_cfg_redirect_uri_get(log, c, r);
+	value = oauth2_cfg_openidc_redirect_uri_get(log, c, r);
 	ck_assert_str_eq(value, "https://example.org/redirect_uri");
 	oauth2_mem_free(value);
 
-	rc = oauth2_openidc_cfg_redirect_uri_set(
+	rc = oauth2_cfg_openidc_redirect_uri_set(
 	    log, c, "https://example.com/redirect_uri");
 	ck_assert_int_eq(rc, true);
-	value = oauth2_openidc_cfg_redirect_uri_get(log, c, r);
+	value = oauth2_cfg_openidc_redirect_uri_get(log, c, r);
 	ck_assert_str_eq(value, "https://example.com/redirect_uri");
 	oauth2_mem_free(value);
 
-	rc = oauth2_openidc_cfg_redirect_uri_set(log, c, "/redirect_uri");
+	rc = oauth2_cfg_openidc_redirect_uri_set(log, c, "/redirect_uri");
 	ck_assert_int_eq(rc, true);
-	value = oauth2_openidc_cfg_redirect_uri_get(log, c, r);
+	value = oauth2_cfg_openidc_redirect_uri_get(log, c, r);
 	ck_assert_ptr_eq(value, NULL);
 
 	rc = oauth2_http_request_hdr_in_set(log, r, "Host", "example.com");
 	ck_assert_int_eq(rc, true);
-	value = oauth2_openidc_cfg_redirect_uri_get(log, c, r);
+	value = oauth2_cfg_openidc_redirect_uri_get(log, c, r);
 	ck_assert_str_eq(value, "https://example.com/redirect_uri");
 	oauth2_mem_free(value);
 
 	p = oauth2_openidc_provider_init(log);
 	ck_assert_ptr_ne(p, NULL);
 
-	value = oauth2_openidc_cfg_redirect_uri_get_iss(log, c, r, p);
+	value = oauth2_cfg_openidc_redirect_uri_get_iss(log, c, r, p);
 	// ck_assert_ptr_eq(value, NULL);
 	ck_assert_str_eq(value, "https://example.com/redirect_uri");
 	oauth2_mem_free(value);
 
 	rc = oauth2_openidc_provider_issuer_set(log, p, "jan");
 	ck_assert_int_eq(rc, true);
-	value = oauth2_openidc_cfg_redirect_uri_get_iss(log, c, r, p);
+	value = oauth2_cfg_openidc_redirect_uri_get_iss(log, c, r, p);
 	ck_assert_str_eq(value, "https://example.com/redirect_uri?iss=jan");
 	oauth2_mem_free(value);
 
 	oauth2_openidc_provider_free(log, p);
 	oauth2_http_request_free(log, r);
-	oauth2_openidc_cfg_free(log, c);
+	oauth2_cfg_openidc_free(log, c);
 }
 END_TEST
 
@@ -113,15 +113,15 @@ bool test_openidc_provider_resolver(oauth2_log_t *log,
 START_TEST(test_openidc_handle)
 {
 	bool rc = false;
-	oauth2_openidc_cfg_t *c = NULL;
+	oauth2_cfg_openidc_t *c = NULL;
 	oauth2_http_request_t *r = NULL;
 	oauth2_http_response_t *response = NULL;
 
-	c = oauth2_openidc_cfg_init(log);
+	c = oauth2_cfg_openidc_init(log);
 	r = oauth2_http_request_init(log);
 
-	oauth2_openidc_cfg_passphrase_set(log, c, "mypassphrase1234");
-	oauth2_openidc_cfg_provider_resolver_set(
+	oauth2_cfg_openidc_passphrase_set(log, c, "mypassphrase1234");
+	oauth2_cfg_openidc_provider_resolver_set(
 	    log, c, test_openidc_provider_resolver);
 
 	rc = oauth2_http_request_path_set(log, r, "/secure");
@@ -149,7 +149,7 @@ START_TEST(test_openidc_handle)
 
 	oauth2_http_response_free(log, response);
 	oauth2_http_request_free(log, r);
-	oauth2_openidc_cfg_free(log, c);
+	oauth2_cfg_openidc_free(log, c);
 }
 END_TEST
 

@@ -37,24 +37,26 @@ typedef bool(oauth2_openidc_provider_resolver_t)(oauth2_log_t *log,
  * location-based OpenID Connect configuration
  */
 
-OAUTH2_TYPE_DECLARE(openidc, cfg)
-OAUTH2_TYPE_DECLARE_MEMBER_SET(openidc, cfg, handler_path, char *)
-OAUTH2_TYPE_DECLARE_MEMBER_SET(openidc, cfg, redirect_uri, char *)
-OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, cfg, unauth_action,
-				   oauth2_unauth_action_t)
-OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, cfg, state_cookie_name_prefix,
-				   char *)
-OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, cfg, passphrase, char *)
+OAUTH2_CFG_TYPE_DECLARE(cfg, openidc)
 
-bool oauth2_openidc_cfg_provider_resolver_set(
-    oauth2_log_t *, oauth2_openidc_cfg_t *,
+// OAUTH2_TYPE_DECLARE(openidc, cfg)
+OAUTH2_TYPE_DECLARE_MEMBER_SET(cfg, openidc, handler_path, char *)
+OAUTH2_TYPE_DECLARE_MEMBER_SET(cfg, openidc, redirect_uri, char *)
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, unauth_action,
+				   oauth2_unauth_action_t)
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, state_cookie_name_prefix,
+				   char *)
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, passphrase, char *)
+
+bool oauth2_cfg_openidc_provider_resolver_set(
+    oauth2_log_t *, oauth2_cfg_openidc_t *,
     oauth2_openidc_provider_resolver_t *);
 oauth2_openidc_provider_resolver_t *
 oauth2_openidc_cfg_provider_resolver_get(oauth2_log_t *,
-					 const oauth2_openidc_cfg_t *);
+					 const oauth2_cfg_openidc_t *);
 
-char *oauth2_openidc_cfg_redirect_uri_get(oauth2_log_t *,
-					  const oauth2_openidc_cfg_t *,
+char *oauth2_cfg_openidc_redirect_uri_get(oauth2_log_t *,
+					  const oauth2_cfg_openidc_t *,
 					  const oauth2_http_request_t *);
 
 /*
@@ -69,11 +71,11 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, scope, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, client_id, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, client_secret, char *)
 
-char *oauth2_openidc_cfg_redirect_uri_get_iss(
-    oauth2_log_t *, const oauth2_openidc_cfg_t *, const oauth2_http_request_t *,
+char *oauth2_cfg_openidc_redirect_uri_get_iss(
+    oauth2_log_t *, const oauth2_cfg_openidc_t *, const oauth2_http_request_t *,
     const oauth2_openidc_provider_t *);
 
-bool oauth2_openidc_handle(oauth2_log_t *log, const oauth2_openidc_cfg_t *c,
+bool oauth2_openidc_handle(oauth2_log_t *log, const oauth2_cfg_openidc_t *c,
 			   oauth2_http_request_t *r,
 			   oauth2_http_response_t **response);
 
