@@ -38,6 +38,7 @@ typedef bool(oauth2_openidc_provider_resolver_t)(oauth2_log_t *log,
  */
 
 OAUTH2_TYPE_DECLARE(openidc, cfg)
+OAUTH2_TYPE_DECLARE_MEMBER_SET(openidc, cfg, handler_path, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET(openidc, cfg, redirect_uri, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, cfg, unauth_action,
 				   oauth2_unauth_action_t)
@@ -73,7 +74,7 @@ char *oauth2_openidc_cfg_redirect_uri_get_iss(
     const oauth2_openidc_provider_t *);
 
 bool oauth2_openidc_handle(oauth2_log_t *log, const oauth2_openidc_cfg_t *c,
-			   const oauth2_http_request_t *r,
+			   oauth2_http_request_t *r,
 			   oauth2_http_response_t **response);
 
 #endif /* _OAUTH2_OPENIDC_H_ */

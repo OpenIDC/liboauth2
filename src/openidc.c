@@ -32,6 +32,7 @@
 
 // TODO: set add log
 typedef struct oauth2_openidc_cfg_t {
+	char *handler_path;
 	char *redirect_uri;
 	oauth2_openidc_provider_resolver_t *provider_resolver;
 	oauth2_unauth_action_t unauth_action;
@@ -47,8 +48,12 @@ oauth2_openidc_cfg_t *oauth2_openidc_cfg_init(oauth2_log_t *log)
 	if (c == NULL)
 		goto end;
 
-	// TODO: memset all of it?
+	c->handler_path = NULL;
 	c->redirect_uri = NULL;
+	c->provider_resolver = NULL;
+	c->unauth_action = OAUTH2_UNAUTH_ACTION_UNDEFINED;
+	c->state_cookie_name_prefix = NULL;
+	c->passphrase = NULL;
 
 end:
 
@@ -60,8 +65,14 @@ void oauth2_openidc_cfg_free(oauth2_log_t *log, oauth2_openidc_cfg_t *c)
 	if (c == NULL)
 		goto end;
 
+	if (c->handler_path)
+		oauth2_mem_free(c->handler_path);
 	if (c->redirect_uri)
 		oauth2_mem_free(c->redirect_uri);
+	if (c->state_cookie_name_prefix)
+		oauth2_mem_free(c->state_cookie_name_prefix);
+	if (c->passphrase)
+		oauth2_mem_free(c->passphrase);
 
 	oauth2_mem_free(c);
 
@@ -70,6 +81,7 @@ end:
 	return;
 }
 
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(openidc, cfg, handler_path, char *, str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(openidc, cfg, redirect_uri, char *, str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(openidc, cfg, state_cookie_name_prefix,
 				  char *, str)
@@ -90,32 +102,49 @@ oauth2_openidc_cfg_provider_resolver_get(oauth2_log_t *log,
 	return cfg->provider_resolver;
 }
 
+#define OAUTH2_OPENIDC_CFG_HANDLER_PATH_DEFAULT "/openid-connect"
+
+char *oauth2_openidc_cfg_handler_path_get(oauth2_log_t *log,
+					  const oauth2_openidc_cfg_t *c)
+{
+	return c->handler_path ? c->handler_path
+			       : OAUTH2_OPENIDC_CFG_HANDLER_PATH_DEFAULT;
+}
+
 char *oauth2_openidc_cfg_redirect_uri_get(oauth2_log_t *log,
 					  const oauth2_openidc_cfg_t *c,
 					  const oauth2_http_request_t *r)
 {
+	char *redirect_uri = NULL, *path = NULL;
 
-	char *redirect_uri = NULL;
-
-	if ((c == NULL) || (c->redirect_uri == NULL))
+	if (c == NULL)
 		goto end;
 
-	// absolute redirect uri
-	if (c->redirect_uri[0] != _OAUTH2_CHAR_FSLASH) {
-		redirect_uri = oauth2_strdup(c->redirect_uri);
-		goto end;
+	if (c->redirect_uri) {
+		if (c->redirect_uri[0] != _OAUTH2_CHAR_FSLASH) {
+			// absolute redirect uri
+			redirect_uri = oauth2_strdup(c->redirect_uri);
+			goto end;
+		}
+		path = oauth2_strdup(c->redirect_uri);
+	} else {
+		path = oauth2_stradd(
+		    NULL, oauth2_openidc_cfg_handler_path_get(log, c),
+		    "/redirect_uri", NULL);
 	}
 
-	// relative redirect uri
 	redirect_uri = oauth2_http_request_url_base_get(log, r);
 	if (redirect_uri == NULL)
 		goto end;
 
-	redirect_uri = oauth2_stradd(redirect_uri, c->redirect_uri, NULL, NULL);
+	redirect_uri = oauth2_stradd(redirect_uri, path, NULL, NULL);
 
 	oauth2_debug(log, "derived absolute redirect uri: %s", redirect_uri);
 
 end:
+
+	if (path)
+		oauth2_mem_free(path);
 
 	return redirect_uri;
 }
@@ -318,7 +347,8 @@ static bool _oauth2_openidc_authenticate(oauth2_log_t *log,
 {
 	bool rc = false;
 	oauth2_openidc_provider_t *provider = NULL;
-	char *nonce = NULL, *state = NULL, *location = NULL;
+	char *nonce = NULL, *state = NULL, *redirect_uri = NULL,
+	     *location = NULL;
 	oauth2_nv_list_t *params = oauth2_nv_list_init(log);
 
 	oauth2_debug(log, "enter");
@@ -336,9 +366,13 @@ static bool _oauth2_openidc_authenticate(oauth2_log_t *log,
 	if (provider->client_id)
 		oauth2_nv_list_add(log, params, OAUTH2_CLIENT_ID,
 				   provider->client_id);
-	if (cfg->redirect_uri)
+
+	// redirect_uri = oauth2_openidc_cfg_redirect_uri_get_iss(log, cfg,
+	// request, provider);
+	redirect_uri = oauth2_openidc_cfg_redirect_uri_get(log, cfg, request);
+	if (redirect_uri)
 		oauth2_nv_list_add(log, params, OAUTH2_REDIRECT_URI,
-				   cfg->redirect_uri);
+				   redirect_uri);
 
 	if (provider->scope)
 		oauth2_nv_list_add(log, params, OAUTH2_SCOPE, provider->scope);
@@ -370,6 +404,8 @@ static bool _oauth2_openidc_authenticate(oauth2_log_t *log,
 
 end:
 
+	if (redirect_uri)
+		oauth2_mem_free(redirect_uri);
 	if (nonce)
 		oauth2_mem_free(nonce);
 	if (state)
@@ -453,36 +489,107 @@ end:
 	return rc;
 }
 
-bool oauth2_openidc_handle(oauth2_log_t *log, const oauth2_openidc_cfg_t *c,
-			   const oauth2_http_request_t *r,
-			   oauth2_http_response_t **response)
+static bool _oauth2_openidc_redirect_uri_handler(
+    oauth2_log_t *log, const oauth2_openidc_cfg_t *cfg,
+    oauth2_http_request_t *request, oauth2_session_rec_t *session,
+    oauth2_http_response_t **response)
 {
 	bool rc = false;
-	oauth2_session_rec_t *session = NULL;
+	const char *code = NULL, *state = NULL;
 
-	oauth2_debug(log, "incoming request: %s%s%s",
-		     oauth2_http_request_path_get(log, r),
-		     oauth2_http_request_path_get(log, r) ? "?" : "",
-		     oauth2_http_request_path_get(log, r)
-			 ? oauth2_http_request_path_get(log, r)
-			 : "");
+	// at this point we know there's a request to the redirect uri
+	// errors set in the HTTP response
 
-	if (oauth2_session_load(log, c, r, &session) == false)
+	code = oauth2_http_request_query_param_get(log, request, OAUTH2_CODE);
+	state = oauth2_http_request_query_param_get(log, request, OAUTH2_STATE);
+
+	if ((code == NULL) || (state == NULL)) {
+		oauth2_error(log, "invalid request to the redirect_uri: %s",
+			     oauth2_http_request_query_get(log, request));
+		goto end;
+	}
+
+	// restore proto state
+	// validate response
+	// exchange code for token
+	// create session
+	// // pass token info
+
+end:
+
+	return rc;
+}
+
+static bool _oauth2_openidc_internal_requests(oauth2_log_t *log,
+					      const oauth2_openidc_cfg_t *cfg,
+					      oauth2_http_request_t *request,
+					      oauth2_session_rec_t *session,
+					      oauth2_http_response_t **response,
+					      bool *processed)
+{
+	bool rc = true;
+	char *redirect_uri = NULL, *request_url;
+
+	// redirect_uri = oauth2_openidc_cfg_redirect_uri_get_iss(log, cfg,
+	// request, provider);
+	request_url = oauth2_http_request_url_get(log, request);
+	if (request_url == NULL)
 		goto end;
 
-	// TODO: handle requests to the redirect uri
-	// TODO: handle other custom request handlers:
+	redirect_uri = oauth2_openidc_cfg_redirect_uri_get(log, cfg, request);
+
+	// redirect_uri handling
+	if (strcmp(redirect_uri, request_url) == 0) {
+		rc = _oauth2_openidc_redirect_uri_handler(log, cfg, request,
+							  session, response);
+		*processed = true;
+		goto end;
+	}
+
+	// TODO:
 	// - session info
 	// - key materials
 	// - 3rd-party init SSO
 
+end:
+
+	if (request_url)
+		oauth2_mem_free(request_url);
+	if (redirect_uri)
+		oauth2_mem_free(redirect_uri);
+
+	return rc;
+}
+
+bool oauth2_openidc_handle(oauth2_log_t *log, const oauth2_openidc_cfg_t *cfg,
+			   oauth2_http_request_t *request,
+			   oauth2_http_response_t **response)
+{
+	bool rc = false, processed = false;
+	oauth2_session_rec_t *session = NULL;
+
+	oauth2_debug(log, "incoming request: %s%s%s",
+		     oauth2_http_request_path_get(log, request),
+		     oauth2_http_request_path_get(log, request) ? "?" : "",
+		     oauth2_http_request_path_get(log, request)
+			 ? oauth2_http_request_path_get(log, request)
+			 : "");
+
+	if (oauth2_session_load(log, cfg, request, &session) == false)
+		goto end;
+
+	rc = _oauth2_openidc_internal_requests(log, cfg, request, session,
+					       response, &processed);
+	if ((processed == true) || (rc == false))
+		goto end;
+
 	if (oauth2_session_rec_user_get(log, session) != NULL) {
-		rc = _oauth2_openidc_existing_session(log, c, r, session,
-						      response);
+		rc = _oauth2_openidc_existing_session(log, cfg, request,
+						      session, response);
 		goto end;
 	}
 
-	rc = _oauth2_openidc_unauthenticated_request(log, c, r, session,
+	rc = _oauth2_openidc_unauthenticated_request(log, cfg, request, session,
 						     response);
 
 end:

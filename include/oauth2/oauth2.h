@@ -32,6 +32,7 @@
 #define OAUTH2_GRANT_TYPE "grant_type"
 #define OAUTH2_ACCESS_TOKEN "access_token"
 
+#define OAUTH2_CODE "code"
 #define OAUTH2_SCOPE "scope"
 #define OAUTH2_NONCE "nonce"
 #define OAUTH2_STATE "state"
