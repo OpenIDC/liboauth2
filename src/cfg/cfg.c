@@ -112,19 +112,6 @@ end:
 
 	return;
 }
-/*
-void oauth2_cfg_ctx_merge(oauth2_log_t *log, oauth2_cfg_ctx_t *ctx,
-oauth2_cfg_ctx_t *base, oauth2_cfg_ctx_t *add)
-{
-	if (add->ptr) {
-		ctx->callbacks = add->callbacks;
-		ctx->ptr = ctx->callbacks->merge(log, add->ptr, NULL);
-	} else {
-		ctx->callbacks = base->callbacks;
-		ctx->ptr = ctx->callbacks->merge(log, base->ptr, NULL);
-	}
-}
-*/
 
 oauth2_cfg_ctx_t *oauth2_cfg_ctx_clone(oauth2_log_t *log, oauth2_cfg_ctx_t *src)
 {
@@ -141,4 +128,52 @@ oauth2_cfg_ctx_t *oauth2_cfg_ctx_clone(oauth2_log_t *log, oauth2_cfg_ctx_t *src)
 end:
 
 	return dst;
+}
+
+const char *oauth2_cfg_set_options(oauth2_log_t *log, void *cfg,
+				   const char *type, const char *value,
+				   const char *options,
+				   const oauth2_cfg_set_options_ctx_t *set)
+{
+	char *rv = NULL;
+	int i = 0;
+	oauth2_nv_list_t *params = NULL;
+
+	if (cfg == NULL)
+		goto end;
+
+	oauth2_debug(log, "enter: type=%s, value=%s, options=%s", type, value,
+		     options);
+
+	if (oauth2_parse_form_encoded_params(log, options, &params) == false)
+		goto end;
+
+	i = 0;
+	while (set[i].type != NULL) {
+		if (strcmp(set[i].type, type) == 0) {
+			rv = set[i].set_options_callback(log, value, params,
+							 cfg);
+			goto end;
+		}
+		i++;
+	}
+
+	rv = oauth2_strdup("Invalid value, must be one of: ");
+	i = 0;
+	while (set[i].type != NULL) {
+		rv = oauth2_stradd(
+		    rv, set[i + 1].type == NULL ? " or " : i > 0 ? ", " : "",
+		    set[i].type, NULL);
+		i++;
+	}
+	rv = oauth2_stradd(rv, ".", NULL, NULL);
+
+end:
+
+	if (params)
+		oauth2_nv_list_free(log, params);
+
+	oauth2_debug(log, "leave: %s", rv ? rv : "(null)");
+
+	return rv;
 }

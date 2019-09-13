@@ -453,7 +453,11 @@ void oauth2_cfg_openidc_provider_resolver_merge(
 	if ((cfg == NULL) || (base == NULL) || (add == NULL))
 		goto end;
 
-	// TODO:
+	cfg->cache = add->cache ? oauth2_cfg_cache_clone(log, add->cache)
+				: oauth2_cfg_cache_clone(log, base->cache);
+	cfg->callback = add->cache ? add->callback : base->callback;
+	cfg->ctx = add->ctx ? oauth2_cfg_ctx_clone(log, add->ctx)
+			    : oauth2_cfg_ctx_clone(log, base->ctx);
 
 end:
 
@@ -755,62 +759,8 @@ end:
 	return rc;
 }
 
-typedef char *(oauth2_cfg_openidc_provider_resolver_set_options_cb_t)(
-    oauth2_log_t *log, const char *value, const oauth2_nv_list_t *params,
-    oauth2_cfg_openidc_provider_resolver_t *resolver);
-
-typedef struct oauth2_cfg_openidc_provider_resolver_set_options_ctx_t {
-	const char *type;
-	oauth2_cfg_openidc_provider_resolver_set_options_cb_t *options_callback;
-} oauth2_cfg_openidc_provider_resolver_set_options_ctx_t;
-
-// FILE
-
-typedef struct oauth2_openidc_provider_resolver_file_ctx_t {
-	char *filename;
-} oauth2_openidc_provider_resolver_file_ctx_t;
-
-static void *_oauth2_openidc_provider_resolver_file_ctx_init(oauth2_log_t *log)
-{
-	oauth2_openidc_provider_resolver_file_ctx_t *ctx =
-	    (oauth2_openidc_provider_resolver_file_ctx_t *)oauth2_mem_alloc(
-		sizeof(oauth2_openidc_provider_resolver_file_ctx_t));
-	ctx->filename = NULL;
-	return ctx;
-}
-
-static void *_oauth2_openidc_provider_resolver_file_ctx_clone(oauth2_log_t *log,
-							      void *s)
-{
-	oauth2_openidc_provider_resolver_file_ctx_t *src = s;
-	oauth2_openidc_provider_resolver_file_ctx_t *dst = NULL;
-
-	if (src == NULL)
-		goto end;
-
-	dst = _oauth2_openidc_provider_resolver_file_ctx_init(log);
-	dst->filename = oauth2_strdup(src->filename);
-
-end:
-
-	return dst;
-}
-
-static void _oauth2_openidc_provider_resolver_file_ctx_free(oauth2_log_t *log,
-							    void *c)
-{
-	oauth2_openidc_provider_resolver_file_ctx_t *ctx =
-	    (oauth2_openidc_provider_resolver_file_ctx_t *)c;
-	if (ctx->filename)
-		oauth2_mem_free(ctx->filename);
-	if (ctx)
-		oauth2_mem_free(ctx);
-}
-
-static oauth2_cfg_ctx_funcs_t oauth2_openidc_provider_resolver_file_ctx_funcs =
-    {_oauth2_openidc_provider_resolver_file_ctx_init,
-     _oauth2_openidc_provider_resolver_file_ctx_clone,
-     _oauth2_openidc_provider_resolver_file_ctx_free};
+_OAUTH2_CFG_CTX_TYPE_SINGLE_STRING(oauth2_openidc_provider_resolver_file_ctx,
+				   filename)
 
 static bool
 _oauth2_openidc_provider_metadata_parse(oauth2_log_t *log, const char *s_json,
@@ -919,80 +869,55 @@ end:
 	return rc;
 }
 
-static char *auth2_cfg_openidc_provider_resolver_file_options_cb(
+// TODO: must explicitly (re-)populate cache on startup!
+#define OAUTH2_CFG_OPENIDC_PROVIDER_CACHE_DEFAULT 60 * 60 * 24
+
+static char *_oauth2_cfg_openidc_provider_resolver_file_set_options(
     oauth2_log_t *log, const char *value, const oauth2_nv_list_t *params,
-    oauth2_cfg_openidc_provider_resolver_t *resolver)
+    void *c)
 {
+	oauth2_cfg_openidc_t *cfg = (oauth2_cfg_openidc_t *)c;
 
-	oauth2_openidc_provider_resolver_file_ctx_t *ctx = NULL;
-
-	resolver->callback = _oauth2_openidc_provider_resolve_file;
-	resolver->ctx->callbacks =
+	// TODO: macroize?
+	cfg->provider_resolver = oauth2_cfg_openidc_provider_resolver_init(log);
+	cfg->provider_resolver->callback =
+	    _oauth2_openidc_provider_resolve_file;
+	cfg->provider_resolver->ctx->callbacks =
 	    &oauth2_openidc_provider_resolver_file_ctx_funcs;
-	resolver->ctx->ptr = resolver->ctx->callbacks->init(log);
+	cfg->provider_resolver->ctx->ptr =
+	    cfg->provider_resolver->ctx->callbacks->init(log);
 
-	ctx = (oauth2_openidc_provider_resolver_file_ctx_t *)resolver->ctx->ptr;
+	// TODO: factor out?
+	oauth2_openidc_provider_resolver_file_ctx_t *ctx =
+	    (oauth2_openidc_provider_resolver_file_ctx_t *)
+		cfg->provider_resolver->ctx->ptr;
 	ctx->filename = oauth2_strdup(value);
+
+	oauth2_cfg_cache_set_options(log, cfg->provider_resolver->cache,
+				     "resolver", params,
+				     OAUTH2_CFG_OPENIDC_PROVIDER_CACHE_DEFAULT);
 
 	return NULL;
 }
 
 // DIR
 
-static char *auth2_cfg_openidc_provider_resolver_dir_options_cb(
+static char *_oauth2_cfg_openidc_provider_resolver_dir_set_options(
     oauth2_log_t *log, const char *value, const oauth2_nv_list_t *params,
-    oauth2_cfg_openidc_provider_resolver_t *resolver)
+    void *c)
 {
+
+	// oauth2_cfg_cache_set_options(
+	//   log, resolver->cache, "resolver",
+	//  params, OAUTH2_CFG_OPENIDC_PROVIDER_CACHE_DEFAULT);
+
 	return NULL;
 }
 
 // STRING
 
-typedef struct oauth2_openidc_provider_resolver_str_ctx_t {
-	char *metadata;
-} oauth2_openidc_provider_resolver_str_ctx_t;
-
-static void *_oauth2_openidc_provider_resolver_str_ctx_init(oauth2_log_t *log)
-{
-	oauth2_openidc_provider_resolver_str_ctx_t *ctx =
-	    (oauth2_openidc_provider_resolver_str_ctx_t *)oauth2_mem_alloc(
-		sizeof(oauth2_openidc_provider_resolver_str_ctx_t));
-	ctx->metadata = NULL;
-	return ctx;
-}
-
-static void *_oauth2_openidc_provider_resolver_str_ctx_clone(oauth2_log_t *log,
-							     void *s)
-{
-	oauth2_openidc_provider_resolver_str_ctx_t *src = s;
-	oauth2_openidc_provider_resolver_str_ctx_t *dst = NULL;
-
-	if (src == NULL)
-		goto end;
-
-	dst = _oauth2_openidc_provider_resolver_str_ctx_init(log);
-	dst->metadata = oauth2_strdup(src->metadata);
-
-end:
-
-	return dst;
-}
-
-static void _oauth2_openidc_provider_resolver_str_ctx_free(oauth2_log_t *log,
-							   void *c)
-{
-	oauth2_openidc_provider_resolver_str_ctx_t *ctx =
-	    (oauth2_openidc_provider_resolver_str_ctx_t *)c;
-	if (ctx->metadata)
-		oauth2_mem_free(ctx->metadata);
-	if (ctx)
-		oauth2_mem_free(ctx);
-}
-
-static oauth2_cfg_ctx_funcs_t oauth2_openidc_provider_resolver_str_ctx_funcs = {
-    _oauth2_openidc_provider_resolver_str_ctx_init,
-    _oauth2_openidc_provider_resolver_str_ctx_clone,
-    _oauth2_openidc_provider_resolver_str_ctx_free};
+_OAUTH2_CFG_CTX_TYPE_SINGLE_STRING(oauth2_openidc_provider_resolver_str_ctx,
+				   metadata)
 
 static bool _oauth2_openidc_provider_resolve_string(
     oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg,
@@ -1016,19 +941,23 @@ end:
 	return rc;
 }
 
-static char *auth2_cfg_openidc_provider_resolver_string_options_cb(
+static char *_oauth2_cfg_openidc_provider_resolver_string_set_options(
     oauth2_log_t *log, const char *value, const oauth2_nv_list_t *params,
-    oauth2_cfg_openidc_provider_resolver_t *resolver)
+    void *c)
 {
-
+	oauth2_cfg_openidc_t *cfg = (oauth2_cfg_openidc_t *)c;
 	oauth2_openidc_provider_resolver_str_ctx_t *ctx = NULL;
 
-	resolver->callback = _oauth2_openidc_provider_resolve_string;
-	resolver->ctx->callbacks =
+	cfg->provider_resolver = oauth2_cfg_openidc_provider_resolver_init(log);
+	cfg->provider_resolver->callback =
+	    _oauth2_openidc_provider_resolve_string;
+	cfg->provider_resolver->ctx->callbacks =
 	    &oauth2_openidc_provider_resolver_str_ctx_funcs;
-	resolver->ctx->ptr = resolver->ctx->callbacks->init(log);
+	cfg->provider_resolver->ctx->ptr =
+	    cfg->provider_resolver->ctx->callbacks->init(log);
 
-	ctx = (oauth2_openidc_provider_resolver_str_ctx_t *)resolver->ctx->ptr;
+	ctx = (oauth2_openidc_provider_resolver_str_ctx_t *)
+		  cfg->provider_resolver->ctx->ptr;
 	ctx->metadata = oauth2_strdup(value);
 
 	return NULL;
@@ -1039,70 +968,18 @@ static char *auth2_cfg_openidc_provider_resolver_string_options_cb(
 #define OAUTH2_OPENIDC_PROVIDER_RESOLVER_DIR_STR "dir"
 
 // clang-format off
-static oauth2_cfg_openidc_provider_resolver_set_options_ctx_t _oauth2_cfg_resolver_options_set[] = {
-	{ OAUTH2_OPENIDC_PROVIDER_RESOLVER_STR_STR, auth2_cfg_openidc_provider_resolver_string_options_cb },
-	{ OAUTH2_OPENIDC_PROVIDER_RESOLVER_FILE_STR, auth2_cfg_openidc_provider_resolver_file_options_cb },
-	{ OAUTH2_OPENIDC_PROVIDER_RESOLVER_DIR_STR, auth2_cfg_openidc_provider_resolver_dir_options_cb },
+static oauth2_cfg_set_options_ctx_t _oauth2_cfg_resolver_options_set[] = {
+	{ OAUTH2_OPENIDC_PROVIDER_RESOLVER_STR_STR, _oauth2_cfg_openidc_provider_resolver_string_set_options },
+	{ OAUTH2_OPENIDC_PROVIDER_RESOLVER_FILE_STR, _oauth2_cfg_openidc_provider_resolver_file_set_options },
+	{ OAUTH2_OPENIDC_PROVIDER_RESOLVER_DIR_STR, _oauth2_cfg_openidc_provider_resolver_dir_set_options },
 	{ NULL, NULL }
 };
 // clang-format on
-
-// TODO: must explicitly (re-)populate cache on startup!
-#define OAUTH2_CFG_OPENIDC_PROVIDER_CACHE_DEFAULT 60 * 60 * 24
 
 const char *oauth2_cfg_openidc_provider_resolver_set_options(
     oauth2_log_t *log, oauth2_cfg_openidc_t *cfg, const char *type,
     const char *value, const char *options)
 {
-	char *rv = NULL;
-	int i = 0;
-	oauth2_nv_list_t *params = NULL;
-
-	if (cfg == NULL)
-		goto end;
-
-	oauth2_debug(log, "enter: type=%s, value=%s, options=%s", type, value,
-		     options);
-
-	if (oauth2_parse_form_encoded_params(log, options, &params) == false)
-		goto end;
-
-	i = 0;
-	while (_oauth2_cfg_resolver_options_set[i].type != NULL) {
-		if (strcmp(_oauth2_cfg_resolver_options_set[i].type, type) ==
-		    0) {
-			cfg->provider_resolver =
-			    oauth2_cfg_openidc_provider_resolver_init(log);
-			rv = _oauth2_cfg_resolver_options_set[i]
-				 .options_callback(log, value, params,
-						   cfg->provider_resolver);
-			oauth2_cfg_cache_set_options(
-			    log, cfg->provider_resolver->cache, "resolver",
-			    params, OAUTH2_CFG_OPENIDC_PROVIDER_CACHE_DEFAULT);
-			goto end;
-		}
-		i++;
-	}
-
-	rv = oauth2_strdup("Invalid value, must be one of: ");
-	i = 0;
-	while (_oauth2_cfg_resolver_options_set[i].type != NULL) {
-		rv = oauth2_stradd(
-		    rv,
-		    _oauth2_cfg_resolver_options_set[i + 1].type == NULL
-			? " or "
-			: i > 0 ? ", " : "",
-		    _oauth2_cfg_resolver_options_set[i].type, NULL);
-		i++;
-	}
-	rv = oauth2_stradd(rv, ".", NULL, NULL);
-
-end:
-
-	if (params)
-		oauth2_nv_list_free(log, params);
-
-	oauth2_debug(log, "leave: %s", rv ? rv : "(null)");
-
-	return rv;
+	return oauth2_cfg_set_options(log, cfg, type, value, options,
+				      _oauth2_cfg_resolver_options_set);
 }

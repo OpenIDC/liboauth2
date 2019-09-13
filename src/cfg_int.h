@@ -146,4 +146,82 @@ typedef struct oauth2_cfg_token_verify_t {
 	struct oauth2_cfg_token_verify_t *next;
 } oauth2_cfg_token_verify_t;
 
+typedef char *(oauth2_cfg_set_options_cb_t)(oauth2_log_t *log,
+					    const char *value,
+					    const oauth2_nv_list_t *params,
+					    void *cfg);
+
+typedef struct oauth2_cfg_set_options_ctx_t {
+	const char *type;
+	oauth2_cfg_set_options_cb_t *set_options_callback;
+} oauth2_cfg_set_options_ctx_t;
+
+const char *oauth2_cfg_set_options(oauth2_log_t *log, void *cfg,
+				   const char *type, const char *value,
+				   const char *options,
+				   const oauth2_cfg_set_options_ctx_t *set);
+
+#define _OAUTH2_CFG_CTX_TYPE_START(type) typedef struct type##_t {
+
+#define _OAUTH2_CFG_CTX_TYPE_END(type)                                         \
+	}                                                                      \
+	type##_t;
+
+#define _OAUTH2_CFG_CTX_INIT_START(type)                                       \
+	void *type##_init(oauth2_log_t *log)                                   \
+	{                                                                      \
+		type##_t *ctx = (type##_t *)oauth2_mem_alloc(sizeof(type##_t));
+
+#define _OAUTH2_CFG_CTX_INIT_END                                               \
+	return ctx;                                                            \
+	}
+
+#define _OAUTH2_CFG_CTX_CLONE_START(type)                                      \
+	void *type##_clone(oauth2_log_t *log, void *s)                         \
+	{                                                                      \
+		type##_t *src = s;                                             \
+		type##_t *dst = NULL;                                          \
+		if (src == NULL)                                               \
+			goto end;                                              \
+		dst = type##_init(log);
+
+#define _OAUTH2_CFG_CTX_CLONE_END                                              \
+	end:                                                                   \
+	return dst;                                                            \
+	}
+
+#define _OAUTH2_CFG_CTX_FREE_START(type)                                       \
+	void type##_free(oauth2_log_t *log, void *c)                           \
+	{                                                                      \
+		type##_t *ctx = (type##_t *)c;
+
+#define _OAUTH2_CFG_CTX_FREE_END                                               \
+	if (ctx)                                                               \
+		oauth2_mem_free(ctx);                                          \
+	}
+
+#define _OAUTH2_CFG_CTX_FUNCS(type)                                            \
+	static oauth2_cfg_ctx_funcs_t type##_funcs = {                         \
+	    type##_init, type##_clone, type##_free};
+
+#define _OAUTH2_CFG_CTX_TYPE_SINGLE_STRING(type, member)                       \
+	_OAUTH2_CFG_CTX_TYPE_START(type)                                       \
+	char *member;                                                          \
+	_OAUTH2_CFG_CTX_TYPE_END(type)                                         \
+                                                                               \
+	_OAUTH2_CFG_CTX_INIT_START(type)                                       \
+	ctx->member = NULL;                                                    \
+	_OAUTH2_CFG_CTX_INIT_END                                               \
+                                                                               \
+	_OAUTH2_CFG_CTX_CLONE_START(type)                                      \
+	dst->member = oauth2_strdup(src->member);                              \
+	_OAUTH2_CFG_CTX_CLONE_END                                              \
+                                                                               \
+	_OAUTH2_CFG_CTX_FREE_START(type)                                       \
+	if (ctx->member)                                                       \
+		oauth2_mem_free(ctx->member);                                  \
+	_OAUTH2_CFG_CTX_FREE_END                                               \
+                                                                               \
+	_OAUTH2_CFG_CTX_FUNCS(type)
+
 #endif /* _OAUTH2_CFG_INT_H_ */

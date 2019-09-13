@@ -710,50 +710,30 @@ end:
 #define OAUTH2_JOSE_JWT_EXP_VALIDATE "verify.exp"
 #define OAUTH2_JOSE_JWT_IAT_VALIDATE "verify.iat"
 
-void *oauth2_jose_jwt_verify_ctx_init(oauth2_log_t *log)
-{
-	oauth2_jose_jwt_verify_ctx_t *ctx =
-	    (oauth2_jose_jwt_verify_ctx_t *)oauth2_mem_alloc(
-		sizeof(oauth2_jose_jwt_verify_ctx_t));
-	ctx->exp_validate = OAUTH2_CFG_UINT_UNSET;
-	ctx->iat_validate = OAUTH2_CFG_UINT_UNSET;
-	ctx->iss_validate = OAUTH2_CFG_UINT_UNSET;
-	ctx->iat_slack_after = OAUTH2_CFG_UINT_UNSET;
-	ctx->iat_slack_before = OAUTH2_CFG_UINT_UNSET;
-	ctx->jwks_provider = NULL;
-	return ctx;
-}
+_OAUTH2_CFG_CTX_INIT_START(oauth2_jose_jwt_verify_ctx)
+ctx->exp_validate = OAUTH2_CFG_UINT_UNSET;
+ctx->iat_validate = OAUTH2_CFG_UINT_UNSET;
+ctx->iss_validate = OAUTH2_CFG_UINT_UNSET;
+ctx->iat_slack_after = OAUTH2_CFG_UINT_UNSET;
+ctx->iat_slack_before = OAUTH2_CFG_UINT_UNSET;
+ctx->jwks_provider = NULL;
+_OAUTH2_CFG_CTX_INIT_END
 
-void *oauth2_jose_jwt_verify_ctx_clone(oauth2_log_t *log, void *s)
-{
-	oauth2_jose_jwt_verify_ctx_t *src = s;
-	oauth2_jose_jwt_verify_ctx_t *dst = NULL;
+_OAUTH2_CFG_CTX_CLONE_START(oauth2_jose_jwt_verify_ctx)
+dst->exp_validate = src->exp_validate;
+dst->iat_slack_after = src->iat_slack_after;
+dst->iat_slack_before = src->iat_slack_before;
+dst->iat_validate = src->iat_validate;
+dst->iss_validate = src->iss_validate;
+dst->jwks_provider = _oauth2_jose_jwks_provider_clone(log, src->jwks_provider);
+_OAUTH2_CFG_CTX_CLONE_END
 
-	if (src == NULL)
-		goto end;
+_OAUTH2_CFG_CTX_FREE_START(oauth2_jose_jwt_verify_ctx)
+if (ctx->jwks_provider)
+	_oauth2_jose_jwks_provider_free(log, ctx->jwks_provider);
+_OAUTH2_CFG_CTX_FREE_END
 
-	dst = oauth2_jose_jwt_verify_ctx_init(log);
-	dst->exp_validate = src->exp_validate;
-	dst->iat_slack_after = src->iat_slack_after;
-	dst->iat_slack_before = src->iat_slack_before;
-	dst->iat_validate = src->iat_validate;
-	dst->iss_validate = src->iss_validate;
-	dst->jwks_provider =
-	    _oauth2_jose_jwks_provider_clone(log, src->jwks_provider);
-
-end:
-
-	return dst;
-}
-
-void oauth2_jose_jwt_verify_ctx_free(oauth2_log_t *log, void *c)
-{
-	oauth2_jose_jwt_verify_ctx_t *ctx = (oauth2_jose_jwt_verify_ctx_t *)c;
-	if (ctx->jwks_provider)
-		_oauth2_jose_jwks_provider_free(log, ctx->jwks_provider);
-	if (ctx)
-		oauth2_mem_free(ctx);
-}
+_OAUTH2_CFG_CTX_FUNCS(oauth2_jose_jwt_verify_ctx)
 
 bool oauth2_jose_jwt_verify_set_options(
     oauth2_log_t *log, oauth2_jose_jwt_verify_ctx_t *jwt_verify,
@@ -1231,14 +1211,6 @@ end:
 
 	return rc;
 }
-
-// clang-format off
-static oauth2_cfg_ctx_funcs_t oauth2_jose_jwt_verify_ctx_funcs = {
-    oauth2_jose_jwt_verify_ctx_init,
-	oauth2_jose_jwt_verify_ctx_clone,
-    oauth2_jose_jwt_verify_ctx_free
-};
-// clang-format on
 
 static char *
 _oauth2_jose_verify_options_jwk_add_jwk(oauth2_log_t *log, cjose_jwk_t *jwk,
