@@ -26,6 +26,7 @@
 #include "oauth2/openidc.h"
 #include "oauth2/session.h"
 
+#include "cfg_int.h"
 #include "util_int.h"
 
 #include <string.h>
@@ -34,7 +35,7 @@
 typedef struct oauth2_cfg_openidc_t {
 	char *handler_path;
 	char *redirect_uri;
-	oauth2_openidc_provider_resolver_t *provider_resolver;
+	oauth2_cfg_openidc_provider_resolver_t *provider_resolver;
 	oauth2_unauth_action_t unauth_action;
 	char *state_cookie_name_prefix;
 	char *passphrase;
@@ -137,7 +138,7 @@ _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(cfg, openidc, redirect_uri, char *, str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(cfg, openidc, state_cookie_name_prefix,
 				  char *, str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(cfg, openidc, passphrase, char *, str)
-
+/*
 bool oauth2_cfg_openidc_provider_resolver_set(
     oauth2_log_t *log, oauth2_cfg_openidc_t *cfg,
     oauth2_openidc_provider_resolver_t *resolver)
@@ -152,7 +153,7 @@ oauth2_cfg_openidc_provider_resolver_get(oauth2_log_t *log,
 {
 	return cfg->provider_resolver;
 }
-
+*/
 #define OAUTH2_OPENIDC_CFG_HANDLER_PATH_DEFAULT "/openid-connect"
 
 char *oauth2_openidc_cfg_handler_path_get(oauth2_log_t *log,
@@ -391,6 +392,92 @@ end:
 	return rc;
 }
 
+typedef bool(oauth2_openidc_provider_resolver_func_t)(
+    oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg,
+    const oauth2_http_request_t *, oauth2_openidc_provider_t **);
+
+typedef struct oauth2_cfg_openidc_provider_resolver_t {
+	oauth2_openidc_provider_resolver_func_t *callback;
+	oauth2_cfg_ctx_t *ctx;
+	oauth2_cfg_cache_t *cache;
+} oauth2_cfg_openidc_provider_resolver_t;
+
+oauth2_cfg_openidc_provider_resolver_t *
+oauth2_cfg_openidc_provider_resolver_init(oauth2_log_t *log)
+{
+	oauth2_cfg_openidc_provider_resolver_t *c = NULL;
+
+	c = oauth2_mem_alloc(sizeof(oauth2_cfg_openidc_provider_resolver_t));
+	if (c == NULL)
+		goto end;
+
+	c->cache = oauth2_cfg_cache_init(log);
+	;
+	c->callback = NULL;
+	c->ctx = oauth2_cfg_ctx_init(log);
+	;
+
+end:
+
+	return c;
+}
+
+oauth2_cfg_openidc_provider_resolver_t *
+oauth2_cfg_openidc_provider_resolver_clone(
+    oauth2_log_t *log, oauth2_cfg_openidc_provider_resolver_t *src)
+{
+	oauth2_cfg_openidc_provider_resolver_t *dst = NULL;
+
+	if (src == NULL)
+		goto end;
+
+	dst = oauth2_cfg_openidc_provider_resolver_init(log);
+	if (dst == NULL)
+		goto end;
+
+	dst->cache = oauth2_cfg_cache_clone(log, src->cache);
+	dst->callback = src->callback;
+	dst->ctx = oauth2_cfg_ctx_clone(log, src->ctx);
+
+end:
+
+	return dst;
+}
+
+void oauth2_cfg_openidc_provider_resolver_merge(
+    oauth2_log_t *log, oauth2_cfg_openidc_provider_resolver_t *cfg,
+    oauth2_cfg_openidc_provider_resolver_t *base,
+    oauth2_cfg_openidc_provider_resolver_t *add)
+{
+
+	if ((cfg == NULL) || (base == NULL) || (add == NULL))
+		goto end;
+
+	// TODO:
+
+end:
+
+	return;
+}
+
+void oauth2_cfg_openidc_provider_resolver_free(
+    oauth2_log_t *log, oauth2_cfg_openidc_provider_resolver_t *c)
+{
+	if (c == NULL)
+		goto end;
+
+	if (c->cache)
+		oauth2_cfg_cache_free(log, c->cache);
+	if (c->ctx)
+		oauth2_cfg_ctx_free(log, c->ctx);
+
+	oauth2_mem_free(c);
+
+end:
+
+	return;
+}
+
 static bool _oauth2_openidc_authenticate(oauth2_log_t *log,
 					 const oauth2_cfg_openidc_t *cfg,
 					 const oauth2_http_request_t *request,
@@ -407,14 +494,19 @@ static bool _oauth2_openidc_authenticate(oauth2_log_t *log,
 	if ((cfg == NULL) || (request == NULL) || (response == NULL))
 		goto end;
 
-	if (cfg->provider_resolver == NULL) {
+	if ((cfg->provider_resolver == NULL) ||
+	    (cfg->provider_resolver->callback == NULL)) {
 		oauth2_error(
-		    log, "configuration error: provider_resolve is not set");
+		    log,
+		    "configuration error: provider_resolver is not configured");
 		goto end;
 	}
 
-	if (cfg->provider_resolver(log, request, &provider) == false)
+	if (cfg->provider_resolver->callback(log, cfg, request, &provider) ==
+	    false) {
+		oauth2_error(log, "resolver callback returned false");
 		goto end;
+	}
 
 	if (provider == NULL) {
 		oauth2_error(log, "no provider was returned by the provider "
@@ -661,4 +753,356 @@ end:
 	oauth2_debug(log, "return: %d", rc);
 
 	return rc;
+}
+
+typedef char *(oauth2_cfg_openidc_provider_resolver_set_options_cb_t)(
+    oauth2_log_t *log, const char *value, const oauth2_nv_list_t *params,
+    oauth2_cfg_openidc_provider_resolver_t *resolver);
+
+typedef struct oauth2_cfg_openidc_provider_resolver_set_options_ctx_t {
+	const char *type;
+	oauth2_cfg_openidc_provider_resolver_set_options_cb_t *options_callback;
+} oauth2_cfg_openidc_provider_resolver_set_options_ctx_t;
+
+// FILE
+
+typedef struct oauth2_openidc_provider_resolver_file_ctx_t {
+	char *filename;
+} oauth2_openidc_provider_resolver_file_ctx_t;
+
+static void *_oauth2_openidc_provider_resolver_file_ctx_init(oauth2_log_t *log)
+{
+	oauth2_openidc_provider_resolver_file_ctx_t *ctx =
+	    (oauth2_openidc_provider_resolver_file_ctx_t *)oauth2_mem_alloc(
+		sizeof(oauth2_openidc_provider_resolver_file_ctx_t));
+	ctx->filename = NULL;
+	return ctx;
+}
+
+static void *_oauth2_openidc_provider_resolver_file_ctx_clone(oauth2_log_t *log,
+							      void *s)
+{
+	oauth2_openidc_provider_resolver_file_ctx_t *src = s;
+	oauth2_openidc_provider_resolver_file_ctx_t *dst = NULL;
+
+	if (src == NULL)
+		goto end;
+
+	dst = _oauth2_openidc_provider_resolver_file_ctx_init(log);
+	dst->filename = oauth2_strdup(src->filename);
+
+end:
+
+	return dst;
+}
+
+static void _oauth2_openidc_provider_resolver_file_ctx_free(oauth2_log_t *log,
+							    void *c)
+{
+	oauth2_openidc_provider_resolver_file_ctx_t *ctx =
+	    (oauth2_openidc_provider_resolver_file_ctx_t *)c;
+	if (ctx->filename)
+		oauth2_mem_free(ctx->filename);
+	if (ctx)
+		oauth2_mem_free(ctx);
+}
+
+static oauth2_cfg_ctx_funcs_t oauth2_openidc_provider_resolver_file_ctx_funcs =
+    {_oauth2_openidc_provider_resolver_file_ctx_init,
+     _oauth2_openidc_provider_resolver_file_ctx_clone,
+     _oauth2_openidc_provider_resolver_file_ctx_free};
+
+static bool
+_oauth2_openidc_provider_metadata_parse(oauth2_log_t *log, const char *s_json,
+					oauth2_openidc_provider_t **provider)
+{
+	bool rc = false;
+	json_t *json = NULL;
+	oauth2_openidc_provider_t *p = NULL;
+
+	oauth2_debug(log, "enter");
+
+	if (oauth2_json_decode_object(log, s_json, &json) == false) {
+		oauth2_error(log, "could not parse json object");
+		goto end;
+	}
+
+	*provider = oauth2_openidc_provider_init(log);
+	p = *provider;
+	if (p == NULL)
+		goto end;
+
+	if (oauth2_json_string_get(log, json, "issuer", &p->issuer, NULL) ==
+	    false) {
+		oauth2_error(log, "could not parse issuer");
+		goto end;
+	}
+	if (oauth2_json_string_get(log, json, "authorization_endpoint",
+				   &p->authorization_endpoint, NULL) == false) {
+		oauth2_error(log, "could not parse authorization_endpoint");
+		goto end;
+	}
+
+	// TODO: client file?
+
+	if (oauth2_json_string_get(log, json, "client_id", &p->client_id,
+				   NULL) == false) {
+		oauth2_error(log, "could not parse client_id");
+		goto end;
+	}
+	if (oauth2_json_string_get(log, json, "client_secret",
+				   &p->client_secret, NULL) == false) {
+		oauth2_error(log, "could not parse client_secret");
+		goto end;
+	}
+	if (oauth2_json_string_get(log, json, "scope", &p->scope, "openid") ==
+	    false) {
+		oauth2_error(log, "could not parse scope");
+		goto end;
+	}
+
+	rc = true;
+
+end:
+
+	if (json)
+		json_decref(json);
+
+	oauth2_debug(log, "leave: %d", rc);
+
+	return rc;
+}
+
+#define OAUTH2_OPENIDC_PROVIDER_RESOLVE_FILENAME_DEFAULT "conf/provider.json"
+
+static bool _oauth2_openidc_provider_resolve_file(
+    oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg,
+    const oauth2_http_request_t *request, oauth2_openidc_provider_t **provider)
+{
+	bool rc = false, must_cache = false;
+	oauth2_openidc_provider_resolver_file_ctx_t *ctx = NULL;
+	char *filename = NULL, *s_json = NULL;
+
+	ctx = (oauth2_openidc_provider_resolver_file_ctx_t *)
+		  cfg->provider_resolver->ctx->ptr;
+	filename = ctx->filename
+		       ? ctx->filename
+		       : OAUTH2_OPENIDC_PROVIDER_RESOLVE_FILENAME_DEFAULT;
+
+	// TODO: refactor externalize cache/parse string with callbacks to
+	// string data provider
+	oauth2_cache_get(log, cfg->provider_resolver->cache->cache, filename,
+			 &s_json);
+
+	if (s_json == NULL) {
+		s_json = oauth_read_file(log, filename);
+		if (s_json == NULL)
+			goto end;
+		must_cache = true;
+	}
+
+	if (_oauth2_openidc_provider_metadata_parse(log, s_json, provider) ==
+	    false)
+		goto end;
+
+	if (must_cache)
+		oauth2_cache_get(log, cfg->provider_resolver->cache->cache,
+				 filename, &s_json);
+
+	rc = true;
+
+end:
+
+	if (s_json)
+		oauth2_mem_free(s_json);
+
+	return rc;
+}
+
+static char *auth2_cfg_openidc_provider_resolver_file_options_cb(
+    oauth2_log_t *log, const char *value, const oauth2_nv_list_t *params,
+    oauth2_cfg_openidc_provider_resolver_t *resolver)
+{
+
+	oauth2_openidc_provider_resolver_file_ctx_t *ctx = NULL;
+
+	resolver->callback = _oauth2_openidc_provider_resolve_file;
+	resolver->ctx->callbacks =
+	    &oauth2_openidc_provider_resolver_file_ctx_funcs;
+	resolver->ctx->ptr = resolver->ctx->callbacks->init(log);
+
+	ctx = (oauth2_openidc_provider_resolver_file_ctx_t *)resolver->ctx->ptr;
+	ctx->filename = oauth2_strdup(value);
+
+	return NULL;
+}
+
+// DIR
+
+static char *auth2_cfg_openidc_provider_resolver_dir_options_cb(
+    oauth2_log_t *log, const char *value, const oauth2_nv_list_t *params,
+    oauth2_cfg_openidc_provider_resolver_t *resolver)
+{
+	return NULL;
+}
+
+// STRING
+
+typedef struct oauth2_openidc_provider_resolver_str_ctx_t {
+	char *metadata;
+} oauth2_openidc_provider_resolver_str_ctx_t;
+
+static void *_oauth2_openidc_provider_resolver_str_ctx_init(oauth2_log_t *log)
+{
+	oauth2_openidc_provider_resolver_str_ctx_t *ctx =
+	    (oauth2_openidc_provider_resolver_str_ctx_t *)oauth2_mem_alloc(
+		sizeof(oauth2_openidc_provider_resolver_str_ctx_t));
+	ctx->metadata = NULL;
+	return ctx;
+}
+
+static void *_oauth2_openidc_provider_resolver_str_ctx_clone(oauth2_log_t *log,
+							     void *s)
+{
+	oauth2_openidc_provider_resolver_str_ctx_t *src = s;
+	oauth2_openidc_provider_resolver_str_ctx_t *dst = NULL;
+
+	if (src == NULL)
+		goto end;
+
+	dst = _oauth2_openidc_provider_resolver_str_ctx_init(log);
+	dst->metadata = oauth2_strdup(src->metadata);
+
+end:
+
+	return dst;
+}
+
+static void _oauth2_openidc_provider_resolver_str_ctx_free(oauth2_log_t *log,
+							   void *c)
+{
+	oauth2_openidc_provider_resolver_str_ctx_t *ctx =
+	    (oauth2_openidc_provider_resolver_str_ctx_t *)c;
+	if (ctx->metadata)
+		oauth2_mem_free(ctx->metadata);
+	if (ctx)
+		oauth2_mem_free(ctx);
+}
+
+static oauth2_cfg_ctx_funcs_t oauth2_openidc_provider_resolver_str_ctx_funcs = {
+    _oauth2_openidc_provider_resolver_str_ctx_init,
+    _oauth2_openidc_provider_resolver_str_ctx_clone,
+    _oauth2_openidc_provider_resolver_str_ctx_free};
+
+static bool _oauth2_openidc_provider_resolve_string(
+    oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg,
+    const oauth2_http_request_t *request, oauth2_openidc_provider_t **provider)
+{
+	bool rc = false;
+	oauth2_openidc_provider_resolver_str_ctx_t *ctx = NULL;
+
+	ctx = (oauth2_openidc_provider_resolver_str_ctx_t *)
+		  cfg->provider_resolver->ctx->ptr;
+	if (ctx->metadata == NULL) {
+		oauth2_error(log, "metadata not configured");
+		goto end;
+	}
+
+	rc = _oauth2_openidc_provider_metadata_parse(log, ctx->metadata,
+						     provider);
+
+end:
+
+	return rc;
+}
+
+static char *auth2_cfg_openidc_provider_resolver_string_options_cb(
+    oauth2_log_t *log, const char *value, const oauth2_nv_list_t *params,
+    oauth2_cfg_openidc_provider_resolver_t *resolver)
+{
+
+	oauth2_openidc_provider_resolver_str_ctx_t *ctx = NULL;
+
+	resolver->callback = _oauth2_openidc_provider_resolve_string;
+	resolver->ctx->callbacks =
+	    &oauth2_openidc_provider_resolver_str_ctx_funcs;
+	resolver->ctx->ptr = resolver->ctx->callbacks->init(log);
+
+	ctx = (oauth2_openidc_provider_resolver_str_ctx_t *)resolver->ctx->ptr;
+	ctx->metadata = oauth2_strdup(value);
+
+	return NULL;
+}
+
+#define OAUTH2_OPENIDC_PROVIDER_RESOLVER_STR_STR "string"
+#define OAUTH2_OPENIDC_PROVIDER_RESOLVER_FILE_STR "file"
+#define OAUTH2_OPENIDC_PROVIDER_RESOLVER_DIR_STR "dir"
+
+// clang-format off
+static oauth2_cfg_openidc_provider_resolver_set_options_ctx_t _oauth2_cfg_resolver_options_set[] = {
+	{ OAUTH2_OPENIDC_PROVIDER_RESOLVER_STR_STR, auth2_cfg_openidc_provider_resolver_string_options_cb },
+	{ OAUTH2_OPENIDC_PROVIDER_RESOLVER_FILE_STR, auth2_cfg_openidc_provider_resolver_file_options_cb },
+	{ OAUTH2_OPENIDC_PROVIDER_RESOLVER_DIR_STR, auth2_cfg_openidc_provider_resolver_dir_options_cb },
+	{ NULL, NULL }
+};
+// clang-format on
+
+// TODO: must explicitly (re-)populate cache on startup!
+#define OAUTH2_CFG_OPENIDC_PROVIDER_CACHE_DEFAULT 60 * 60 * 24
+
+const char *oauth2_cfg_openidc_provider_resolver_set_options(
+    oauth2_log_t *log, oauth2_cfg_openidc_t *cfg, const char *type,
+    const char *value, const char *options)
+{
+	char *rv = NULL;
+	int i = 0;
+	oauth2_nv_list_t *params = NULL;
+
+	if (cfg == NULL)
+		goto end;
+
+	oauth2_debug(log, "enter: type=%s, value=%s, options=%s", type, value,
+		     options);
+
+	if (oauth2_parse_form_encoded_params(log, options, &params) == false)
+		goto end;
+
+	i = 0;
+	while (_oauth2_cfg_resolver_options_set[i].type != NULL) {
+		if (strcmp(_oauth2_cfg_resolver_options_set[i].type, type) ==
+		    0) {
+			cfg->provider_resolver =
+			    oauth2_cfg_openidc_provider_resolver_init(log);
+			rv = _oauth2_cfg_resolver_options_set[i]
+				 .options_callback(log, value, params,
+						   cfg->provider_resolver);
+			oauth2_cfg_cache_set_options(
+			    log, cfg->provider_resolver->cache, "resolver",
+			    params, OAUTH2_CFG_OPENIDC_PROVIDER_CACHE_DEFAULT);
+			goto end;
+		}
+		i++;
+	}
+
+	rv = oauth2_strdup("Invalid value, must be one of: ");
+	i = 0;
+	while (_oauth2_cfg_resolver_options_set[i].type != NULL) {
+		rv = oauth2_stradd(
+		    rv,
+		    _oauth2_cfg_resolver_options_set[i + 1].type == NULL
+			? " or "
+			: i > 0 ? ", " : "",
+		    _oauth2_cfg_resolver_options_set[i].type, NULL);
+		i++;
+	}
+	rv = oauth2_stradd(rv, ".", NULL, NULL);
+
+end:
+
+	if (params)
+		oauth2_nv_list_free(log, params);
+
+	oauth2_debug(log, "leave: %s", rv ? rv : "(null)");
+
+	return rv;
 }

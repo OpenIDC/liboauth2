@@ -116,13 +116,19 @@ START_TEST(test_openidc_handle)
 	oauth2_cfg_openidc_t *c = NULL;
 	oauth2_http_request_t *r = NULL;
 	oauth2_http_response_t *response = NULL;
-
+	const char *metadata =
+	    "{ "
+	    "\"issuer\": \"https://op.example.org\","
+	    "\"authorization_endpoint\": \"https://op.example.org/authorize\","
+	    "\"client_id\": \"myclient\","
+	    "\"client_secret\": \"secret1234\""
+	    "}";
 	c = oauth2_cfg_openidc_init(log);
 	r = oauth2_http_request_init(log);
 
 	oauth2_cfg_openidc_passphrase_set(log, c, "mypassphrase1234");
-	oauth2_cfg_openidc_provider_resolver_set(
-	    log, c, test_openidc_provider_resolver);
+	oauth2_cfg_openidc_provider_resolver_set_options(log, c, "string",
+							 metadata, NULL);
 
 	rc = oauth2_http_request_path_set(log, r, "/secure");
 	ck_assert_int_eq(rc, true);

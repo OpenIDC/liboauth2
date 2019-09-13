@@ -27,61 +27,6 @@
 #include "jose_int.h"
 #include "oauth2_int.h"
 
-static oauth2_cfg_ctx_t *_oauth2_cfg_ctx_init(oauth2_log_t *log)
-{
-	oauth2_cfg_ctx_t *ctx =
-	    (oauth2_cfg_ctx_t *)oauth2_mem_alloc(sizeof(oauth2_cfg_ctx_t));
-	ctx->ptr = NULL;
-	ctx->callbacks = NULL;
-	return ctx;
-}
-
-static void _oauth2_cfg_ctx_free(oauth2_log_t *log, oauth2_cfg_ctx_t *ctx)
-{
-	if (ctx == NULL)
-		goto end;
-
-	if (ctx->ptr)
-		ctx->callbacks->free(log, ctx->ptr);
-
-	oauth2_mem_free(ctx);
-
-end:
-
-	return;
-}
-/*
-void oauth2_cfg_ctx_merge(oauth2_log_t *log, oauth2_cfg_ctx_t *ctx,
-oauth2_cfg_ctx_t *base, oauth2_cfg_ctx_t *add)
-{
-	if (add->ptr) {
-		ctx->callbacks = add->callbacks;
-		ctx->ptr = ctx->callbacks->merge(log, add->ptr, NULL);
-	} else {
-		ctx->callbacks = base->callbacks;
-		ctx->ptr = ctx->callbacks->merge(log, base->ptr, NULL);
-	}
-}
-*/
-
-static oauth2_cfg_ctx_t *_oauth2_cfg_ctx_clone(oauth2_log_t *log,
-					       oauth2_cfg_ctx_t *src)
-{
-	oauth2_cfg_ctx_t *dst = NULL;
-
-	if (src == NULL)
-		goto end;
-
-	dst = _oauth2_cfg_ctx_init(NULL);
-	dst->callbacks = src->callbacks;
-	if (dst->callbacks)
-		dst->ptr = dst->callbacks->clone(log, src->ptr);
-
-end:
-
-	return dst;
-}
-
 typedef char *(oauth2_cfg_verify_set_options_cb_t)(
     oauth2_log_t *log, const char *value, const oauth2_nv_list_t *params,
     oauth2_cfg_token_verify_t *);
@@ -141,7 +86,7 @@ void oauth2_cfg_token_verify_free(oauth2_log_t *log,
 		if (ptr->cache)
 			oauth2_cfg_cache_free(log, ptr->cache);
 		if (ptr->ctx)
-			_oauth2_cfg_ctx_free(log, ptr->ctx);
+			oauth2_cfg_ctx_free(log, ptr->ctx);
 		oauth2_mem_free(ptr);
 		ptr = verify;
 	}
@@ -183,7 +128,7 @@ oauth2_cfg_token_verify_clone(oauth2_log_t *log, oauth2_cfg_token_verify_t *src)
 	dst = oauth2_cfg_token_verify_init(NULL);
 	dst->cache = oauth2_cfg_cache_clone(log, src->cache);
 	dst->callback = src->callback;
-	dst->ctx = _oauth2_cfg_ctx_clone(log, src->ctx);
+	dst->ctx = oauth2_cfg_ctx_clone(log, src->ctx);
 	dst->next = oauth2_cfg_token_verify_clone(NULL, src->next);
 
 end:
@@ -205,7 +150,7 @@ _oauth2_cfg_token_verify_add(oauth2_log_t *log,
 		goto end;
 
 	v->callback = NULL;
-	v->ctx = _oauth2_cfg_ctx_init(log);
+	v->ctx = oauth2_cfg_ctx_init(log);
 	if (v->ctx == NULL)
 		goto end;
 

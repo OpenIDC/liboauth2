@@ -134,6 +134,11 @@ typedef struct oauth2_cfg_ctx_t {
 	oauth2_cfg_ctx_funcs_t *callbacks;
 } oauth2_cfg_ctx_t;
 
+oauth2_cfg_ctx_t *oauth2_cfg_ctx_init(oauth2_log_t *log);
+oauth2_cfg_ctx_t *oauth2_cfg_ctx_clone(oauth2_log_t *log,
+				       oauth2_cfg_ctx_t *src);
+void oauth2_cfg_ctx_free(oauth2_log_t *log, oauth2_cfg_ctx_t *ctx);
+
 typedef struct oauth2_cfg_token_verify_t {
 	oauth2_cfg_token_verify_cb_t *callback;
 	oauth2_cfg_ctx_t *ctx;

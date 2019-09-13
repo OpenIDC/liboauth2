@@ -20,7 +20,9 @@
  **************************************************************************/
 
 #include "oauth2/cfg.h"
+#include "oauth2/mem.h"
 
+#include "cfg_int.h"
 #include "util_int.h"
 
 #include <limits.h>
@@ -85,4 +87,58 @@ const char *oauth2_cfg_set_str_slot(void *cfg, size_t offset, const char *value)
 		rv = "oauth2_strdup() in oauth2_cfg_set_str_slot failed";
 
 	return rv;
+}
+
+oauth2_cfg_ctx_t *oauth2_cfg_ctx_init(oauth2_log_t *log)
+{
+	oauth2_cfg_ctx_t *ctx =
+	    (oauth2_cfg_ctx_t *)oauth2_mem_alloc(sizeof(oauth2_cfg_ctx_t));
+	ctx->ptr = NULL;
+	ctx->callbacks = NULL;
+	return ctx;
+}
+
+void oauth2_cfg_ctx_free(oauth2_log_t *log, oauth2_cfg_ctx_t *ctx)
+{
+	if (ctx == NULL)
+		goto end;
+
+	if (ctx->ptr)
+		ctx->callbacks->free(log, ctx->ptr);
+
+	oauth2_mem_free(ctx);
+
+end:
+
+	return;
+}
+/*
+void oauth2_cfg_ctx_merge(oauth2_log_t *log, oauth2_cfg_ctx_t *ctx,
+oauth2_cfg_ctx_t *base, oauth2_cfg_ctx_t *add)
+{
+	if (add->ptr) {
+		ctx->callbacks = add->callbacks;
+		ctx->ptr = ctx->callbacks->merge(log, add->ptr, NULL);
+	} else {
+		ctx->callbacks = base->callbacks;
+		ctx->ptr = ctx->callbacks->merge(log, base->ptr, NULL);
+	}
+}
+*/
+
+oauth2_cfg_ctx_t *oauth2_cfg_ctx_clone(oauth2_log_t *log, oauth2_cfg_ctx_t *src)
+{
+	oauth2_cfg_ctx_t *dst = NULL;
+
+	if (src == NULL)
+		goto end;
+
+	dst = oauth2_cfg_ctx_init(NULL);
+	dst->callbacks = src->callbacks;
+	if (dst->callbacks)
+		dst->ptr = dst->callbacks->clone(log, src->ptr);
+
+end:
+
+	return dst;
 }

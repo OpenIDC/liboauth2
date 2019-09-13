@@ -177,4 +177,6 @@ int oauth2_strnenvcmp(const char *a, const char *b, int len);
 char *oauth2_json_encode(oauth2_log_t *log, json_t *json, size_t flags);
 char *oauth2_normalize_header_name(const char *str);
 
+char *oauth_read_file(oauth2_log_t *log, const char *filename);
+
 #endif /* _OAUTH2_UTIL_H */

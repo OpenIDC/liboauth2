@@ -1384,3 +1384,40 @@ char *oauth2_normalize_header_name(const char *str)
 	}
 	return ns;
 }
+
+char *oauth_read_file(oauth2_log_t *log, const char *filename)
+{
+	char *rv = NULL;
+	FILE *fp = NULL;
+	long fsize = 0;
+	size_t n = 0;
+
+	fp = fopen(filename, "rb");
+	if (fp == NULL) {
+		oauth2_error(log, "could not read file: %s", filename);
+		goto end;
+	}
+
+	fseek(fp, 0, SEEK_END);
+	fsize = ftell(fp);
+	fseek(fp, 0, SEEK_SET);
+
+	rv = oauth2_mem_alloc(fsize + 1);
+	n = fread(rv, 1, fsize, fp);
+	if (n != fsize) {
+		oauth2_error(log, "read only %ld bytes from file of %ld length",
+			     n, fsize);
+		oauth2_mem_free(rv);
+		rv = NULL;
+		goto end;
+	}
+
+	rv[fsize] = 0;
+
+end:
+
+	if (fp)
+		fclose(fp);
+
+	return rv;
+}
