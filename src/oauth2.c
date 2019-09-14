@@ -447,7 +447,7 @@ end:
 
 	if (params)
 		oauth2_nv_list_free(log, params);
-	if (ctx)
+	if (http_ctx)
 		oauth2_http_call_ctx_free(log, http_ctx);
 
 	oauth2_debug(log, "leave: %d", rc);
