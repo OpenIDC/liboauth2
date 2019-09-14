@@ -38,6 +38,8 @@
 #define OAUTH2_STATE "state"
 #define OAUTH2_RESPONSE_TYPE "response_type"
 #define OAUTH2_REDIRECT_URI "redirect_uri"
+#define OAUTH2_GRANT_TYPE "grant_type"
+#define OAUTH2_GRANT_TYPE_AUTHORIZATION_CODE "authorization_code"
 
 #define OAUTH2_RESPONSE_TYPE_CODE "code"
 

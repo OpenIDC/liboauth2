@@ -120,8 +120,12 @@ START_TEST(test_openidc_handle)
 	    "{ "
 	    "\"issuer\": \"https://op.example.org\","
 	    "\"authorization_endpoint\": \"https://op.example.org/authorize\","
+	    "\"token_endpoint\": \"https://op.example.org/token\","
+	    "\"token_endpoint_auth\": \"client_secret_post\","
 	    "\"client_id\": \"myclient\","
-	    "\"client_secret\": \"secret1234\""
+	    "\"client_secret\": \"secret1234\","
+	    "\"scope\": \"openid profile\","
+	    "\"ssl_verify\": false"
 	    "}";
 	c = oauth2_cfg_openidc_init(log);
 	r = oauth2_http_request_init(log);
@@ -154,7 +158,30 @@ START_TEST(test_openidc_handle)
 				      "openidc_state_"));
 
 	oauth2_http_response_free(log, response);
+	response = NULL;
 	oauth2_http_request_free(log, r);
+
+	r = oauth2_http_request_init(log);
+	rc = oauth2_http_request_path_set(log, r,
+					  "/openid-connect/redirect_uri");
+	ck_assert_int_eq(rc, true);
+	rc = oauth2_http_request_header_set(log, r, "Host", "app.example.org");
+	ck_assert_int_eq(rc, true);
+	rc = oauth2_http_request_header_set(log, r, "Accept", "text/html");
+	ck_assert_int_eq(rc, true);
+	rc = oauth2_http_request_query_set(log, r, "code=4321&state=7654");
+	ck_assert_int_eq(rc, true);
+
+	rc = oauth2_openidc_handle(log, c, r, &response);
+	// TODO:
+	// ck_assert_int_eq(rc, true);
+	// ck_assert_ptr_ne(NULL, response);
+	// ck_assert_uint_eq(oauth2_http_response_status_code_get(log,
+	// response), 200);
+
+	oauth2_http_response_free(log, response);
+	oauth2_http_request_free(log, r);
+
 	oauth2_cfg_openidc_free(log, c);
 }
 END_TEST

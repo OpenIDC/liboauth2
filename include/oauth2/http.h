@@ -130,6 +130,8 @@ char *oauth2_http_request_port_get(oauth2_log_t *log,
  */
 char *oauth2_http_request_url_base_get(oauth2_log_t *log,
 				       const oauth2_http_request_t *r);
+char *oauth2_http_request_url_path_get(oauth2_log_t *log,
+				       const oauth2_http_request_t *request);
 char *oauth2_http_request_url_get(oauth2_log_t *log,
 				  const oauth2_http_request_t *r);
 

@@ -472,12 +472,11 @@ end:
 	return url;
 }
 
-char *oauth2_http_request_url_get(oauth2_log_t *log,
-				  const oauth2_http_request_t *request)
+char *oauth2_http_request_url_path_get(oauth2_log_t *log,
+				       const oauth2_http_request_t *request)
 {
 
-	char *url = NULL, *base_str = NULL, *path_str = NULL, *query_str = NULL,
-	     *sep = NULL;
+	char *url = NULL, *base_str = NULL, *path_str = NULL;
 
 	base_str = oauth2_http_request_url_base_get(log, request);
 	if (base_str == NULL)
@@ -487,12 +486,7 @@ char *oauth2_http_request_url_get(oauth2_log_t *log,
 	//       for forwarding proxy setups; are we dealing with that?
 	path_str = request->path ? request->path : "";
 
-	// TODO: query_args_add http until function
-	sep = (request->query && *request->query != '\0') ? _OAUTH2_STR_QMARK
-							  : "";
-	query_str = request->query ? request->query : "";
-
-	url = _oauth2_stradd4(url, base_str, path_str, sep, query_str);
+	url = oauth2_stradd(NULL, base_str, path_str, NULL);
 
 end:
 
@@ -500,6 +494,33 @@ end:
 
 	if (base_str)
 		oauth2_mem_free(base_str);
+
+	return url;
+}
+
+char *oauth2_http_request_url_get(oauth2_log_t *log,
+				  const oauth2_http_request_t *request)
+{
+
+	char *url = NULL, *url_path_str = NULL, *query_str = NULL, *sep = NULL;
+
+	url_path_str = oauth2_http_request_url_path_get(log, request);
+	if (url_path_str == NULL)
+		goto end;
+
+	// TODO: query_args_add http until function
+	sep = (request->query && *request->query != '\0') ? _OAUTH2_STR_QMARK
+							  : "";
+	query_str = request->query ? request->query : "";
+
+	url = oauth2_stradd(NULL, url_path_str, sep, query_str);
+
+end:
+
+	oauth2_debug(log, "%s", url);
+
+	if (url_path_str)
+		oauth2_mem_free(url_path_str);
 
 	return url;
 }

@@ -216,9 +216,12 @@ _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(cfg, openidc, unauth_action,
 typedef struct oauth2_openidc_provider_t {
 	char *issuer;
 	char *authorization_endpoint;
+	char *token_endpoint;
+	oauth2_cfg_endpoint_auth_t *token_endpoint_auth;
 	char *scope;
 	char *client_id;
 	char *client_secret;
+	bool ssl_verify;
 } oauth2_openidc_provider_t;
 
 oauth2_openidc_provider_t *oauth2_openidc_provider_init(oauth2_log_t *log)
@@ -231,9 +234,12 @@ oauth2_openidc_provider_t *oauth2_openidc_provider_init(oauth2_log_t *log)
 
 	p->issuer = NULL;
 	p->authorization_endpoint = NULL;
+	p->token_endpoint = NULL;
+	p->token_endpoint_auth = NULL;
 	p->scope = NULL;
 	p->client_id = NULL;
 	p->client_secret = NULL;
+	p->ssl_verify = true;
 
 end:
 
@@ -250,6 +256,10 @@ void oauth2_openidc_provider_free(oauth2_log_t *log,
 		oauth2_mem_free(p->issuer);
 	if (p->authorization_endpoint)
 		oauth2_mem_free(p->authorization_endpoint);
+	if (p->token_endpoint)
+		oauth2_mem_free(p->token_endpoint);
+	if (p->token_endpoint_auth)
+		oauth2_cfg_endpoint_auth_free(log, p->token_endpoint_auth);
 	if (p->scope)
 		oauth2_mem_free(p->scope);
 	if (p->client_id)
@@ -267,10 +277,15 @@ end:
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, issuer, char *, str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, authorization_endpoint,
 				      char *, str)
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, token_endpoint, char *,
+				      str)
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, token_endpoint_auth,
+				      oauth2_cfg_endpoint_auth_t *, ptr)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, scope, char *, str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, client_id, char *, str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, client_secret, char *,
 				      str)
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, ssl_verify, bool, bln)
 
 char *oauth2_cfg_openidc_redirect_uri_get_iss(
     oauth2_log_t *log, const oauth2_cfg_openidc_t *c,
@@ -482,6 +497,39 @@ end:
 	return;
 }
 
+static bool _oauth2_openidc_provider_resolve(
+    oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg,
+    const oauth2_http_request_t *request, oauth2_openidc_provider_t **provider)
+{
+	bool rc = false;
+
+	if ((cfg->provider_resolver == NULL) ||
+	    (cfg->provider_resolver->callback == NULL)) {
+		oauth2_error(
+		    log,
+		    "configuration error: provider_resolver is not configured");
+		goto end;
+	}
+
+	if (cfg->provider_resolver->callback(log, cfg, request, provider) ==
+	    false) {
+		oauth2_error(log, "resolver callback returned false");
+		goto end;
+	}
+
+	if (provider == NULL) {
+		oauth2_error(log, "no provider was returned by the provider "
+				  "resolver; probably a configuration error");
+		goto end;
+	}
+
+	rc = true;
+
+end:
+
+	return rc;
+}
+
 static bool _oauth2_openidc_authenticate(oauth2_log_t *log,
 					 const oauth2_cfg_openidc_t *cfg,
 					 const oauth2_http_request_t *request,
@@ -498,25 +546,9 @@ static bool _oauth2_openidc_authenticate(oauth2_log_t *log,
 	if ((cfg == NULL) || (request == NULL) || (response == NULL))
 		goto end;
 
-	if ((cfg->provider_resolver == NULL) ||
-	    (cfg->provider_resolver->callback == NULL)) {
-		oauth2_error(
-		    log,
-		    "configuration error: provider_resolver is not configured");
+	if (_oauth2_openidc_provider_resolve(log, cfg, request, &provider) ==
+	    false)
 		goto end;
-	}
-
-	if (cfg->provider_resolver->callback(log, cfg, request, &provider) ==
-	    false) {
-		oauth2_error(log, "resolver callback returned false");
-		goto end;
-	}
-
-	if (provider == NULL) {
-		oauth2_error(log, "no provider was returned by the provider "
-				  "resolver; probably a configuration error");
-		goto end;
-	}
 
 	oauth2_nv_list_add(log, params, OAUTH2_RESPONSE_TYPE,
 			   OAUTH2_RESPONSE_TYPE_CODE);
@@ -653,10 +685,20 @@ static bool _oauth2_openidc_redirect_uri_handler(
     oauth2_http_response_t **response)
 {
 	bool rc = false;
+	oauth2_openidc_provider_t *provider = NULL;
 	const char *code = NULL, *state = NULL;
+	oauth2_http_call_ctx_t *http_ctx = NULL;
+	oauth2_uint_t status_code = 0;
+	oauth2_nv_list_t *params = NULL;
+	char *redirect_uri = NULL, *s_response = NULL;
+	json_t *json = NULL;
+
+	oauth2_debug(log, "enter");
 
 	// at this point we know there's a request to the redirect uri
 	// errors set in the HTTP response
+
+	redirect_uri = oauth2_cfg_openidc_redirect_uri_get(log, cfg, request);
 
 	code = oauth2_http_request_query_param_get(log, request, OAUTH2_CODE);
 	state = oauth2_http_request_query_param_get(log, request, OAUTH2_STATE);
@@ -667,13 +709,84 @@ static bool _oauth2_openidc_redirect_uri_handler(
 		goto end;
 	}
 
+	// TODO: combine with state cookie / restore proto state in case
+	// resolver = dir?
+	if (_oauth2_openidc_provider_resolve(log, cfg, request, &provider) ==
+	    false)
+		goto end;
+
+	oauth2_debug(log, "## 1 ##");
+
+	http_ctx = oauth2_http_call_ctx_init(log);
+	if (http_ctx == NULL)
+		goto end;
+
+	oauth2_debug(log, "## 2 ##");
+
+	if (oauth2_http_call_ctx_ssl_verify_set(log, http_ctx,
+						provider->ssl_verify) == false)
+		goto end;
+
+	oauth2_debug(log, "## 3 ##");
+
+	params = oauth2_nv_list_init(log);
+	if (params == NULL)
+		goto end;
+
+	oauth2_debug(log, "## 4 ##");
+
+	oauth2_nv_list_add(log, params, OAUTH2_GRANT_TYPE,
+			   OAUTH2_GRANT_TYPE_AUTHORIZATION_CODE);
+	oauth2_nv_list_add(log, params, OAUTH2_CODE, code);
+	oauth2_nv_list_add(log, params, OAUTH2_REDIRECT_URI, redirect_uri);
+
+	// TODO: add configurable extra POST params
+
+	oauth2_debug(log, "## 5 ##");
+
+	if (oauth2_http_ctx_auth_add(
+		log, http_ctx, provider->token_endpoint_auth, params) == false)
+		goto end;
+
+	oauth2_debug(log, "## 6 ##");
+
+	if (oauth2_http_post_form(log, provider->token_endpoint, params,
+				  http_ctx, &s_response, &status_code) == false)
+		goto end;
+
+	oauth2_debug(log, "## 7 ##");
+
+	if ((status_code < 200) || (status_code >= 300)) {
+		rc = false;
+		goto end;
+	}
+
+	oauth2_debug(log, "## 8 ##");
+
+	if (oauth2_json_decode_check_error(log, s_response, &json) == false)
+		goto end;
+
+	oauth2_debug(log, "## 9 ##");
+
+	rc = true;
+
 	// restore proto state
 	// validate response
-	// exchange code for token
 	// create session
 	// // pass token info
 
 end:
+
+	// TODO: json_decref json
+
+	if (redirect_uri)
+		oauth2_mem_free(redirect_uri);
+	if (params)
+		oauth2_nv_list_free(log, params);
+	if (http_ctx)
+		oauth2_http_call_ctx_free(log, http_ctx);
+
+	oauth2_debug(log, "leave: %d", rc);
 
 	return rc;
 }
@@ -688,13 +801,18 @@ static bool _oauth2_openidc_internal_requests(oauth2_log_t *log,
 	bool rc = true;
 	char *redirect_uri = NULL, *request_url;
 
+	oauth2_debug(log, "enter");
+
 	// redirect_uri = oauth2_openidc_cfg_redirect_uri_get_iss(log, cfg,
 	// request, provider);
-	request_url = oauth2_http_request_url_get(log, request);
+	request_url = oauth2_http_request_url_path_get(log, request);
 	if (request_url == NULL)
 		goto end;
 
 	redirect_uri = oauth2_cfg_openidc_redirect_uri_get(log, cfg, request);
+
+	oauth2_debug(log, "comparing: \"%s\"=\"%s\"", request_url,
+		     redirect_uri);
 
 	// redirect_uri handling
 	if (strcmp(redirect_uri, request_url) == 0) {
@@ -716,6 +834,8 @@ end:
 	if (redirect_uri)
 		oauth2_mem_free(redirect_uri);
 
+	oauth2_debug(log, "leave: %d", rc);
+
 	return rc;
 }
 
@@ -728,9 +848,9 @@ bool oauth2_openidc_handle(oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg,
 
 	oauth2_debug(log, "incoming request: %s%s%s",
 		     oauth2_http_request_path_get(log, request),
-		     oauth2_http_request_path_get(log, request) ? "?" : "",
-		     oauth2_http_request_path_get(log, request)
-			 ? oauth2_http_request_path_get(log, request)
+		     oauth2_http_request_query_get(log, request) ? "?" : "",
+		     oauth2_http_request_query_get(log, request)
+			 ? oauth2_http_request_query_get(log, request)
 			 : "");
 
 	if (oauth2_session_load(log, cfg, request, &session) == false)
@@ -769,6 +889,7 @@ _oauth2_openidc_provider_metadata_parse(oauth2_log_t *log, const char *s_json,
 	bool rc = false;
 	json_t *json = NULL;
 	oauth2_openidc_provider_t *p = NULL;
+	char *rv = NULL, *token_endpoint_auth = NULL;
 
 	oauth2_debug(log, "enter");
 
@@ -792,6 +913,20 @@ _oauth2_openidc_provider_metadata_parse(oauth2_log_t *log, const char *s_json,
 		oauth2_error(log, "could not parse authorization_endpoint");
 		goto end;
 	}
+	if (oauth2_json_string_get(log, json, "token_endpoint",
+				   &p->token_endpoint, NULL) == false) {
+		oauth2_error(log, "could not parse token_endpoint");
+		goto end;
+	}
+
+	p->ssl_verify = json_boolean_value(json_object_get(json, "ssl_verify"));
+
+	if (oauth2_json_string_get(log, json, "token_endpoint_auth",
+				   &token_endpoint_auth,
+				   "client_secret_basic") == false) {
+		oauth2_error(log, "could not parse token_endpoint_auth");
+		goto end;
+	}
 
 	// TODO: client file?
 
@@ -810,6 +945,16 @@ _oauth2_openidc_provider_metadata_parse(oauth2_log_t *log, const char *s_json,
 		oauth2_error(log, "could not parse scope");
 		goto end;
 	}
+
+	oauth2_nv_list_t *params = oauth2_nv_list_init(log);
+	oauth2_nv_list_set(log, params, "client_id", p->client_id);
+	oauth2_nv_list_set(log, params, "client_secret", p->client_secret);
+	p->token_endpoint_auth = oauth2_cfg_endpoint_auth_init(log);
+	rv = oauth2_cfg_endpoint_auth_add_options(log, p->token_endpoint_auth,
+						  token_endpoint_auth, params);
+	oauth2_nv_list_free(log, params);
+	if (rv != NULL)
+		goto end;
 
 	rc = true;
 
