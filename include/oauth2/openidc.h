@@ -44,15 +44,6 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, state_cookie_name_prefix,
 				   char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, passphrase, char *)
 
-/*
-bool oauth2_cfg_openidc_provider_resolver_set(
-    oauth2_log_t *, oauth2_cfg_openidc_t *,
-	oauth2_cfg_openidc_provider_resolver_t *);
-oauth2_cfg_openidc_provider_resolver_t *
-oauth2_openidc_cfg_provider_resolver_get(oauth2_log_t *,
-					 const oauth2_cfg_openidc_t *);
-*/
-
 char *oauth2_cfg_openidc_redirect_uri_get(oauth2_log_t *,
 					  const oauth2_cfg_openidc_t *,
 					  const oauth2_http_request_t *);
@@ -69,7 +60,7 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, scope, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, client_id, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, client_secret, char *)
 
-const char *oauth2_cfg_openidc_provider_resolver_set_options(
+char *oauth2_cfg_openidc_provider_resolver_set_options(
     oauth2_log_t *log, oauth2_cfg_openidc_t *cfg, const char *type,
     const char *value, const char *options);
 

@@ -151,15 +151,18 @@ typedef char *(oauth2_cfg_set_options_cb_t)(oauth2_log_t *log,
 					    const oauth2_nv_list_t *params,
 					    void *cfg);
 
+#define _OAUTH_CFG_CTX_CALLBACK(name)                                          \
+	char *name(oauth2_log_t *log, const char *value,                       \
+		   const oauth2_nv_list_t *params, void *ctx)
+
 typedef struct oauth2_cfg_set_options_ctx_t {
 	const char *type;
 	oauth2_cfg_set_options_cb_t *set_options_callback;
 } oauth2_cfg_set_options_ctx_t;
 
-const char *oauth2_cfg_set_options(oauth2_log_t *log, void *cfg,
-				   const char *type, const char *value,
-				   const char *options,
-				   const oauth2_cfg_set_options_ctx_t *set);
+char *oauth2_cfg_set_options(oauth2_log_t *log, void *cfg, const char *type,
+			     const char *value, const char *options,
+			     const oauth2_cfg_set_options_ctx_t *set);
 
 #define _OAUTH2_CFG_CTX_TYPE_START(type) typedef struct type##_t {
 

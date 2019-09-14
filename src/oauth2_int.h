@@ -27,15 +27,9 @@
 #include "oauth2/log.h"
 #include "oauth2/util.h"
 
-#include <cjose/cjose.h>
+#include "cfg_int.h"
 
-char *oauth2_verify_options_set_introspect_url(oauth2_log_t *log,
-					       const char *value,
-					       const oauth2_nv_list_t *params,
-					       oauth2_cfg_token_verify_t *);
-char *oauth2_verify_options_set_metadata_url(oauth2_log_t *log,
-					     const char *value,
-					     const oauth2_nv_list_t *params,
-					     oauth2_cfg_token_verify_t *);
+_OAUTH_CFG_CTX_CALLBACK(oauth2_verify_options_set_introspect_url);
+_OAUTH_CFG_CTX_CALLBACK(oauth2_verify_options_set_metadata_url);
 
 #endif /* _OAUTH2_INT_H_ */

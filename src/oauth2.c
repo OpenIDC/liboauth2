@@ -330,51 +330,32 @@ end:
  * introspect
  */
 
-typedef struct oauth2_introspect_ctx_t {
-	char *url;
-	bool ssl_verify;
-	oauth2_cfg_endpoint_auth_t *auth;
-} oauth2_introspect_ctx_t;
+_OAUTH2_CFG_CTX_TYPE_START(oauth2_introspect_ctx)
+char *url;
+bool ssl_verify;
+oauth2_cfg_endpoint_auth_t *auth;
+_OAUTH2_CFG_CTX_TYPE_END(oauth2_introspect_ctx)
 
-static void *_oauth2_introspect_ctx_init(oauth2_log_t *log)
-{
-	oauth2_introspect_ctx_t *ctx =
-	    (oauth2_introspect_ctx_t *)oauth2_mem_alloc(
-		sizeof(oauth2_introspect_ctx_t));
-	ctx->url = NULL;
-	ctx->ssl_verify = true;
-	ctx->auth = oauth2_cfg_endpoint_auth_init(log);
-	return ctx;
-}
+_OAUTH2_CFG_CTX_INIT_START(oauth2_introspect_ctx)
+ctx->url = NULL;
+ctx->ssl_verify = true;
+ctx->auth = oauth2_cfg_endpoint_auth_init(log);
+_OAUTH2_CFG_CTX_INIT_END
 
-static void *_oauth2_introspect_ctx_clone(oauth2_log_t *log, void *s)
-{
-	oauth2_introspect_ctx_t *src = s;
-	oauth2_introspect_ctx_t *dst = NULL;
+_OAUTH2_CFG_CTX_CLONE_START(oauth2_introspect_ctx)
+dst->url = oauth2_strdup(src->url);
+dst->ssl_verify = src->ssl_verify;
+dst->auth = oauth2_cfg_endpoint_auth_clone(log, src->auth);
+_OAUTH2_CFG_CTX_CLONE_END
 
-	if (src == NULL)
-		goto end;
+_OAUTH2_CFG_CTX_FREE_START(oauth2_introspect_ctx)
+if (ctx->url)
+	oauth2_mem_free(ctx->url);
+if (ctx->auth)
+	oauth2_cfg_endpoint_auth_free(log, ctx->auth);
+_OAUTH2_CFG_CTX_FREE_END
 
-	dst = _oauth2_introspect_ctx_init(log);
-	dst->url = oauth2_strdup(src->url);
-	dst->ssl_verify = src->ssl_verify;
-	dst->auth = oauth2_cfg_endpoint_auth_clone(log, src->auth);
-
-end:
-
-	return dst;
-}
-
-static void _oauth2_introspect_ctx_free(oauth2_log_t *log, void *c)
-{
-	oauth2_introspect_ctx_t *ctx = (oauth2_introspect_ctx_t *)c;
-	if (ctx->url)
-		oauth2_mem_free(ctx->url);
-	if (ctx->auth)
-		oauth2_cfg_endpoint_auth_free(log, ctx->auth);
-	if (ctx)
-		oauth2_mem_free(ctx);
-}
+_OAUTH2_CFG_CTX_FUNCS(oauth2_introspect_ctx)
 
 #define OAUTH2_INTROSPECT_TOKEN "token"
 
@@ -495,14 +476,6 @@ end:
 	return rc;
 }
 
-// clang-format off
-static oauth2_cfg_ctx_funcs_t oauth2_introspect_verify_ctx_funcs = {
-    _oauth2_introspect_ctx_init,
-	_oauth2_introspect_ctx_clone,
-    _oauth2_introspect_ctx_free
-};
-// clang-format on
-
 static char *_oauth2_verify_options_set_introspect_url_ctx(
     oauth2_log_t *log, const char *url, const oauth2_nv_list_t *params,
     oauth2_introspect_ctx_t *ctx)
@@ -525,17 +498,15 @@ static char *_oauth2_verify_options_set_introspect_url_ctx(
 	return rv;
 }
 
-char *
-oauth2_verify_options_set_introspect_url(oauth2_log_t *log, const char *value,
-					 const oauth2_nv_list_t *params,
-					 oauth2_cfg_token_verify_t *verify)
+_OAUTH_CFG_CTX_CALLBACK(oauth2_verify_options_set_introspect_url)
 {
+	oauth2_cfg_token_verify_t *verify = (oauth2_cfg_token_verify_t *)ctx;
 	char *rv = NULL;
 
 	oauth2_debug(log, "enter");
 
 	verify->callback = _oauth2_introspect_verify_callback;
-	verify->ctx->callbacks = &oauth2_introspect_verify_ctx_funcs;
+	verify->ctx->callbacks = &oauth2_introspect_ctx_funcs;
 	verify->ctx->ptr = verify->ctx->callbacks->init(log);
 
 	rv = _oauth2_verify_options_set_introspect_url_ctx(
@@ -546,65 +517,36 @@ oauth2_verify_options_set_introspect_url(oauth2_log_t *log, const char *value,
 	return rv;
 }
 
-typedef struct _oauth2_metadata_ctx_t {
-	oauth2_introspect_ctx_t *introspect;
-	oauth2_jose_jwt_verify_ctx_t *jwks_uri_verify;
-	oauth2_uri_ctx_t *metadata_uri;
-} _oauth2_metadata_ctx_t;
+_OAUTH2_CFG_CTX_TYPE_START(oauth2_metadata_ctx)
+oauth2_introspect_ctx_t *introspect;
+oauth2_jose_jwt_verify_ctx_t *jwks_uri_verify;
+oauth2_uri_ctx_t *metadata_uri;
+_OAUTH2_CFG_CTX_TYPE_END(oauth2_metadata_ctx)
 
-static void *_oauth2_metadata_ctx_init(oauth2_log_t *log)
-{
-	_oauth2_metadata_ctx_t *ctx =
-	    (_oauth2_metadata_ctx_t *)oauth2_mem_alloc(
-		sizeof(_oauth2_metadata_ctx_t));
+_OAUTH2_CFG_CTX_INIT_START(oauth2_metadata_ctx)
+ctx->introspect = oauth2_introspect_ctx_init(log);
+ctx->jwks_uri_verify =
+    (oauth2_jose_jwt_verify_ctx_t *)oauth2_jose_jwt_verify_ctx_init(log);
+ctx->metadata_uri = oauth2_uri_ctx_init(log);
+_OAUTH2_CFG_CTX_INIT_END
 
-	ctx->introspect = _oauth2_introspect_ctx_init(log);
-	ctx->jwks_uri_verify =
-	    (oauth2_jose_jwt_verify_ctx_t *)oauth2_jose_jwt_verify_ctx_init(
-		log);
-	ctx->metadata_uri = oauth2_uri_ctx_create(log);
-	return ctx;
-}
+_OAUTH2_CFG_CTX_CLONE_START(oauth2_metadata_ctx)
+dst->introspect = oauth2_introspect_ctx_clone(log, src->introspect);
+dst->jwks_uri_verify =
+    oauth2_jose_jwt_verify_ctx_clone(log, src->jwks_uri_verify);
+dst->metadata_uri = oauth2_uri_ctx_clone(log, src->metadata_uri);
+_OAUTH2_CFG_CTX_CLONE_END
 
-static void *_oauth2_metadata_ctx_clone(oauth2_log_t *log, void *s)
-{
-	_oauth2_metadata_ctx_t *src = s;
-	_oauth2_metadata_ctx_t *dst = NULL;
+_OAUTH2_CFG_CTX_FREE_START(oauth2_metadata_ctx)
+if (ctx->introspect)
+	oauth2_introspect_ctx_free(log, ctx->introspect);
+if (ctx->jwks_uri_verify)
+	oauth2_jose_jwt_verify_ctx_free(log, ctx->jwks_uri_verify);
+if (ctx->metadata_uri)
+	oauth2_uri_ctx_free(log, ctx->metadata_uri);
+_OAUTH2_CFG_CTX_FREE_END
 
-	if (src == NULL)
-		goto end;
-
-	dst = _oauth2_metadata_ctx_init(log);
-	dst->introspect = _oauth2_introspect_ctx_clone(log, src->introspect);
-	dst->jwks_uri_verify =
-	    oauth2_jose_jwt_verify_ctx_clone(log, src->jwks_uri_verify);
-	dst->metadata_uri = oauth2_uri_ctx_clone(log, src->metadata_uri);
-
-end:
-
-	return dst;
-}
-
-static void _oauth2_metadata_ctx_free(oauth2_log_t *log, void *c)
-{
-	_oauth2_metadata_ctx_t *ctx = (_oauth2_metadata_ctx_t *)c;
-	if (ctx->introspect)
-		_oauth2_introspect_ctx_free(log, ctx->introspect);
-	if (ctx->jwks_uri_verify)
-		oauth2_jose_jwt_verify_ctx_free(log, ctx->jwks_uri_verify);
-	if (ctx->metadata_uri)
-		oauth2_uri_ctx_free(log, ctx->metadata_uri);
-	if (ctx)
-		oauth2_mem_free(ctx);
-}
-
-// clang-format off
-static oauth2_cfg_ctx_funcs_t oauth2_metadata_verify_ctx_funcs = {
-    _oauth2_metadata_ctx_init,
-	_oauth2_metadata_ctx_clone,
-    _oauth2_metadata_ctx_free
-};
-// clang-format on
+_OAUTH2_CFG_CTX_FUNCS(oauth2_metadata_ctx)
 
 static bool _oauth2_metadata_verify_callback(oauth2_log_t *log,
 					     oauth2_cfg_token_verify_t *verify,
@@ -613,7 +555,7 @@ static bool _oauth2_metadata_verify_callback(oauth2_log_t *log,
 					     char **s_payload)
 {
 	bool rc = false;
-	_oauth2_metadata_ctx_t *ptr = NULL;
+	oauth2_metadata_ctx_t *ptr = NULL;
 	bool refresh = false;
 	char *response = NULL;
 	json_t *json_metadata = NULL, *json_jwks_uri = NULL,
@@ -625,7 +567,7 @@ static bool _oauth2_metadata_verify_callback(oauth2_log_t *log,
 	    (verify->ctx->ptr == NULL))
 		goto end;
 
-	ptr = (_oauth2_metadata_ctx_t *)verify->ctx->ptr;
+	ptr = (oauth2_metadata_ctx_t *)verify->ctx->ptr;
 
 	response =
 	    oauth2_jose_resolve_from_uri(log, ptr->metadata_uri, &refresh);
@@ -705,20 +647,18 @@ end:
 	return rc;
 }
 
-char *oauth2_verify_options_set_metadata_url(oauth2_log_t *log,
-					     const char *value,
-					     const oauth2_nv_list_t *params,
-					     oauth2_cfg_token_verify_t *verify)
+_OAUTH_CFG_CTX_CALLBACK(oauth2_verify_options_set_metadata_url)
 {
+	oauth2_cfg_token_verify_t *verify = (oauth2_cfg_token_verify_t *)ctx;
 	char *rv = NULL;
-	_oauth2_metadata_ctx_t *ptr = NULL;
+	oauth2_metadata_ctx_t *ptr = NULL;
 
 	oauth2_debug(log, "enter");
 
 	verify->callback = _oauth2_metadata_verify_callback;
-	verify->ctx->callbacks = &oauth2_metadata_verify_ctx_funcs;
+	verify->ctx->callbacks = &oauth2_metadata_ctx_funcs;
 	verify->ctx->ptr = verify->ctx->callbacks->init(log);
-	ptr = (_oauth2_metadata_ctx_t *)verify->ctx->ptr;
+	ptr = (oauth2_metadata_ctx_t *)verify->ctx->ptr;
 
 	rv = _oauth2_verify_options_set_introspect_url_ctx(log, value, params,
 							   ptr->introspect);

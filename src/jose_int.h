@@ -80,38 +80,19 @@ oauth2_uint_t iat_slack_before;
 oauth2_uint_t iat_slack_after;
 _OAUTH2_CFG_CTX_TYPE_END(oauth2_jose_jwt_verify_ctx)
 
-oauth2_uri_ctx_t *oauth2_uri_ctx_create(oauth2_log_t *log);
-oauth2_uri_ctx_t *oauth2_uri_ctx_clone(oauth2_log_t *log,
-				       oauth2_uri_ctx_t *src);
-void oauth2_uri_ctx_free(oauth2_log_t *log, oauth2_uri_ctx_t *ctx);
+void *oauth2_uri_ctx_init(oauth2_log_t *log);
+void *oauth2_uri_ctx_clone(oauth2_log_t *log, void *c);
+void oauth2_uri_ctx_free(oauth2_log_t *log, void *c);
 
-char *
-oauth2_jose_verify_options_jwk_set_plain(oauth2_log_t *log, const char *value,
-					 const oauth2_nv_list_t *params,
-					 oauth2_cfg_token_verify_t *verify);
-char *
-oauth2_jose_verify_options_jwk_set_base64(oauth2_log_t *log, const char *value,
-					  const oauth2_nv_list_t *params,
-					  oauth2_cfg_token_verify_t *verify);
-char *oauth2_jose_verify_options_jwk_set_base64url(
-    oauth2_log_t *log, const char *value, const oauth2_nv_list_t *params,
-    oauth2_cfg_token_verify_t *verify);
-char *oauth2_jose_verify_options_jwk_set_hex(oauth2_log_t *log,
-					     const char *value,
-					     const oauth2_nv_list_t *params,
-					     oauth2_cfg_token_verify_t *verify);
-char *oauth2_jose_verify_options_jwk_set_pem(oauth2_log_t *log,
-					     const char *value,
-					     const oauth2_nv_list_t *params,
-					     oauth2_cfg_token_verify_t *verify);
-char *
-oauth2_jose_verify_options_jwk_set_pubkey(oauth2_log_t *log, const char *value,
-					  const oauth2_nv_list_t *params,
-					  oauth2_cfg_token_verify_t *verify);
-char *oauth2_jose_verify_options_jwk_set_jwk(oauth2_log_t *log,
-					     const char *value,
-					     const oauth2_nv_list_t *params,
-					     oauth2_cfg_token_verify_t *verify);
+_OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_plain);
+_OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_base64);
+_OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_base64url);
+_OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_hex);
+_OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_pem);
+_OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_pubkey);
+_OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_jwk);
+_OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_jwks_uri);
+_OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_eckey_uri);
 
 char *oauth2_jose_resolve_from_uri(oauth2_log_t *log, oauth2_uri_ctx_t *uri_ctx,
 				   bool *refresh);
@@ -119,13 +100,6 @@ char *oauth2_jose_resolve_from_uri(oauth2_log_t *log, oauth2_uri_ctx_t *uri_ctx,
 char *oauth2_jose_options_uri_ctx(oauth2_log_t *log, const char *value,
 				  const oauth2_nv_list_t *params,
 				  oauth2_uri_ctx_t *ctx, const char *prefix);
-
-char *oauth2_jose_verify_options_jwk_set_jwks_uri(
-    oauth2_log_t *log, const char *value, const oauth2_nv_list_t *params,
-    oauth2_cfg_token_verify_t *verify);
-char *oauth2_jose_verify_options_jwk_set_eckey_uri(
-    oauth2_log_t *log, const char *value, const oauth2_nv_list_t *params,
-    oauth2_cfg_token_verify_t *verify);
 
 void *oauth2_jose_jwt_verify_ctx_init(oauth2_log_t *log);
 void *oauth2_jose_jwt_verify_ctx_clone(oauth2_log_t *log, void *s);

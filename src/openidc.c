@@ -941,7 +941,7 @@ end:
 	return rc;
 }
 
-static char *_oauth2_cfg_openidc_provider_resolver_string_set_options(
+char *_oauth2_cfg_openidc_provider_resolver_string_set_options(
     oauth2_log_t *log, const char *value, const oauth2_nv_list_t *params,
     void *c)
 {
@@ -976,7 +976,7 @@ static oauth2_cfg_set_options_ctx_t _oauth2_cfg_resolver_options_set[] = {
 };
 // clang-format on
 
-const char *oauth2_cfg_openidc_provider_resolver_set_options(
+char *oauth2_cfg_openidc_provider_resolver_set_options(
     oauth2_log_t *log, oauth2_cfg_openidc_t *cfg, const char *type,
     const char *value, const char *options)
 {

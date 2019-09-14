@@ -123,9 +123,10 @@ oauth2_cfg_endpoint_auth_type(oauth2_cfg_endpoint_auth_t *auth);
 
 OAUTH2_CFG_TYPE_DECLARE(cfg, token_verify)
 
-const char *oauth2_cfg_token_verify_add_options(
-    oauth2_log_t *log, oauth2_cfg_token_verify_t **verify, const char *type,
-    const char *value, const char *options);
+char *oauth2_cfg_token_verify_add_options(oauth2_log_t *log,
+					  oauth2_cfg_token_verify_t **verify,
+					  const char *type, const char *value,
+					  const char *options);
 
 /*
  * token in request

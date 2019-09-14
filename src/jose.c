@@ -468,32 +468,24 @@ end:
 	return rc;
 }
 
-oauth2_uri_ctx_t *oauth2_uri_ctx_create(oauth2_log_t *log)
-{
-	oauth2_uri_ctx_t *ctx =
-	    (oauth2_uri_ctx_t *)oauth2_mem_alloc(sizeof(oauth2_uri_ctx_t));
-	ctx->uri = NULL;
-	ctx->ssl_verify = true;
-	ctx->cache = oauth2_cfg_cache_init(log);
-	return ctx;
-}
-oauth2_uri_ctx_t *oauth2_uri_ctx_clone(oauth2_log_t *log, oauth2_uri_ctx_t *src)
-{
-	oauth2_uri_ctx_t *dst = oauth2_uri_ctx_create(log);
-	dst->uri = oauth2_strdup(src->uri);
-	dst->ssl_verify = src->ssl_verify;
-	dst->cache = oauth2_cfg_cache_clone(log, src->cache);
-	return dst;
-}
+_OAUTH2_CFG_CTX_INIT_START(oauth2_uri_ctx)
+ctx->uri = NULL;
+ctx->ssl_verify = true;
+ctx->cache = oauth2_cfg_cache_init(log);
+_OAUTH2_CFG_CTX_INIT_END
 
-void oauth2_uri_ctx_free(oauth2_log_t *log, oauth2_uri_ctx_t *ctx)
-{
-	if (ctx->cache)
-		oauth2_cfg_cache_free(log, ctx->cache);
-	if (ctx->uri)
-		oauth2_mem_free(ctx->uri);
-	oauth2_mem_free(ctx);
-}
+_OAUTH2_CFG_CTX_CLONE_START(oauth2_uri_ctx)
+dst->uri = oauth2_strdup(src->uri);
+dst->ssl_verify = src->ssl_verify;
+dst->cache = oauth2_cfg_cache_clone(log, src->cache);
+_OAUTH2_CFG_CTX_CLONE_END
+
+_OAUTH2_CFG_CTX_FREE_START(oauth2_uri_ctx)
+if (ctx->cache)
+	oauth2_cfg_cache_free(log, ctx->cache);
+if (ctx->uri)
+	oauth2_mem_free(ctx->uri);
+_OAUTH2_CFG_CTX_FREE_END
 
 static oauth2_jose_jwk_list_t *oauth2_jose_jwk_list_init(oauth2_log_t *log)
 {
@@ -579,11 +571,11 @@ _oauth2_jose_jwks_provider_init(oauth2_log_t *log,
 		provider->jwks = NULL;
 		break;
 	case OAUTH2_JOSE_JWKS_PROVIDER_JWKS_URI:
-		provider->jwks_uri = oauth2_uri_ctx_create(log);
+		provider->jwks_uri = oauth2_uri_ctx_init(log);
 		provider->resolve = oauth2_jose_jwks_uri_resolve;
 		break;
 	case OAUTH2_JOSE_JWKS_PROVIDER_ECKEY_URI:
-		provider->jwks_uri = oauth2_uri_ctx_create(log);
+		provider->jwks_uri = oauth2_uri_ctx_init(log);
 		provider->resolve = oauth2_jose_jwks_eckey_url_resolve;
 		break;
 	}
@@ -1284,11 +1276,10 @@ end:
 	return rv;
 }
 
-char *
-oauth2_jose_verify_options_jwk_set_plain(oauth2_log_t *log, const char *value,
-					 const oauth2_nv_list_t *params,
-					 oauth2_cfg_token_verify_t *verify)
+_OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_plain)
 {
+	oauth2_cfg_token_verify_t *verify = (oauth2_cfg_token_verify_t *)ctx;
+
 	char *rv = NULL;
 	const uint8_t *key = NULL;
 	size_t key_len = 0;
@@ -1309,11 +1300,10 @@ end:
 	return rv;
 }
 
-char *
-oauth2_jose_verify_options_jwk_set_base64(oauth2_log_t *log, const char *value,
-					  const oauth2_nv_list_t *params,
-					  oauth2_cfg_token_verify_t *verify)
+_OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_base64)
 {
+	oauth2_cfg_token_verify_t *verify = (oauth2_cfg_token_verify_t *)ctx;
+
 	char *rv = NULL;
 	uint8_t *key = NULL;
 	size_t key_len = 0;
@@ -1340,10 +1330,10 @@ end:
 	return rv;
 }
 
-char *oauth2_jose_verify_options_jwk_set_base64url(
-    oauth2_log_t *log, const char *value, const oauth2_nv_list_t *params,
-    oauth2_cfg_token_verify_t *verify)
+_OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_base64url)
 {
+	oauth2_cfg_token_verify_t *verify = (oauth2_cfg_token_verify_t *)ctx;
+
 	char *rv = NULL;
 	uint8_t *key = NULL;
 	size_t key_len = 0;
@@ -1370,11 +1360,10 @@ end:
 	return rv;
 }
 
-char *oauth2_jose_verify_options_jwk_set_hex(oauth2_log_t *log,
-					     const char *value,
-					     const oauth2_nv_list_t *params,
-					     oauth2_cfg_token_verify_t *verify)
+_OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_hex)
 {
+	oauth2_cfg_token_verify_t *verify = (oauth2_cfg_token_verify_t *)ctx;
+
 	char *rv = NULL;
 	unsigned char *key = NULL;
 	size_t key_len = 0;
@@ -1486,11 +1475,10 @@ end:
 	return rv;
 }
 
-char *oauth2_jose_verify_options_jwk_set_pem(oauth2_log_t *log,
-					     const char *value,
-					     const oauth2_nv_list_t *params,
-					     oauth2_cfg_token_verify_t *verify)
+_OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_pem)
 {
+	oauth2_cfg_token_verify_t *verify = (oauth2_cfg_token_verify_t *)ctx;
+
 	char *rv = NULL;
 	BIO *input = NULL;
 	X509 *x509 = NULL;
@@ -1532,11 +1520,10 @@ end:
 	return rv;
 }
 
-char *
-oauth2_jose_verify_options_jwk_set_pubkey(oauth2_log_t *log, const char *value,
-					  const oauth2_nv_list_t *params,
-					  oauth2_cfg_token_verify_t *verify)
+_OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_pubkey)
 {
+	oauth2_cfg_token_verify_t *verify = (oauth2_cfg_token_verify_t *)ctx;
+
 	char *rv = NULL;
 	BIO *input = NULL;
 	EVP_PKEY *pkey = NULL;
@@ -1567,11 +1554,10 @@ end:
 	return rv;
 }
 
-char *oauth2_jose_verify_options_jwk_set_jwk(oauth2_log_t *log,
-					     const char *value,
-					     const oauth2_nv_list_t *params,
-					     oauth2_cfg_token_verify_t *verify)
+_OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_jwk)
 {
+	oauth2_cfg_token_verify_t *verify = (oauth2_cfg_token_verify_t *)ctx;
+
 	char *rv = NULL;
 	cjose_jwk_t *jwk = NULL;
 	cjose_err err;
@@ -1645,19 +1631,17 @@ end:
 	return rv;
 }
 
-char *oauth2_jose_verify_options_jwk_set_jwks_uri(
-    oauth2_log_t *log, const char *value, const oauth2_nv_list_t *params,
-    oauth2_cfg_token_verify_t *verify)
+_OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_jwks_uri)
 {
+	oauth2_cfg_token_verify_t *verify = (oauth2_cfg_token_verify_t *)ctx;
 	return _oauth2_jose_verify_options_jwk_set_url(
 	    log, value, params, verify, OAUTH2_JOSE_JWKS_PROVIDER_JWKS_URI,
 	    "jwks_uri");
 }
 
-char *oauth2_jose_verify_options_jwk_set_eckey_uri(
-    oauth2_log_t *log, const char *value, const oauth2_nv_list_t *params,
-    oauth2_cfg_token_verify_t *verify)
+_OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_eckey_uri)
 {
+	oauth2_cfg_token_verify_t *verify = (oauth2_cfg_token_verify_t *)ctx;
 	return _oauth2_jose_verify_options_jwk_set_url(
 	    log, value, params, verify, OAUTH2_JOSE_JWKS_PROVIDER_ECKEY_URI,
 	    "eckey_uri");

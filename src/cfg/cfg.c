@@ -130,10 +130,9 @@ end:
 	return dst;
 }
 
-const char *oauth2_cfg_set_options(oauth2_log_t *log, void *cfg,
-				   const char *type, const char *value,
-				   const char *options,
-				   const oauth2_cfg_set_options_ctx_t *set)
+char *oauth2_cfg_set_options(oauth2_log_t *log, void *cfg, const char *type,
+			     const char *value, const char *options,
+			     const oauth2_cfg_set_options_ctx_t *set)
 {
 	char *rv = NULL;
 	int i = 0;
