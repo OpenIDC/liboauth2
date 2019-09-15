@@ -38,6 +38,47 @@ static void teardown(void)
 	oauth2_shutdown(log);
 }
 
+static char *token_endpoint_path = "/check_openidc/token";
+static char *token_endpoint_response =
+    "{ \"id_token\": \"xxx\", \"access_token\": \"xxx\" }";
+
+char *oauth2_check_openidc_serve(const char *request)
+{
+	oauth2_nv_list_t *params = NULL;
+	char *data = NULL;
+	const char *code = NULL;
+	const char *sep = "****";
+	char *rv = NULL;
+
+	if (strncmp(request, "POST", 4) == 0) {
+		if (strncmp(&request[5], token_endpoint_path,
+			    strlen(token_endpoint_path)) == 0) {
+			request += strlen(token_endpoint_path) + 5;
+			data = strstr(request, sep);
+			if (data == NULL)
+				goto error;
+			data += strlen(sep);
+			if (oauth2_parse_form_encoded_params(log, data,
+							     &params) == false)
+				goto error;
+			code = oauth2_nv_list_get(log, params, "code");
+			if (code == NULL)
+				goto error;
+			rv = oauth2_strdup(token_endpoint_response);
+			oauth2_nv_list_free(log, params);
+			goto end;
+		}
+	}
+
+error:
+
+	rv = oauth2_strdup("problem");
+
+end:
+
+	return rv;
+}
+
 START_TEST(test_openidc_cfg)
 {
 	bool rc = false;
@@ -120,7 +161,7 @@ START_TEST(test_openidc_handle)
 	    "{ "
 	    "\"issuer\": \"https://op.example.org\","
 	    "\"authorization_endpoint\": \"https://op.example.org/authorize\","
-	    "\"token_endpoint\": \"https://op.example.org/token\","
+	    "\"token_endpoint\": \"http://127.0.0.1:8888/check_openidc/token\","
 	    "\"token_endpoint_auth\": \"client_secret_post\","
 	    "\"client_id\": \"myclient\","
 	    "\"client_secret\": \"secret1234\","
@@ -173,11 +214,10 @@ START_TEST(test_openidc_handle)
 	ck_assert_int_eq(rc, true);
 
 	rc = oauth2_openidc_handle(log, c, r, &response);
-	// TODO:
-	// ck_assert_int_eq(rc, true);
-	// ck_assert_ptr_ne(NULL, response);
-	// ck_assert_uint_eq(oauth2_http_response_status_code_get(log,
-	// response), 200);
+	ck_assert_int_eq(rc, true);
+	ck_assert_ptr_ne(NULL, response);
+	ck_assert_uint_eq(oauth2_http_response_status_code_get(log, response),
+			  302);
 
 	oauth2_http_response_free(log, response);
 	oauth2_http_request_free(log, r);

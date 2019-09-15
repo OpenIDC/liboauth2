@@ -86,6 +86,7 @@ struct {
 } http_serve_routing[] = {{"check_http", oauth2_check_http_serve},
 			  {"check_jose", oauth2_check_jose_serve},
 			  {"check_oauth2", oauth2_check_oauth2_serve},
+			  {"check_openidc", oauth2_check_openidc_serve},
 			  {0, 0}};
 
 static void http_server_process(oauth2_log_t *log, int fd, int hit)

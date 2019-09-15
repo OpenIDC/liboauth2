@@ -45,6 +45,7 @@ Suite *oauth2_check_apache_suite();
 char *oauth2_check_http_serve(const char *request);
 char *oauth2_check_jose_serve(const char *request);
 char *oauth2_check_oauth2_serve(const char *request);
+char *oauth2_check_openidc_serve(const char *request);
 
 #define _ck_assert_bin(X, OP, Y, LEN)                                          \
 	do {                                                                   \

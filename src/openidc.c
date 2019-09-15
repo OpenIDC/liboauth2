@@ -715,25 +715,17 @@ static bool _oauth2_openidc_redirect_uri_handler(
 	    false)
 		goto end;
 
-	oauth2_debug(log, "## 1 ##");
-
 	http_ctx = oauth2_http_call_ctx_init(log);
 	if (http_ctx == NULL)
 		goto end;
-
-	oauth2_debug(log, "## 2 ##");
 
 	if (oauth2_http_call_ctx_ssl_verify_set(log, http_ctx,
 						provider->ssl_verify) == false)
 		goto end;
 
-	oauth2_debug(log, "## 3 ##");
-
 	params = oauth2_nv_list_init(log);
 	if (params == NULL)
 		goto end;
-
-	oauth2_debug(log, "## 4 ##");
 
 	oauth2_nv_list_add(log, params, OAUTH2_GRANT_TYPE,
 			   OAUTH2_GRANT_TYPE_AUTHORIZATION_CODE);
@@ -742,31 +734,25 @@ static bool _oauth2_openidc_redirect_uri_handler(
 
 	// TODO: add configurable extra POST params
 
-	oauth2_debug(log, "## 5 ##");
-
 	if (oauth2_http_ctx_auth_add(
 		log, http_ctx, provider->token_endpoint_auth, params) == false)
 		goto end;
 
-	oauth2_debug(log, "## 6 ##");
-
 	if (oauth2_http_post_form(log, provider->token_endpoint, params,
 				  http_ctx, &s_response, &status_code) == false)
 		goto end;
-
-	oauth2_debug(log, "## 7 ##");
 
 	if ((status_code < 200) || (status_code >= 300)) {
 		rc = false;
 		goto end;
 	}
 
-	oauth2_debug(log, "## 8 ##");
-
 	if (oauth2_json_decode_check_error(log, s_response, &json) == false)
 		goto end;
 
-	oauth2_debug(log, "## 9 ##");
+	// TODO: create http response
+	*response = oauth2_http_response_init(log);
+	oauth2_http_response_status_code_set(log, *response, 302);
 
 	rc = true;
 
