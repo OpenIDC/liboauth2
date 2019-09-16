@@ -1554,12 +1554,20 @@ bool oauth2_http_response_cookie_set(oauth2_log_t *log,
 	char *str = NULL;
 	oauth2_nv_list_t *cookies = NULL;
 
-	cookies = oauth2_nv_list_init(log);
-	oauth2_nv_list_set(log, cookies, name, value);
+	if (value) {
 
-	str = _oauth2_http_cookies_encode(log, cookies);
-	if (str == NULL)
-		goto end;
+		cookies = oauth2_nv_list_init(log);
+		oauth2_nv_list_set(log, cookies, name, value);
+
+		str = _oauth2_http_cookies_encode(log, cookies);
+		if (str == NULL)
+			goto end;
+
+	} else {
+
+		str = oauth2_stradd(NULL, name, "=;",
+				    " expires=Thu, 01 Jan 1970 00:00:00 GMT");
+	}
 
 	rc = oauth2_http_response_header_set(log, response,
 					     OAUTH2_HTTP_HDR_SET_COOKIE, str);

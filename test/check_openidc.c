@@ -157,6 +157,8 @@ START_TEST(test_openidc_handle)
 	oauth2_cfg_openidc_t *c = NULL;
 	oauth2_http_request_t *r = NULL;
 	oauth2_http_response_t *response = NULL;
+	const char *state_cookie = NULL, *location = NULL;
+	char *state = NULL, *state_cookie_name = NULL, *query_str = NULL;
 	char *token_endpoint = oauth2_stradd(NULL, oauth2_check_http_base_url(),
 					     token_endpoint_path, NULL);
 	char *metadata = oauth2_stradd(
@@ -193,15 +195,24 @@ START_TEST(test_openidc_handle)
 
 	ck_assert_uint_eq(oauth2_http_response_status_code_get(log, response),
 			  302);
-	ck_assert_ptr_ne(NULL, strstr(oauth2_http_response_header_get(
-					  log, response, "Location"),
-				      "response_type=code"));
-	ck_assert_ptr_ne(NULL, strstr(oauth2_http_response_header_get(
-					  log, response, "Location"),
-				      "https://op.example.org/authorize"));
-	ck_assert_ptr_ne(NULL, strstr(oauth2_http_response_header_get(
-					  log, response, "Set-Cookie"),
-				      "openidc_state_"));
+	location = oauth2_http_response_header_get(log, response, "Location");
+	ck_assert_ptr_ne(NULL, strstr(location, "response_type=code"));
+	ck_assert_ptr_ne(NULL,
+			 strstr(location, "https://op.example.org/authorize"));
+	state = strstr(location, "state=");
+	ck_assert_ptr_ne(NULL, state);
+
+	state += strlen("state=");
+	char *p = strstr(state, "&");
+	if (p)
+		*p = '\0';
+
+	state_cookie_name = oauth2_stradd(NULL, "openidc_state_", state, NULL);
+
+	state_cookie =
+	    oauth2_http_response_header_get(log, response, "Set-Cookie");
+	ck_assert_ptr_ne(NULL, state_cookie);
+	ck_assert_ptr_ne(NULL, strstr(state_cookie, state_cookie_name));
 
 	oauth2_http_response_free(log, response);
 	response = NULL;
@@ -215,7 +226,11 @@ START_TEST(test_openidc_handle)
 	ck_assert_int_eq(rc, true);
 	rc = oauth2_http_request_header_set(log, r, "Accept", "text/html");
 	ck_assert_int_eq(rc, true);
-	rc = oauth2_http_request_query_set(log, r, "code=4321&state=7654");
+	rc = oauth2_http_request_header_set(log, r, "Cookie", state_cookie);
+	ck_assert_int_eq(rc, true);
+
+	query_str = oauth2_stradd(NULL, "code=4321&state", "=", state);
+	rc = oauth2_http_request_query_set(log, r, query_str);
 	ck_assert_int_eq(rc, true);
 
 	rc = oauth2_openidc_handle(log, c, r, &response);
@@ -224,11 +239,23 @@ START_TEST(test_openidc_handle)
 	ck_assert_uint_eq(oauth2_http_response_status_code_get(log, response),
 			  302);
 
+	state_cookie =
+	    oauth2_http_response_header_get(log, response, "Set-Cookie");
+	ck_assert_ptr_ne(NULL, state_cookie);
+	ck_assert_ptr_ne(NULL, strstr(state_cookie,
+				      "expires=Thu, 01 Jan 1970 00:00:00 GMT"));
+
+	location = oauth2_http_response_header_get(log, response, "Location");
+	ck_assert_ptr_ne(NULL, response);
+	ck_assert_int_eq(strcmp(location, "https://app.example.org/secure"), 0);
+
 	oauth2_http_response_free(log, response);
 	oauth2_http_request_free(log, r);
 
 	oauth2_cfg_openidc_free(log, c);
 
+	oauth2_mem_free(query_str);
+	oauth2_mem_free(state_cookie_name);
 	oauth2_mem_free(token_endpoint);
 	oauth2_mem_free(metadata);
 }

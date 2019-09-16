@@ -318,6 +318,8 @@ end:
 	return redirect_uri;
 }
 
+// TODO: refactor into its own class/methods
+
 #define _OAUTH2_OPENIDC_PROTO_STATE_KEY_ISSUER "i"
 #define _OAUTH2_OPENIDC_PROTO_STATE_KEY_TARGET_LINK_URI "l"
 #define _OAUTH2_OPENIDC_PROTO_STATE_KEY_REQUEST_METHOD "m"
@@ -403,6 +405,45 @@ end:
 		oauth2_mem_free(value);
 	if (target_link_uri)
 		oauth2_mem_free(target_link_uri);
+
+	return rc;
+}
+
+static bool _oauth2_openidc_get_state_cookie(oauth2_log_t *log,
+					     const oauth2_cfg_openidc_t *cfg,
+					     oauth2_http_request_t *request,
+					     oauth2_http_response_t *response,
+					     const char *state,
+					     json_t **proto_state)
+{
+	bool rc = false;
+	char *name = NULL, *value = NULL;
+
+	name = oauth2_stradd(
+	    name, oauth2_openidc_cfg_state_cookie_name_prefix_get(log, cfg),
+	    state, NULL);
+	if (name == NULL)
+		goto end;
+
+	value = oauth2_http_request_cookie_get(log, request, name, true);
+	if (value == NULL) {
+		oauth2_warn(log, "no state cookie found");
+		goto end;
+	}
+
+	rc = oauth2_http_response_cookie_set(log, response, name, NULL);
+
+	if (oauth2_jose_jwt_decrypt(log,
+				    oauth2_cfg_openidc_passphrase_get(log, cfg),
+				    value, proto_state) == false)
+		goto end;
+
+end:
+
+	if (name)
+		oauth2_mem_free(name);
+	if (value)
+		oauth2_mem_free(value);
 
 	return rc;
 }
@@ -690,8 +731,8 @@ static bool _oauth2_openidc_redirect_uri_handler(
 	oauth2_http_call_ctx_t *http_ctx = NULL;
 	oauth2_uint_t status_code = 0;
 	oauth2_nv_list_t *params = NULL;
-	char *redirect_uri = NULL, *s_response = NULL;
-	json_t *json = NULL;
+	char *redirect_uri = NULL, *s_response = NULL, *location = NULL;
+	json_t *json = NULL, *proto_state = NULL;
 
 	oauth2_debug(log, "enter");
 
@@ -708,6 +749,12 @@ static bool _oauth2_openidc_redirect_uri_handler(
 			     oauth2_http_request_query_get(log, request));
 		goto end;
 	}
+
+	*response = oauth2_http_response_init(log);
+
+	if (_oauth2_openidc_get_state_cookie(log, cfg, request, *response,
+					     state, &proto_state) == false)
+		goto end;
 
 	// TODO: combine with state cookie / restore proto state in case
 	// resolver = dir?
@@ -750,16 +797,24 @@ static bool _oauth2_openidc_redirect_uri_handler(
 	if (oauth2_json_decode_check_error(log, s_response, &json) == false)
 		goto end;
 
-	// TODO: create http response
-	*response = oauth2_http_response_init(log);
-	oauth2_http_response_status_code_set(log, *response, 302);
+	if (oauth2_json_string_get(
+		log, proto_state,
+		_OAUTH2_OPENIDC_PROTO_STATE_KEY_TARGET_LINK_URI, &location,
+		NULL) == false)
+		goto end;
+
+	if (oauth2_http_response_header_set(
+		log, *response, OAUTH2_HTTP_HDR_LOCATION, location) == false)
+		goto end;
+	if (oauth2_http_response_status_code_set(log, *response, 302) == false)
+		goto end;
 
 	rc = true;
 
-	// restore proto state
+	// TODO:
 	// validate response
 	// create session
-	// // pass token info
+	// return JSON claims
 
 end:
 
