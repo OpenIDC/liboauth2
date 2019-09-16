@@ -207,7 +207,7 @@ START_TEST(test_oauth2_auth_private_key_jwt)
 }
 END_TEST
 
-static char *http_base_url = "http://127.0.0.1:8888";
+OAUTH2_CHECK_HTTP_PATHS
 
 static char *get_jwks_uri_json =
     "{\"keys\":[{\"kty\":\"RSA\",\"kid\":\"k1\",\"use\":\"sig\",\"n\":"
@@ -238,7 +238,7 @@ static char *get_jwks_uri_json =
     "yEmnouFbV0UBMZck7gMNseCtwSYdkwls/LDFEp9D4rF1gHRlSBRskNc/"
     "NaasTSX4JpNf+xakm7yePtuWyAY/"
     "fQ7ETSPMJdVEaL\"],\"x5t\":\"31YdH_bv2Hlg89wmwBphxJZaK64\"}]}";
-static char *get_jwks_uri_path = "/check_oauth2/jwks_uri";
+static char *get_jwks_uri_path = "/jwks_uri";
 
 static char *get_eckey_pem =
     "-----BEGIN PUBLIC "
@@ -246,14 +246,14 @@ static char *get_eckey_pem =
     "U6z4PGV0++"
     "Qdj1Ev2363\n47i7PxTx8Tr87RYHXIIXLRmH1aIz0OVLt4eM9iXDlDGB6ldBFsM8P61nqQ=="
     "\n-----END PUBLIC KEY-----";
-static char *get_eckey_url_path = "/check_oauth2/ec_key";
+static char *get_eckey_url_path = "/ec_key";
 
 static char *introspection_result_json = "{ \"active\": true }";
 
-static char *post_introspection_path = "/check_oauth2/introspection";
+static char *post_introspection_path = "/introspection";
 const char *valid_access_token = "my_valid_token";
 
-static char *metadata_path = "/check_oauth2/.well-known/oauth2-configuration";
+static char *metadata_path = "/.well-known/oauth2-configuration";
 
 static char metadata[512];
 
@@ -263,13 +263,39 @@ static char *get_metadata_json()
 			      "\"jwks_uri\": \"%s%s\","
 			      "\"introspection_endpoint\": \"%s%s\""
 			      "}";
-	oauth2_snprintf(metadata, sizeof(metadata), format, http_base_url,
-			get_jwks_uri_path, http_base_url,
-			post_introspection_path);
+	oauth2_snprintf(metadata, sizeof(metadata), format,
+			oauth2_check_http_base_url(), get_jwks_uri_path,
+			oauth2_check_http_base_url(), post_introspection_path);
 	return metadata;
 }
 
-char *oauth2_check_oauth2_serve(const char *request)
+static char *oauth2_check_oauth2_serve_get(const char *request)
+{
+	char *rv = NULL;
+
+	if (strncmp(request, get_jwks_uri_path, strlen(get_jwks_uri_path)) ==
+	    0) {
+		rv = oauth2_strdup(get_jwks_uri_json);
+		goto end;
+	}
+	if (strncmp(request, get_eckey_url_path, strlen(get_eckey_url_path)) ==
+	    0) {
+		rv = oauth2_strdup(get_eckey_pem);
+		goto end;
+	}
+	if (strncmp(request, metadata_path, strlen(metadata_path)) == 0) {
+		rv = oauth2_strdup(get_metadata_json());
+		goto end;
+	}
+
+	rv = oauth2_strdup("problem");
+
+end:
+
+	return rv;
+}
+
+static char *oauth2_check_oauth2_serve_post(const char *request)
 {
 	oauth2_nv_list_t *params = NULL;
 	char *data = NULL;
@@ -277,46 +303,25 @@ char *oauth2_check_oauth2_serve(const char *request)
 	const char *sep = "****";
 	char *rv = NULL;
 
-	if (strncmp(request, "GET", 3) == 0) {
-		if (strncmp(&request[4], get_jwks_uri_path,
-			    strlen(get_jwks_uri_path)) == 0) {
-
-			rv = oauth2_strdup(get_jwks_uri_json);
-			goto end;
-		}
-		if (strncmp(&request[4], get_eckey_url_path,
-			    strlen(get_eckey_url_path)) == 0) {
-			rv = oauth2_strdup(get_eckey_pem);
-			goto end;
-		}
-		if (strncmp(&request[4], metadata_path,
-			    strlen(metadata_path)) == 0) {
-			rv = oauth2_strdup(get_metadata_json());
-			goto end;
-		}
-	}
-
-	if (strncmp(request, "POST", 4) == 0) {
-		if (strncmp(&request[5], post_introspection_path,
-			    strlen(post_introspection_path)) == 0) {
-			request += strlen(post_introspection_path) + 5;
-			data = strstr(request, sep);
-			if (data == NULL)
-				goto error;
-			data += strlen(sep);
-			if (oauth2_parse_form_encoded_params(log, data,
-							     &params) == false)
-				goto error;
-			token = oauth2_nv_list_get(log, params, "token");
-			if (token == NULL)
-				goto error;
-			if ((token) && (strcmp(token, valid_access_token) == 0))
-				rv = oauth2_strdup(introspection_result_json);
-			else
-				rv = oauth2_strdup("{ \"active\": false }");
-			oauth2_nv_list_free(log, params);
-			goto end;
-		}
+	if (strncmp(request, post_introspection_path,
+		    strlen(post_introspection_path)) == 0) {
+		request += strlen(post_introspection_path) + 5;
+		data = strstr(request, sep);
+		if (data == NULL)
+			goto error;
+		data += strlen(sep);
+		if (oauth2_parse_form_encoded_params(log, data, &params) ==
+		    false)
+			goto error;
+		token = oauth2_nv_list_get(log, params, "token");
+		if (token == NULL)
+			goto error;
+		if ((token) && (strcmp(token, valid_access_token) == 0))
+			rv = oauth2_strdup(introspection_result_json);
+		else
+			rv = oauth2_strdup("{ \"active\": false }");
+		oauth2_nv_list_free(log, params);
+		goto end;
 	}
 
 error:
@@ -351,7 +356,8 @@ START_TEST(test_oauth2_verify_jwks_uri)
 	const char *rv = NULL;
 	char *url = NULL;
 
-	url = oauth2_stradd(NULL, http_base_url, get_jwks_uri_path, NULL);
+	url = oauth2_stradd(NULL, oauth2_check_http_base_url(),
+			    get_jwks_uri_path, NULL);
 	rv = oauth2_cfg_token_verify_add_options(
 	    log, &verify, "jwks_uri", url,
 	    "verify.exp=skip&verify.cache." MY_CACHE_OPTIONS);
@@ -390,7 +396,8 @@ START_TEST(test_oauth2_verify_eckey_uri)
 	const char *rv = NULL;
 	char *url = NULL;
 
-	url = oauth2_stradd(NULL, http_base_url, get_eckey_url_path, NULL);
+	url = oauth2_stradd(NULL, oauth2_check_http_base_url(),
+			    get_eckey_url_path, NULL);
 	rv = oauth2_cfg_token_verify_add_options(
 	    log, &verify, "eckey_uri", url, "verify.cache." MY_CACHE_OPTIONS);
 	ck_assert_ptr_eq(rv, NULL);
@@ -412,7 +419,8 @@ START_TEST(test_oauth2_verify_token_introspection)
 	const char *rv = NULL;
 	char *url = NULL;
 
-	url = oauth2_stradd(NULL, http_base_url, post_introspection_path, NULL);
+	url = oauth2_stradd(NULL, oauth2_check_http_base_url(),
+			    post_introspection_path, NULL);
 
 	rv = oauth2_cfg_token_verify_add_options(
 	    log, &verify, "introspect", url,
@@ -632,7 +640,8 @@ START_TEST(test_oauth2_verify_token_metadata)
 	const char *rv = NULL;
 	char *url = NULL;
 
-	url = oauth2_stradd(NULL, http_base_url, metadata_path, NULL);
+	url = oauth2_stradd(NULL, oauth2_check_http_base_url(), metadata_path,
+			    NULL);
 
 	// TODO: make max_entries=5 the default for the shm cache of metadata
 	// URIs
@@ -692,6 +701,10 @@ Suite *oauth2_check_oauth2_suite()
 {
 	Suite *s = suite_create("oauth2");
 	TCase *c = tcase_create("core");
+
+	liboauth2_check_register_http_callbacks(oauth2_check_http_base_path(),
+						oauth2_check_oauth2_serve_get,
+						oauth2_check_oauth2_serve_post);
 
 	tcase_add_checked_fixture(c, setup, teardown);
 

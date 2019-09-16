@@ -35,6 +35,9 @@
 
 #include "../include/oauth2/log.h"
 #include "../include/oauth2/mem.h"
+
+#include "util_int.h"
+
 //#include <semaphore.h>
 
 static int http_server_port = 8888;
@@ -78,16 +81,35 @@ struct {
 	char *filetype;
 } extensions[] = {{"html", "text/html"}, {"json", "application/json"}, {0, 0}};
 
-typedef char *(http_serve_callback_t)(const char *);
-
-struct {
+typedef struct http_serve_routing_t {
 	char *path;
-	http_serve_callback_t *callback;
-} http_serve_routing[] = {{"check_http", oauth2_check_http_serve},
-			  {"check_jose", oauth2_check_jose_serve},
-			  {"check_oauth2", oauth2_check_oauth2_serve},
-			  {"check_openidc", oauth2_check_openidc_serve},
-			  {0, 0}};
+	http_serve_callback_get_t *callback_get;
+	http_serve_callback_get_t *callback_post;
+	struct http_serve_routing_t *next;
+} http_serve_routing_t;
+
+static http_serve_routing_t *http_serve_routing_table = NULL;
+
+void liboauth2_check_register_http_callbacks(
+    const char *path, http_serve_callback_get_t *cb_get,
+    http_serve_callback_post_t *cb_post)
+{
+	http_serve_routing_t *ptr = NULL;
+	if (http_serve_routing_table == NULL) {
+		http_serve_routing_table =
+		    oauth2_mem_alloc(sizeof(http_serve_routing_t));
+		ptr = http_serve_routing_table;
+	} else {
+		for (ptr = http_serve_routing_table; ptr->next; ptr = ptr->next)
+			;
+		ptr->next = oauth2_mem_alloc(sizeof(http_serve_routing_t));
+		ptr = ptr->next;
+	}
+	ptr->path = oauth2_strdup(path);
+	ptr->callback_get = cb_get;
+	ptr->callback_post = cb_post;
+	ptr->next = NULL;
+}
 
 static void http_server_process(oauth2_log_t *log, int fd, int hit)
 {
@@ -98,6 +120,7 @@ static void http_server_process(oauth2_log_t *log, int fd, int hit)
 	static char outbuf[HTTP_SERVER_BUFSIZE + 1];
 	ssize_t rc;
 	char *response = NULL;
+	http_serve_routing_t *ptr = NULL;
 
 	ret = read(fd, buffer, HTTP_SERVER_BUFSIZE);
 	if (ret == 0 || ret == -1) {
@@ -150,14 +173,26 @@ static void http_server_process(oauth2_log_t *log, int fd, int hit)
 		fstr = "application/json";
 	}
 
-	for (i = 0; http_serve_routing[i].path != 0; i++) {
-		len = strlen(http_serve_routing[i].path);
-		if ((strncmp(&buffer[5], http_serve_routing[i].path, len) ==
-		     0) ||
-		    (strncmp(&buffer[6], http_serve_routing[i].path, len) ==
-		     0)) {
-			// TOOD: split headers and body
-			response = http_serve_routing[i].callback(buffer);
+	for (ptr = http_serve_routing_table; ptr; ptr = ptr->next) {
+		len = strlen(ptr->path);
+
+		if (strncmp(&buffer[0], "GET", 3) == 0) {
+			if (strncmp(&buffer[4], ptr->path, len) == 0) {
+				if (ptr->callback_get)
+					response =
+					    ptr->callback_get(&buffer[4 + len]);
+			}
+		}
+
+		if (strncmp(&buffer[0], "POST", 4) == 0) {
+			if (strncmp(&buffer[5], ptr->path, len) == 0) {
+				if (ptr->callback_post)
+					response = ptr->callback_post(
+					    &buffer[5 + len]);
+			}
+		}
+
+		if (response) {
 			sprintf(outbuf,
 				"HTTP/1.1 200\nContent-Length: "
 				"%lu\nConnection: close\n\n",
@@ -273,11 +308,6 @@ int main(void)
 {
 	int n_failed;
 
-	// sema = sem_open ("sema", O_CREAT | O_EXCL, 0644, 0);
-	pid_t pid = http_server_spawn();
-	// sleep(1);
-	// sem_wait(sema);
-
 	SRunner *sr = srunner_create(suite_create("liboauth2"));
 
 	// srunner_set_fork_status(sr, CK_NOFORK);
@@ -295,6 +325,11 @@ int main(void)
 	srunner_add_suite(sr, oauth2_check_openidc_suite());
 	srunner_add_suite(sr, oauth2_check_apache_suite());
 
+	// sema = sem_open ("sema", O_CREAT | O_EXCL, 0644, 0);
+	pid_t pid = http_server_spawn();
+	// sleep(1);
+	// sem_wait(sema);
+
 	// srunner_run_all(sr, CK_ENV);
 	srunner_run_all(sr, CK_VERBOSE);
 	n_failed = srunner_ntests_failed(sr);
@@ -302,6 +337,13 @@ int main(void)
 
 	kill(pid, HTTP_SERVER_SIGNUM);
 	waitpid(pid, NULL, 0);
+
+	//	http_serve_routing_t *ptr = NULL;
+	//	while (http_serve_routing_table) {
+	//		ptr = http_serve_routing_table;
+	//		http_serve_routing_table =
+	// http_serve_routing_table->next; 		oauth2_mem_free(ptr);
+	//	}
 
 	// sem_unlink("sema");
 

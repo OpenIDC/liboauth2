@@ -38,11 +38,11 @@ static void teardown(void)
 	oauth2_shutdown(log);
 }
 
-static char *token_endpoint_path = "/check_openidc/token";
+static char *token_endpoint_path = "/token";
 static char *token_endpoint_response =
     "{ \"id_token\": \"xxx\", \"access_token\": \"xxx\" }";
 
-char *oauth2_check_openidc_serve(const char *request)
+static char *oauth2_check_openidc_serve_post(const char *request)
 {
 	oauth2_nv_list_t *params = NULL;
 	char *data = NULL;
@@ -50,24 +50,22 @@ char *oauth2_check_openidc_serve(const char *request)
 	const char *sep = "****";
 	char *rv = NULL;
 
-	if (strncmp(request, "POST", 4) == 0) {
-		if (strncmp(&request[5], token_endpoint_path,
-			    strlen(token_endpoint_path)) == 0) {
-			request += strlen(token_endpoint_path) + 5;
-			data = strstr(request, sep);
-			if (data == NULL)
-				goto error;
-			data += strlen(sep);
-			if (oauth2_parse_form_encoded_params(log, data,
-							     &params) == false)
-				goto error;
-			code = oauth2_nv_list_get(log, params, "code");
-			if (code == NULL)
-				goto error;
-			rv = oauth2_strdup(token_endpoint_response);
-			oauth2_nv_list_free(log, params);
-			goto end;
-		}
+	if (strncmp(request, token_endpoint_path,
+		    strlen(token_endpoint_path)) == 0) {
+		request += strlen(token_endpoint_path) + 5;
+		data = strstr(request, sep);
+		if (data == NULL)
+			goto error;
+		data += strlen(sep);
+		if (oauth2_parse_form_encoded_params(log, data, &params) ==
+		    false)
+			goto error;
+		code = oauth2_nv_list_get(log, params, "code");
+		if (code == NULL)
+			goto error;
+		rv = oauth2_strdup(token_endpoint_response);
+		oauth2_nv_list_free(log, params);
+		goto end;
 	}
 
 error:
@@ -151,23 +149,30 @@ bool test_openidc_provider_resolver(oauth2_log_t *log,
 	return true;
 }
 
+OAUTH2_CHECK_HTTP_PATHS
+
 START_TEST(test_openidc_handle)
 {
 	bool rc = false;
 	oauth2_cfg_openidc_t *c = NULL;
 	oauth2_http_request_t *r = NULL;
 	oauth2_http_response_t *response = NULL;
-	const char *metadata =
+	char *token_endpoint = oauth2_stradd(NULL, oauth2_check_http_base_url(),
+					     token_endpoint_path, NULL);
+	char *metadata = oauth2_stradd(
+	    NULL,
 	    "{ "
 	    "\"issuer\": \"https://op.example.org\","
 	    "\"authorization_endpoint\": \"https://op.example.org/authorize\","
-	    "\"token_endpoint\": \"http://127.0.0.1:8888/check_openidc/token\","
+	    "\"token_endpoint\": \"",
+	    token_endpoint,
+	    "\","
 	    "\"token_endpoint_auth\": \"client_secret_post\","
 	    "\"client_id\": \"myclient\","
 	    "\"client_secret\": \"secret1234\","
 	    "\"scope\": \"openid profile\","
 	    "\"ssl_verify\": false"
-	    "}";
+	    "}");
 	c = oauth2_cfg_openidc_init(log);
 	r = oauth2_http_request_init(log);
 
@@ -223,6 +228,9 @@ START_TEST(test_openidc_handle)
 	oauth2_http_request_free(log, r);
 
 	oauth2_cfg_openidc_free(log, c);
+
+	oauth2_mem_free(token_endpoint);
+	oauth2_mem_free(metadata);
 }
 END_TEST
 
@@ -230,6 +238,10 @@ Suite *oauth2_check_openidc_suite()
 {
 	Suite *s = suite_create("openidc");
 	TCase *c = tcase_create("core");
+
+	liboauth2_check_register_http_callbacks(
+	    oauth2_check_http_base_path(), NULL,
+	    oauth2_check_openidc_serve_post);
 
 	tcase_add_checked_fixture(c, setup, teardown);
 

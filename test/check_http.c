@@ -582,29 +582,30 @@ START_TEST(test_form_encode)
 }
 END_TEST
 
-static char *http_base_url = "http://127.0.0.1:8888";
-
 static char *get_json = "{ \"my\": \"json\" }";
-static char *get_json_path = "/check_http/my_json";
+static char *get_json_path = "/my_json";
 
-static char *post_json = "{ \"form\": \"post\" }";
-static char *post_form_json_path = "/check_http/post_json";
-
-char *oauth2_check_http_serve(const char *request)
+static char *oauth2_check_http_serve_get(const char *request)
 {
-	if (strncmp(request, "GET", 3) == 0) {
-		if (strncmp(&request[4], get_json_path,
-			    strlen(get_json_path)) == 0) {
-			return oauth2_strdup(get_json);
-		}
-	} else if (strncmp(request, "POST", 4) == 0) {
-		if (strncmp(&request[5], post_form_json_path,
-			    strlen(post_form_json_path)) == 0) {
-			return oauth2_strdup(post_json);
-		}
+	if (strncmp(request, get_json_path, strlen(get_json_path)) == 0) {
+		return oauth2_strdup(get_json);
 	}
 	return oauth2_strdup("problem");
 }
+
+static char *post_json = "{ \"form\": \"post\" }";
+static char *post_form_json_path = "/post_json";
+
+static char *oauth2_check_http_serve_post(const char *request)
+{
+	if (strncmp(request, post_form_json_path,
+		    strlen(post_form_json_path)) == 0) {
+		return oauth2_strdup(post_json);
+	}
+	return oauth2_strdup("problem");
+}
+
+OAUTH2_CHECK_HTTP_PATHS
 
 START_TEST(test_http_get)
 {
@@ -613,7 +614,8 @@ START_TEST(test_http_get)
 	oauth2_nv_list_t *params = oauth2_nv_list_init(log);
 	oauth2_http_call_ctx_t *ctx = oauth2_http_call_ctx_init(log);
 
-	url = oauth2_stradd(NULL, http_base_url, get_json_path, NULL);
+	url = oauth2_stradd(NULL, oauth2_check_http_base_url(), get_json_path,
+			    NULL);
 	rc = oauth2_http_get(log, url, NULL, NULL, NULL, NULL);
 	ck_assert_int_eq(rc, false);
 
@@ -646,7 +648,8 @@ START_TEST(test_http_post_form)
 	char *response = NULL, *url = NULL;
 	oauth2_nv_list_t *params = oauth2_nv_list_init(log);
 
-	url = oauth2_stradd(NULL, http_base_url, post_form_json_path, NULL);
+	url = oauth2_stradd(NULL, oauth2_check_http_base_url(),
+			    post_form_json_path, NULL);
 	oauth2_nv_list_add(log, params, "jan", "piet");
 	rc = oauth2_http_post_form(log, url, params, NULL, &response, NULL);
 	ck_assert_int_eq(rc, true);
@@ -756,6 +759,10 @@ Suite *oauth2_check_http_suite()
 {
 	Suite *s = suite_create("http");
 	TCase *c = tcase_create("core");
+
+	liboauth2_check_register_http_callbacks(oauth2_check_http_base_path(),
+						oauth2_check_http_serve_get,
+						oauth2_check_http_serve_post);
 
 	tcase_add_checked_fixture(c, setup, teardown);
 

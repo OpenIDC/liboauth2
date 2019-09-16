@@ -305,8 +305,6 @@ START_TEST(test_jwt_decrypt)
 }
 END_TEST
 
-static char *http_base_url = "http://127.0.0.1:8888";
-
 static char *get_jwks_uri_json =
     "{\"keys\":[{\"kty\":\"RSA\",\"kid\":\"k1\",\"use\":\"sig\",\"n\":"
     "\"hKvkosOyK33gznaRCNgakMLE2GHS5_7K34oqZRsAWC-7aC420eJNL2z_"
@@ -336,18 +334,17 @@ static char *get_jwks_uri_json =
     "yEmnouFbV0UBMZck7gMNseCtwSYdkwls/LDFEp9D4rF1gHRlSBRskNc/"
     "NaasTSX4JpNf+xakm7yePtuWyAY/"
     "fQ7ETSPMJdVEaL\"],\"x5t\":\"31YdH_bv2Hlg89wmwBphxJZaK64\"}]}";
-static char *get_jwks_uri_path = "/check_jose/jwks_uri";
+static char *jwks_uri_path = "/jwks_uri";
 
-char *oauth2_check_jose_serve(const char *request)
+static char *oauth2_check_jose_serve_get(const char *request)
 {
-	if (strncmp(request, "GET", 3) == 0) {
-		if (strncmp(&request[4], get_jwks_uri_path,
-			    strlen(get_jwks_uri_path)) == 0) {
-			return oauth2_strdup(get_jwks_uri_json);
-		}
+	if (strncmp(request, jwks_uri_path, strlen(jwks_uri_path)) == 0) {
+		return oauth2_strdup(get_jwks_uri_json);
 	}
 	return oauth2_strdup("problem");
 }
+
+OAUTH2_CHECK_HTTP_PATHS
 
 START_TEST(test_jwks_resolve_uri)
 {
@@ -358,7 +355,8 @@ START_TEST(test_jwks_resolve_uri)
 	char *url = NULL;
 	oauth2_jose_jwt_verify_ctx_t *ptr = NULL;
 
-	url = oauth2_stradd(NULL, http_base_url, get_jwks_uri_path, NULL);
+	url = oauth2_stradd(NULL, oauth2_check_http_base_url(), jwks_uri_path,
+			    NULL);
 	rv = oauth2_cfg_token_verify_add_options(log, &verify, "jwks_uri", url,
 						 "ssl_verify=false");
 	ck_assert_ptr_eq(rv, NULL);
@@ -398,6 +396,9 @@ Suite *oauth2_check_jose_suite()
 {
 	Suite *s = suite_create("jose");
 	TCase *c = tcase_create("core");
+
+	liboauth2_check_register_http_callbacks(
+	    oauth2_check_http_base_path(), oauth2_check_jose_serve_get, NULL);
 
 	tcase_add_checked_fixture(c, setup, teardown);
 

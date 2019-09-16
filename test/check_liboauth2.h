@@ -42,10 +42,11 @@ Suite *oauth2_check_oauth2_suite();
 Suite *oauth2_check_openidc_suite();
 Suite *oauth2_check_apache_suite();
 
-char *oauth2_check_http_serve(const char *request);
-char *oauth2_check_jose_serve(const char *request);
-char *oauth2_check_oauth2_serve(const char *request);
-char *oauth2_check_openidc_serve(const char *request);
+typedef char *(http_serve_callback_get_t)(const char *request);
+typedef char *(http_serve_callback_post_t)(const char *request);
+void liboauth2_check_register_http_callbacks(
+    const char *path, http_serve_callback_get_t *get_cb,
+    http_serve_callback_post_t *post_cb);
 
 #define _ck_assert_bin(X, OP, Y, LEN)                                          \
 	do {                                                                   \
@@ -72,5 +73,34 @@ char *oauth2_check_openidc_serve(const char *request);
 #define ck_assert_ptr_eq(X, Y) _ck_assert_ptr(X, ==, Y)
 #define ck_assert_ptr_ne(X, Y) _ck_assert_ptr(X, !=, Y)
 #endif
+
+#define OAUTH2_CHECK_HTTP_PATHS                                                \
+	static char *_http_base_path = NULL;                                   \
+                                                                               \
+	static char *oauth2_check_http_base_path()                             \
+	{                                                                      \
+		char *p = NULL, *path = NULL;                                  \
+		if (_http_base_path == NULL) {                                 \
+			path = oauth2_strdup(__FILE__);                        \
+			p = strrchr(path, '.');                                \
+			if (p)                                                 \
+				*p = '\0';                                     \
+			_http_base_path =                                      \
+			    oauth2_stradd(NULL, "/", path, NULL);              \
+			oauth2_mem_free(path);                                 \
+		}                                                              \
+		return _http_base_path;                                        \
+	}                                                                      \
+                                                                               \
+	static char *_http_base_url = NULL;                                    \
+                                                                               \
+	static char *oauth2_check_http_base_url()                              \
+	{                                                                      \
+		if (_http_base_url == NULL)                                    \
+			_http_base_url = oauth2_stradd(                        \
+			    NULL, "http://127.0.0.1:8888",                     \
+			    oauth2_check_http_base_path(), NULL);              \
+		return _http_base_url;                                         \
+	}
 
 #endif /* _OAUTH2_CHECK_LIBOAUTH2_H_ */
