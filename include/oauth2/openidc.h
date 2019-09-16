@@ -26,6 +26,7 @@
 #include "oauth2/oauth2.h"
 #include "oauth2/util.h"
 
+#define OAUTH2_OPENIDC_ID_TOKEN "id_token"
 #define OAUTH2_OPENIDC_STATE_COOKIE_NAME_PREFIX_DEFAULT "openidc_state_"
 
 OAUTH2_CFG_TYPE_DECLARE(cfg, openidc_provider_resolver)
@@ -70,6 +71,6 @@ char *oauth2_cfg_openidc_redirect_uri_get_iss(
 
 bool oauth2_openidc_handle(oauth2_log_t *log, const oauth2_cfg_openidc_t *c,
 			   oauth2_http_request_t *r,
-			   oauth2_http_response_t **response);
+			   oauth2_http_response_t **response, json_t **claims);
 
 #endif /* _OAUTH2_OPENIDC_H_ */

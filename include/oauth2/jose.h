@@ -32,9 +32,14 @@
 #define OAUTH2_JOSE_OPENSSL_ALG_SHA1 "sha1"
 #define OAUTH2_JOSE_OPENSSL_ALG_SHA256 "sha256"
 
+#define OAUTH2_JOSE_HDR_TYP "typ"
+#define OAUTH2_JOSE_HDR_TYP_JWT "JWT"
+
 #define OAUTH2_JOSE_JWT_ISS "iss"
 #define OAUTH2_JOSE_JWT_IAT "iat"
 #define OAUTH2_JOSE_JWT_EXP "exp"
+#define OAUTH2_JOSE_JWT_SUB "sub"
+#define OAUTH2_JOSE_JWT_AUD "aud"
 
 typedef struct oauth2_jose_jwk_t oauth2_jose_jwk_t;
 void oauth2_jose_jwk_release(oauth2_jose_jwk_t *jwk);

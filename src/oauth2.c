@@ -36,14 +36,13 @@
  * auth
  */
 
-#define OAUTH2_JOSE_HDR_TYP "typ"
-#define OAUTH2_JOSE_HDR_TYP_JWT "JWT"
 #define OAUTH2_CLAIM_ISS "iss"
 #define OAUTH2_CLAIM_SUB "sub"
 #define OAUTH2_CLAIM_JTI "jti"
 #define OAUTH2_CLAIM_EXP "exp"
 #define OAUTH2_CLAIM_AUD "aud"
 #define OAUTH2_CLAIM_IAT "iat"
+
 #define OAUTH2_CLIENT_ASSERTION "client_assertion"
 #define OAUTH2_CLIENT_ASSERTION_TYPE "client_assertion_type"
 #define OAUTH2_CLIENT_ASSERTION_TYPE_JWT_BEARER                                \

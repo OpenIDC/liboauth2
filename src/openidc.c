@@ -27,6 +27,7 @@
 #include "oauth2/session.h"
 
 #include "cfg_int.h"
+#include "jose_int.h"
 #include "util_int.h"
 
 #include <string.h>
@@ -218,6 +219,7 @@ typedef struct oauth2_openidc_provider_t {
 	char *authorization_endpoint;
 	char *token_endpoint;
 	oauth2_cfg_endpoint_auth_t *token_endpoint_auth;
+	char *jwks_uri;
 	char *scope;
 	char *client_id;
 	char *client_secret;
@@ -236,6 +238,7 @@ oauth2_openidc_provider_t *oauth2_openidc_provider_init(oauth2_log_t *log)
 	p->authorization_endpoint = NULL;
 	p->token_endpoint = NULL;
 	p->token_endpoint_auth = NULL;
+	p->jwks_uri = NULL;
 	p->scope = NULL;
 	p->client_id = NULL;
 	p->client_secret = NULL;
@@ -260,6 +263,8 @@ void oauth2_openidc_provider_free(oauth2_log_t *log,
 		oauth2_mem_free(p->token_endpoint);
 	if (p->token_endpoint_auth)
 		oauth2_cfg_endpoint_auth_free(log, p->token_endpoint_auth);
+	if (p->jwks_uri)
+		oauth2_mem_free(p->jwks_uri);
 	if (p->scope)
 		oauth2_mem_free(p->scope);
 	if (p->client_id)
@@ -281,6 +286,7 @@ _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, token_endpoint, char *,
 				      str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, token_endpoint_auth,
 				      oauth2_cfg_endpoint_auth_t *, ptr)
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, jwks_uri, char *, str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, scope, char *, str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, client_id, char *, str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, client_secret, char *,
@@ -705,7 +711,8 @@ static bool _oauth2_openidc_existing_session(oauth2_log_t *log,
 					     const oauth2_cfg_openidc_t *c,
 					     const oauth2_http_request_t *r,
 					     oauth2_session_rec_t *session,
-					     oauth2_http_response_t **response)
+					     oauth2_http_response_t **response,
+					     json_t **claims)
 {
 	bool rc = false;
 
@@ -723,7 +730,7 @@ end:
 static bool _oauth2_openidc_redirect_uri_handler(
     oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg,
     oauth2_http_request_t *request, oauth2_session_rec_t *session,
-    oauth2_http_response_t **response)
+    oauth2_http_response_t **response, json_t **claims)
 {
 	bool rc = false;
 	oauth2_openidc_provider_t *provider = NULL;
@@ -731,8 +738,10 @@ static bool _oauth2_openidc_redirect_uri_handler(
 	oauth2_http_call_ctx_t *http_ctx = NULL;
 	oauth2_uint_t status_code = 0;
 	oauth2_nv_list_t *params = NULL;
-	char *redirect_uri = NULL, *s_response = NULL, *location = NULL;
-	json_t *json = NULL, *proto_state = NULL;
+	char *redirect_uri = NULL, *s_response = NULL, *location = NULL,
+	     *s_id_token = NULL; //, *s_payload = NULL;
+	json_t *json = NULL, *proto_state = NULL, *id_token = NULL;
+	char *rv = NULL;
 
 	oauth2_debug(log, "enter");
 
@@ -797,6 +806,28 @@ static bool _oauth2_openidc_redirect_uri_handler(
 	if (oauth2_json_decode_check_error(log, s_response, &json) == false)
 		goto end;
 
+	if (oauth2_json_string_get(log, json, OAUTH2_OPENIDC_ID_TOKEN,
+				   &s_id_token, NULL) == false) {
+		oauth2_error(log, "no id_token found in token response");
+		goto end;
+	}
+
+	// TODO:
+	oauth2_cfg_token_verify_t *verify = NULL;
+	rv = oauth2_cfg_token_verify_add_options(log, &verify, "jwks_uri",
+						 provider->jwks_uri, NULL);
+	if (rv != NULL) {
+		oauth2_error(
+		    log, "oauth2_cfg_token_verify_add_options failed: %s", rv);
+		goto end;
+	}
+
+	if (oauth2_token_verify(log, verify, s_id_token, &id_token) == false) {
+		oauth2_error(log, "id_token verification failed");
+		goto end;
+	}
+	oauth2_cfg_token_verify_free(log, verify);
+
 	if (oauth2_json_string_get(
 		log, proto_state,
 		_OAUTH2_OPENIDC_PROTO_STATE_KEY_TARGET_LINK_URI, &location,
@@ -814,7 +845,6 @@ static bool _oauth2_openidc_redirect_uri_handler(
 	// TODO:
 	// validate response
 	// create session
-	// return JSON claims
 
 end:
 
@@ -837,7 +867,7 @@ static bool _oauth2_openidc_internal_requests(oauth2_log_t *log,
 					      oauth2_http_request_t *request,
 					      oauth2_session_rec_t *session,
 					      oauth2_http_response_t **response,
-					      bool *processed)
+					      json_t **claims, bool *processed)
 {
 	bool rc = true;
 	char *redirect_uri = NULL, *request_url;
@@ -857,8 +887,8 @@ static bool _oauth2_openidc_internal_requests(oauth2_log_t *log,
 
 	// redirect_uri handling
 	if (strcmp(redirect_uri, request_url) == 0) {
-		rc = _oauth2_openidc_redirect_uri_handler(log, cfg, request,
-							  session, response);
+		rc = _oauth2_openidc_redirect_uri_handler(
+		    log, cfg, request, session, response, claims);
 		*processed = true;
 		goto end;
 	}
@@ -882,7 +912,7 @@ end:
 
 bool oauth2_openidc_handle(oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg,
 			   oauth2_http_request_t *request,
-			   oauth2_http_response_t **response)
+			   oauth2_http_response_t **response, json_t **claims)
 {
 	bool rc = false, processed = false;
 	oauth2_session_rec_t *session = NULL;
@@ -898,13 +928,13 @@ bool oauth2_openidc_handle(oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg,
 		goto end;
 
 	rc = _oauth2_openidc_internal_requests(log, cfg, request, session,
-					       response, &processed);
+					       response, claims, &processed);
 	if ((processed == true) || (rc == false))
 		goto end;
 
 	if (oauth2_session_rec_user_get(log, session) != NULL) {
-		rc = _oauth2_openidc_existing_session(log, cfg, request,
-						      session, response);
+		rc = _oauth2_openidc_existing_session(
+		    log, cfg, request, session, response, claims);
 		goto end;
 	}
 
@@ -959,8 +989,13 @@ _oauth2_openidc_provider_metadata_parse(oauth2_log_t *log, const char *s_json,
 		oauth2_error(log, "could not parse token_endpoint");
 		goto end;
 	}
+	if (oauth2_json_string_get(log, json, "jwks_uri", &p->jwks_uri, NULL) ==
+	    false) {
+		oauth2_error(log, "could not parse jwks_uri");
+		goto end;
+	}
 
-	p->ssl_verify = json_boolean_value(json_object_get(json, "ssl_verify"));
+	p->ssl_verify = json_is_true(json_object_get(json, "ssl_verify"));
 
 	if (oauth2_json_string_get(log, json, "token_endpoint_auth",
 				   &token_endpoint_auth,
@@ -987,6 +1022,7 @@ _oauth2_openidc_provider_metadata_parse(oauth2_log_t *log, const char *s_json,
 		goto end;
 	}
 
+	// TODO:
 	oauth2_nv_list_t *params = oauth2_nv_list_init(log);
 	oauth2_nv_list_set(log, params, "client_id", p->client_id);
 	oauth2_nv_list_set(log, params, "client_secret", p->client_secret);
