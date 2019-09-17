@@ -111,7 +111,8 @@ const char *oauth2_http_response_header_get(oauth2_log_t *log,
 					    const char *name);
 bool oauth2_http_response_cookie_set(oauth2_log_t *log,
 				     oauth2_http_response_t *response,
-				     const char *name, const char *value);
+				     const char *name, const char *value,
+				     const char *path);
 void oauth2_http_response_headers_loop(oauth2_log_t *log,
 				       oauth2_http_response_t *response,
 				       oauth2_nv_list_loop_cb_t *callback,

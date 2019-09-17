@@ -1548,7 +1548,8 @@ const char *oauth2_http_response_header_get(oauth2_log_t *log,
 
 bool oauth2_http_response_cookie_set(oauth2_log_t *log,
 				     oauth2_http_response_t *response,
-				     const char *name, const char *value)
+				     const char *name, const char *value,
+				     const char *path)
 {
 	bool rc = false;
 	char *str = NULL;
@@ -1568,6 +1569,9 @@ bool oauth2_http_response_cookie_set(oauth2_log_t *log,
 		str = oauth2_stradd(NULL, name, "=;",
 				    " expires=Thu, 01 Jan 1970 00:00:00 GMT");
 	}
+
+	if (path)
+		str = oauth2_stradd(str, "; path", "=", path);
 
 	rc = oauth2_http_response_header_set(log, response,
 					     OAUTH2_HTTP_HDR_SET_COOKIE, str);

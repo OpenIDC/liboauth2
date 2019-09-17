@@ -399,7 +399,8 @@ static bool _oauth2_openidc_set_state_cookie(
 				    proto_state, &value) == false)
 		goto end;
 
-	rc = oauth2_http_response_cookie_set(log, response, name, value);
+	// TODO: get cookie path from config
+	rc = oauth2_http_response_cookie_set(log, response, name, value, "/");
 
 end:
 
@@ -437,7 +438,8 @@ static bool _oauth2_openidc_get_state_cookie(oauth2_log_t *log,
 		goto end;
 	}
 
-	rc = oauth2_http_response_cookie_set(log, response, name, NULL);
+	// TODO: get state cookie path from config
+	rc = oauth2_http_response_cookie_set(log, response, name, NULL, "/");
 
 	if (oauth2_jose_jwt_decrypt(log,
 				    oauth2_cfg_openidc_passphrase_get(log, cfg),
@@ -739,7 +741,7 @@ static bool _oauth2_openidc_redirect_uri_handler(
 	oauth2_uint_t status_code = 0;
 	oauth2_nv_list_t *params = NULL;
 	char *redirect_uri = NULL, *s_response = NULL, *location = NULL,
-	     *s_id_token = NULL; //, *s_payload = NULL;
+	     *s_id_token = NULL, *options = NULL; //, *s_payload = NULL;
 	json_t *json = NULL, *proto_state = NULL, *id_token = NULL;
 	char *rv = NULL;
 
@@ -812,10 +814,13 @@ static bool _oauth2_openidc_redirect_uri_handler(
 		goto end;
 	}
 
-	// TODO:
+	// TODO: creating this on the fly creates a cache on the fly...
+	//       this needs to become a configuration item
 	oauth2_cfg_token_verify_t *verify = NULL;
+	options = oauth2_stradd(NULL, "jwks_uri.ssl_verify", "=",
+				provider->ssl_verify ? "true" : "false");
 	rv = oauth2_cfg_token_verify_add_options(log, &verify, "jwks_uri",
-						 provider->jwks_uri, NULL);
+						 provider->jwks_uri, options);
 	if (rv != NULL) {
 		oauth2_error(
 		    log, "oauth2_cfg_token_verify_add_options failed: %s", rv);
@@ -852,12 +857,47 @@ end:
 
 	if (redirect_uri)
 		oauth2_mem_free(redirect_uri);
+	if (options)
+		oauth2_mem_free(options);
 	if (params)
 		oauth2_nv_list_free(log, params);
 	if (http_ctx)
 		oauth2_http_call_ctx_free(log, http_ctx);
 
 	oauth2_debug(log, "leave: %d", rc);
+
+	return rc;
+}
+
+bool oauth2_openidc_is_request_to_redirect_uri(oauth2_log_t *log,
+					       const oauth2_cfg_openidc_t *cfg,
+					       oauth2_http_request_t *request)
+{
+	bool rc = false;
+	char *redirect_uri = NULL, *request_url;
+
+	request_url = oauth2_http_request_url_path_get(log, request);
+	if (request_url == NULL)
+		goto end;
+
+	// redirect_uri = oauth2_openidc_cfg_redirect_uri_get_iss(log, cfg,
+	// request, provider);
+	redirect_uri = oauth2_cfg_openidc_redirect_uri_get(log, cfg, request);
+
+	oauth2_debug(log, "comparing: \"%s\"=\"%s\"", request_url,
+		     redirect_uri);
+
+	if (strcmp(redirect_uri, request_url) != 0)
+		goto end;
+
+	rc = true;
+
+end:
+
+	if (request_url)
+		oauth2_mem_free(request_url);
+	if (redirect_uri)
+		oauth2_mem_free(redirect_uri);
 
 	return rc;
 }
@@ -870,23 +910,11 @@ static bool _oauth2_openidc_internal_requests(oauth2_log_t *log,
 					      json_t **claims, bool *processed)
 {
 	bool rc = true;
-	char *redirect_uri = NULL, *request_url;
 
 	oauth2_debug(log, "enter");
 
-	// redirect_uri = oauth2_openidc_cfg_redirect_uri_get_iss(log, cfg,
-	// request, provider);
-	request_url = oauth2_http_request_url_path_get(log, request);
-	if (request_url == NULL)
-		goto end;
-
-	redirect_uri = oauth2_cfg_openidc_redirect_uri_get(log, cfg, request);
-
-	oauth2_debug(log, "comparing: \"%s\"=\"%s\"", request_url,
-		     redirect_uri);
-
-	// redirect_uri handling
-	if (strcmp(redirect_uri, request_url) == 0) {
+	if (oauth2_openidc_is_request_to_redirect_uri(log, cfg, request) ==
+	    true) {
 		rc = _oauth2_openidc_redirect_uri_handler(
 		    log, cfg, request, session, response, claims);
 		*processed = true;
@@ -899,11 +927,6 @@ static bool _oauth2_openidc_internal_requests(oauth2_log_t *log,
 	// - 3rd-party init SSO
 
 end:
-
-	if (request_url)
-		oauth2_mem_free(request_url);
-	if (redirect_uri)
-		oauth2_mem_free(redirect_uri);
 
 	oauth2_debug(log, "leave: %d", rc);
 

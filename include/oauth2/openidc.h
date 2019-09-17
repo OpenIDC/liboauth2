@@ -69,6 +69,10 @@ char *oauth2_cfg_openidc_redirect_uri_get_iss(
     oauth2_log_t *, const oauth2_cfg_openidc_t *, const oauth2_http_request_t *,
     const oauth2_openidc_provider_t *);
 
+bool oauth2_openidc_is_request_to_redirect_uri(oauth2_log_t *log,
+					       const oauth2_cfg_openidc_t *cfg,
+					       oauth2_http_request_t *request);
+
 bool oauth2_openidc_handle(oauth2_log_t *log, const oauth2_cfg_openidc_t *c,
 			   oauth2_http_request_t *r,
 			   oauth2_http_response_t **response, json_t **claims);
