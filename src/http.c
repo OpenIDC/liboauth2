@@ -1539,6 +1539,13 @@ bool oauth2_http_response_header_set(oauth2_log_t *log,
 	return oauth2_nv_list_set(log, response->headers, name, value);
 }
 
+static bool oauth2_http_response_header_add(oauth2_log_t *log,
+					    oauth2_http_response_t *response,
+					    const char *name, const char *value)
+{
+	return oauth2_nv_list_add(log, response->headers, name, value);
+}
+
 const char *oauth2_http_response_header_get(oauth2_log_t *log,
 					    oauth2_http_response_t *response,
 					    const char *name)
@@ -1573,7 +1580,7 @@ bool oauth2_http_response_cookie_set(oauth2_log_t *log,
 	if (path)
 		str = oauth2_stradd(str, "; path", "=", path);
 
-	rc = oauth2_http_response_header_set(log, response,
+	rc = oauth2_http_response_header_add(log, response,
 					     OAUTH2_HTTP_HDR_SET_COOKIE, str);
 
 end:

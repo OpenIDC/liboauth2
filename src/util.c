@@ -1013,6 +1013,7 @@ bool oauth2_json_object_get(oauth2_log_t *log, const json_t *json,
 		goto end;
 	}
 
+	json_incref(v);
 	*value = v;
 	rc = true;
 

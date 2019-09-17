@@ -25,11 +25,21 @@
 #include "oauth2/openidc.h"
 #include "oauth2/util.h"
 
-OAUTH2_TYPE_DECLARE(session, rec)
+typedef struct oauth2_session_rec_t oauth2_session_rec_t;
+
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(session, rec, user, char *)
+OAUTH2_TYPE_DECLARE_MEMBER_GET(session, rec, id_token_claims, json_t *)
+bool oauth2_session_rec_id_token_claims_set(oauth2_log_t *log,
+					    oauth2_session_rec_t *session,
+					    json_t *id_token);
 
 bool oauth2_session_load(oauth2_log_t *log, const oauth2_cfg_openidc_t *c,
-			 const oauth2_http_request_t *r,
+			 oauth2_http_request_t *r,
 			 oauth2_session_rec_t **session);
+bool oauth2_session_save(oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg,
+			 const oauth2_http_request_t *request,
+			 oauth2_http_response_t *response,
+			 oauth2_session_rec_t *session);
+void oauth2_session_rec_free(oauth2_log_t *log, oauth2_session_rec_t *s);
 
 #endif /* _OAUTH2_SESSION_H_ */

@@ -716,15 +716,17 @@ static bool _oauth2_openidc_existing_session(oauth2_log_t *log,
 					     oauth2_http_response_t **response,
 					     json_t **claims)
 {
-	bool rc = false;
+	bool rc = true;
+	json_t *json = NULL;
 
 	oauth2_debug(log, "enter");
 
-	goto end;
+	json = oauth2_session_rec_id_token_claims_get(log, session);
 
-end:
+	*response = oauth2_http_response_init(log);
+	*claims = json ? json_incref(json) : NULL;
 
-	oauth2_debug(log, "return: %d", rc);
+	oauth2_debug(log, "return: %d (%p, %p)", rc, *response, *claims);
 
 	return rc;
 }
@@ -833,6 +835,11 @@ static bool _oauth2_openidc_redirect_uri_handler(
 	}
 	oauth2_cfg_token_verify_free(log, verify);
 
+	oauth2_session_rec_user_set(
+	    log, session, json_string_value(json_object_get(id_token, "sub")));
+	oauth2_session_rec_id_token_claims_set(log, session, id_token);
+	oauth2_session_save(log, cfg, request, *response, session);
+
 	if (oauth2_json_string_get(
 		log, proto_state,
 		_OAUTH2_OPENIDC_PROTO_STATE_KEY_TARGET_LINK_URI, &location,
@@ -845,16 +852,19 @@ static bool _oauth2_openidc_redirect_uri_handler(
 	if (oauth2_http_response_status_code_set(log, *response, 302) == false)
 		goto end;
 
+	// no use in returning claims here
+
 	rc = true;
 
 	// TODO:
 	// validate response
-	// create session
 
 end:
 
-	// TODO: json_decref json
-
+	if (id_token)
+		json_decref(id_token);
+	if (json)
+		json_decref(json);
 	if (redirect_uri)
 		oauth2_mem_free(redirect_uri);
 	if (options)
@@ -925,6 +935,8 @@ static bool _oauth2_openidc_internal_requests(oauth2_log_t *log,
 	// - session info
 	// - key materials
 	// - 3rd-party init SSO
+
+	rc = true;
 
 end:
 
