@@ -68,6 +68,9 @@ char *oauth2_cfg_cache_set_options(oauth2_log_t *log, oauth2_cfg_cache_t *cfg,
 	type = oauth2_nv_list_get(log, params, key);
 	oauth2_mem_free(key);
 
+	if ((type) && (strcmp(type, "none") == 0))
+		goto end;
+
 	key = oauth2_stradd(NULL, prefix, ".cache", ".options");
 	options = oauth2_nv_list_get(log, params, key);
 	oauth2_mem_free(key);

@@ -643,6 +643,8 @@ static bool _oauth2_openidc_authenticate(oauth2_log_t *log,
 
 end:
 
+	if (provider)
+		oauth2_openidc_provider_free(log, provider);
 	if (redirect_uri)
 		oauth2_mem_free(redirect_uri);
 	if (nonce)
@@ -816,11 +818,13 @@ static bool _oauth2_openidc_redirect_uri_handler(
 		goto end;
 	}
 
-	// TODO: creating this on the fly creates a cache on the fly...
-	//       this needs to become a configuration item
+	// TODO: refactor/externalize this?
+	// TODO: need a global in-memory jwks_uri cache
 	oauth2_cfg_token_verify_t *verify = NULL;
 	options = oauth2_stradd(NULL, "jwks_uri.ssl_verify", "=",
 				provider->ssl_verify ? "true" : "false");
+	options = oauth2_stradd(options, "&jwks_uri.cache.type", "=", "none");
+	options = oauth2_stradd(options, "&verify.cache.type", "=", "none");
 	rv = oauth2_cfg_token_verify_add_options(log, &verify, "jwks_uri",
 						 provider->jwks_uri, options);
 	if (rv != NULL) {
@@ -828,7 +832,6 @@ static bool _oauth2_openidc_redirect_uri_handler(
 		    log, "oauth2_cfg_token_verify_add_options failed: %s", rv);
 		goto end;
 	}
-
 	if (oauth2_token_verify(log, verify, s_id_token, &id_token) == false) {
 		oauth2_error(log, "id_token verification failed");
 		goto end;
@@ -861,6 +864,8 @@ static bool _oauth2_openidc_redirect_uri_handler(
 
 end:
 
+	if (provider)
+		oauth2_openidc_provider_free(log, provider);
 	if (id_token)
 		json_decref(id_token);
 	if (json)
