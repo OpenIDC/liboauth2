@@ -76,7 +76,8 @@ oauth2_cfg_openidc_t *oauth2_cfg_openidc_clone(oauth2_log_t *log,
 
 	dst->handler_path = oauth2_strdup(src->handler_path);
 	dst->redirect_uri = oauth2_strdup(src->redirect_uri);
-	dst->provider_resolver = src->provider_resolver;
+	dst->provider_resolver = oauth2_cfg_openidc_provider_resolver_clone(
+	    log, src->provider_resolver);
 	dst->unauth_action = src->unauth_action;
 	dst->state_cookie_name_prefix =
 	    oauth2_strdup(src->state_cookie_name_prefix);
@@ -103,6 +104,11 @@ void oauth2_cfg_openidc_merge(oauth2_log_t *log, oauth2_cfg_openidc_t *cfg,
 	_OAUTH_CFG_MERGE_STRING(cfg, base, add, handler_path);
 	_OAUTH_CFG_MERGE_STRING(cfg, base, add, redirect_uri);
 	_OAUTH_CFG_MERGE_VALUE(cfg, base, add, provider_resolver, NULL)
+	cfg->provider_resolver =
+	    add->provider_resolver ? oauth2_cfg_openidc_provider_resolver_clone(
+					 log, add->provider_resolver)
+				   : oauth2_cfg_openidc_provider_resolver_clone(
+					 log, base->provider_resolver);
 	_OAUTH_CFG_MERGE_VALUE(cfg, base, add, unauth_action,
 			       OAUTH2_UNAUTH_ACTION_UNDEFINED)
 	_OAUTH_CFG_MERGE_STRING(cfg, base, add, state_cookie_name_prefix);
@@ -139,22 +145,22 @@ _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(cfg, openidc, redirect_uri, char *, str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(cfg, openidc, state_cookie_name_prefix,
 				  char *, str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(cfg, openidc, passphrase, char *, str)
-/*
+
 bool oauth2_cfg_openidc_provider_resolver_set(
     oauth2_log_t *log, oauth2_cfg_openidc_t *cfg,
-    oauth2_openidc_provider_resolver_t *resolver)
+    oauth2_cfg_openidc_provider_resolver_t *resolver)
 {
 	cfg->provider_resolver = resolver;
 	return true;
 }
 
-oauth2_openidc_provider_resolver_t *
+oauth2_cfg_openidc_provider_resolver_t *
 oauth2_cfg_openidc_provider_resolver_get(oauth2_log_t *log,
 					 const oauth2_cfg_openidc_t *cfg)
 {
-	return cfg->provider_resolver;
+	return cfg ? cfg->provider_resolver : NULL;
 }
-*/
+
 #define OAUTH2_OPENIDC_CFG_HANDLER_PATH_DEFAULT "/openid-connect"
 
 char *oauth2_openidc_cfg_handler_path_get(oauth2_log_t *log,
@@ -898,6 +904,8 @@ bool oauth2_openidc_is_request_to_redirect_uri(oauth2_log_t *log,
 	// redirect_uri = oauth2_openidc_cfg_redirect_uri_get_iss(log, cfg,
 	// request, provider);
 	redirect_uri = oauth2_cfg_openidc_redirect_uri_get(log, cfg, request);
+	if (redirect_uri == NULL)
+		goto end;
 
 	oauth2_debug(log, "comparing: \"%s\"=\"%s\"", request_url,
 		     redirect_uri);

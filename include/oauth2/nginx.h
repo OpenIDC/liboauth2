@@ -22,6 +22,10 @@
  *
  **************************************************************************/
 
+#include <ngx_core.h>
+#include <ngx_http.h>
+#include <ngx_http_request.h>
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -29,10 +33,6 @@
 #include <oauth2/http.h>
 #include <oauth2/log.h>
 #include <oauth2/util.h>
-
-#include <ngx_core.h>
-#include <ngx_http.h>
-#include <ngx_http_request.h>
 
 // module
 
@@ -106,6 +106,9 @@
 #define OAUTH2_NGINX_CMD_TAKE23(module, directive, primitive)                  \
 	OAUTH2_NGINX_CMD(module, directive, primitive, NGX_CONF_TAKE23)
 
+#define OAUTH2_NGINX_CMD_TAKE123(module, directive, primitive)                 \
+	OAUTH2_NGINX_CMD(module, directive, primitive, NGX_CONF_TAKE123)
+
 #define OAUTH2_NGINX_CMD_TAKE34(module, directive, primitive)                  \
 	OAUTH2_NGINX_CMD(module, directive, primitive,                         \
 			 NGX_CONF_TAKE3 | NGX_CONF_TAKE4)
@@ -121,10 +124,15 @@ void oauth2_nginx_log(oauth2_log_sink_t *sink, const char *filename,
 typedef struct oauth2_nginx_request_context_t {
 	oauth2_log_t *log;
 	ngx_http_request_t *r;
+	oauth2_http_request_t *request;
 } oauth2_nginx_request_context_t;
 
 oauth2_nginx_request_context_t *
 oauth2_nginx_request_context_init(ngx_http_request_t *r);
 void oauth2_nginx_request_context_free(void *rec);
+
+ngx_int_t oauth2_nginx_http_response_set(oauth2_log_t *log,
+					 oauth2_http_response_t *response,
+					 ngx_http_request_t *r);
 
 #endif /* _OAUTH2_NGINX_H_ */

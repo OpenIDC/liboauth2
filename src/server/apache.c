@@ -215,7 +215,7 @@ static int oauth2_apache_http_request_hdr_add(void *rec, const char *key,
 					      const char *value)
 {
 	oauth2_apache_request_ctx_t *ctx = (oauth2_apache_request_ctx_t *)rec;
-	return (oauth2_http_request_header_set(ctx->log, ctx->request, key,
+	return (oauth2_http_request_header_add(ctx->log, ctx->request, key,
 					       value) == true);
 }
 

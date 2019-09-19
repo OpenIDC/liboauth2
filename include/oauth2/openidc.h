@@ -61,6 +61,13 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, scope, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, client_id, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, client_secret, char *)
 
+bool oauth2_cfg_openidc_provider_resolver_set(
+    oauth2_log_t *log, oauth2_cfg_openidc_t *cfg,
+    oauth2_cfg_openidc_provider_resolver_t *resolver);
+oauth2_cfg_openidc_provider_resolver_t *
+oauth2_cfg_openidc_provider_resolver_get(oauth2_log_t *log,
+					 const oauth2_cfg_openidc_t *cfg);
+
 char *oauth2_cfg_openidc_provider_resolver_set_options(
     oauth2_log_t *log, oauth2_cfg_openidc_t *cfg, const char *type,
     const char *value, const char *options);
