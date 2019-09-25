@@ -298,21 +298,39 @@ START_TEST(test_openidc_cfg)
 }
 END_TEST
 
-bool test_openidc_provider_resolver(oauth2_log_t *log,
-				    const oauth2_http_request_t *request,
-				    oauth2_openidc_provider_t **provider)
+START_TEST(test_openidc_proto_state)
 {
-	// TODO: free/global
-	*provider = oauth2_openidc_provider_init(log);
-	oauth2_openidc_provider_issuer_set(log, *provider,
-					   "https://op.example.org");
-	oauth2_openidc_provider_authorization_endpoint_set(
-	    log, *provider, "https://op.example.org/authorize");
-	oauth2_openidc_provider_scope_set(log, *provider, "openid");
-	oauth2_openidc_provider_client_id_set(log, *provider, "myclient");
-	oauth2_openidc_provider_client_secret_set(log, *provider, "secret");
-	return true;
+	bool rc = false;
+	json_t *json = NULL;
+
+	oauth2_openidc_proto_state_t *p = oauth2_openidc_proto_state_init(log);
+	ck_assert_ptr_ne(p, NULL);
+
+	rc = oauth2_openidc_proto_state_set(log, p, "one", "string");
+	ck_assert_int_eq(rc, true);
+	rc = oauth2_openidc_proto_state_set_int(log, p, "two", 2);
+	ck_assert_int_eq(rc, true);
+
+	json = oauth2_openidc_proto_state_json_get(p);
+	ck_assert_ptr_ne(json, NULL);
+	ck_assert_str_eq(json_string_value(json_object_get(json, "one")),
+			 "string");
+	ck_assert_int_eq(json_integer_value(json_object_get(json, "two")), 2);
+
+	oauth2_openidc_proto_state_t *c =
+	    oauth2_openidc_proto_state_clone(log, p);
+	ck_assert_ptr_ne(c, NULL);
+
+	json = oauth2_openidc_proto_state_json_get(p);
+	ck_assert_ptr_ne(json, NULL);
+	ck_assert_str_eq(json_string_value(json_object_get(json, "one")),
+			 "string");
+	ck_assert_int_eq(json_integer_value(json_object_get(json, "two")), 2);
+
+	oauth2_openidc_proto_state_free(log, c);
+	oauth2_openidc_proto_state_free(log, p);
 }
+END_TEST
 
 OAUTH2_CHECK_HTTP_PATHS
 
@@ -453,6 +471,7 @@ Suite *oauth2_check_openidc_suite()
 	tcase_add_checked_fixture(c, setup, teardown);
 
 	tcase_add_test(c, test_openidc_cfg);
+	tcase_add_test(c, test_openidc_proto_state);
 	tcase_add_test(c, test_openidc_handle);
 
 	suite_add_tcase(s, c);

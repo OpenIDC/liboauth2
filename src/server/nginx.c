@@ -67,78 +67,7 @@ void oauth2_nginx_log(oauth2_log_sink_t *sink, const char *filename,
 			   "# %s: %s", function, msg);
 }
 
-char *oauth2_nginx_http_scheme(ngx_http_request_t *r)
-{
-	int len = r->schema_end - r->schema_start;
-	return (len > 0) ? oauth2_strndup((const char *)r->schema_start, len)
-			 : NULL;
-}
-
-static char *oauth2_ngx_get_host_name(ngx_http_request_t *r)
-{
-	int len = r->host_end - r->host_start;
-	return (len > 0) ? oauth2_strndup((const char *)r->host_start, len)
-			 : NULL;
-}
-
-static oauth2_uint_t oauth2_ngx_get_port(ngx_http_request_t *r)
-{
-	oauth2_uint_t port = 0;
-	char *v = NULL;
-	int len = r->port_end - r->port_start;
-	if (len > 0) {
-		v = oauth2_strndup((const char *)r->port_start, len);
-		port = oauth2_parse_uint(NULL, v, 0);
-		oauth2_mem_free(v);
-	}
-	return port;
-}
-
-char *oauth2_ngx_get_path(ngx_http_request_t *r)
-{
-	return (r->uri.len > 0)
-		   ? oauth2_strndup((const char *)r->uri.data, r->uri.len)
-		   : NULL;
-}
-
-oauth2_http_method_t oauth2_ngx_get_method(ngx_http_request_t *r)
-{
-	oauth2_http_method_t rv = OAUTH2_HTTP_METHOD_UNKNOWN;
-	char *v = (r->method_name.len > 0)
-		      ? oauth2_strndup((const char *)r->method_name.data,
-				       r->method_name.len)
-		      : NULL;
-
-	if (v == NULL)
-		goto end;
-
-	if (strcmp(v, "GET") == 0)
-		rv = OAUTH2_HTTP_METHOD_GET;
-	else if (strcmp(v, "POST") == 0)
-		rv = OAUTH2_HTTP_METHOD_POST;
-	else if (strcmp(v, "PUT") == 0)
-		rv = OAUTH2_HTTP_METHOD_PUT;
-	else if (strcmp(v, "DELETE") == 0)
-		rv = OAUTH2_HTTP_METHOD_DELETE;
-	else if (strcmp(v, "CONNECT") == 0)
-		rv = OAUTH2_HTTP_METHOD_CONNECT;
-	else if (strcmp(v, "OPTIONS") == 0)
-		rv = OAUTH2_HTTP_METHOD_OPTIONS;
-
-end:
-
-	if (v)
-		oauth2_mem_free(v);
-
-	return rv;
-}
-
-char *oauth2_ngx_get_query(ngx_http_request_t *r)
-{
-	return ((r->args_start) && (r->args.len > 0))
-		   ? oauth2_strndup((const char *)r->args_start, r->args.len)
-		   : NULL;
-}
+// OAUTH2_NGINX_REQUEST_COPY_HACK
 
 oauth2_nginx_request_context_t *
 oauth2_nginx_request_context_init(ngx_http_request_t *r)
@@ -152,65 +81,16 @@ oauth2_nginx_request_context_init(ngx_http_request_t *r)
 	// TODO: memory allocation failure checks...?
 	ctx = oauth2_mem_alloc(sizeof(oauth2_nginx_request_context_t));
 
-	ctx->r = r;
-
 	// TODO: get the log level from NGINX...
 	oauth2_log_level_t level = OAUTH2_LOG_TRACE1;
 	log_sink_nginx =
 	    oauth2_log_sink_create(level, oauth2_nginx_log, r->connection->log);
+
 	ctx->log = oauth2_log_init(level, log_sink_nginx);
-
-	ngx_list_part_t *part;
-	ngx_table_elt_t *h;
-	ngx_uint_t i;
-	char *name = NULL, *value = NULL;
-
 	ctx->request = oauth2_http_request_init(ctx->log);
+	ctx->r = r;
 
-	// TODO: optimize/macroize...
-	// value = oauth2_nginx_http_scheme(r);
-	// oauth2_http_request_scheme_set(ctx->log, ctx->request, name);
-	// oauth2_mem_free(value);
-
-	value = oauth2_ngx_get_host_name(r);
-	oauth2_http_request_hostname_set(ctx->log, ctx->request, value);
-	oauth2_mem_free(value);
-
-	oauth2_http_request_port_set(ctx->log, ctx->request,
-				     oauth2_ngx_get_port(r));
-
-	// value = oauth2_ngx_get_path(r);
-	// oauth2_http_request_path_set(ctx->log, ctx->request, value);
-	// oauth2_mem_free(value);
-
-	//	oauth2_http_request_method_set(ctx->log, ctx->request,
-	//				       oauth2_ngx_get_method(r));
-
-	// value = oauth2_ngx_get_query(r);
-	// oauth2_http_request_query_set(ctx->log, ctx->request, value);
-	// oauth2_mem_free(value);
-
-	part = &r->headers_in.headers.part;
-	h = part->elts;
-	for (i = 0; /* void */; i++) {
-		if (i >= part->nelts) {
-			if (part->next == NULL) {
-				break;
-			}
-			part = part->next;
-			h = part->elts;
-			i = 0;
-		}
-		name =
-		    oauth2_strndup((const char *)h[i].key.data, h[i].key.len);
-		value = oauth2_strndup((const char *)h[i].value.data,
-				       h[i].value.len);
-		// TODO: avoid duplicate copy
-		oauth2_http_request_header_add(ctx->log, ctx->request, name,
-					       value);
-		oauth2_mem_free(name);
-		oauth2_mem_free(value);
-	}
+	//_oauth2_nginx_request_copy(ctx);
 
 	oauth2_debug(ctx->log, "created NGINX request context: %p", ctx);
 
