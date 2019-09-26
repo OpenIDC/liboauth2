@@ -62,6 +62,7 @@ liboauth2_la_SOURCES = \
 	src/cfg/cache_cfg.c \
 	src/cfg/verify.c \
 	src/cfg/target.c \
+	src/cfg/openidc_cfg.c \
 	src/ipc.c \
 	src/cache_int.h \
 	src/cache/shm.c \
@@ -73,7 +74,11 @@ liboauth2_la_SOURCES = \
 	src/oauth2_int.h \
 	src/oauth2.c \
 	src/session.c \
-	src/openidc.c
+	src/openidc_int.h \
+	src/openidc/provider.c \
+	src/openidc/resolver.c \
+	src/openidc/state.c \
+	src/openidc/openidc.c
 
 #
 # cache

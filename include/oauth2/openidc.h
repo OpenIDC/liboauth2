@@ -27,7 +27,6 @@
 #include "oauth2/util.h"
 
 #define OAUTH2_OPENIDC_ID_TOKEN "id_token"
-#define OAUTH2_OPENIDC_STATE_COOKIE_NAME_PREFIX_DEFAULT "openidc_state_"
 
 #define OAUTH2_CLAIM_ISS "iss"
 

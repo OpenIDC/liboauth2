@@ -24,6 +24,8 @@
 
 #include "oauth2/cache.h"
 #include "oauth2/cfg.h"
+#include "oauth2/oauth2.h"
+#include "oauth2/openidc.h"
 
 #include <cjose/cjose.h>
 
@@ -163,6 +165,39 @@ typedef struct oauth2_cfg_set_options_ctx_t {
 char *oauth2_cfg_set_options(oauth2_log_t *log, void *cfg, const char *type,
 			     const char *value, const char *options,
 			     const oauth2_cfg_set_options_ctx_t *set);
+
+/*
+ * openidc
+ */
+
+typedef bool(oauth2_openidc_provider_resolver_func_t)(
+    oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg,
+    const oauth2_http_request_t *, char **);
+
+typedef struct oauth2_cfg_openidc_provider_resolver_t {
+	oauth2_openidc_provider_resolver_func_t *callback;
+	oauth2_cfg_ctx_t *ctx;
+	oauth2_cfg_cache_t *cache;
+} oauth2_cfg_openidc_provider_resolver_t;
+
+// TODO: set add log
+typedef struct oauth2_cfg_openidc_t {
+	char *handler_path;
+	char *redirect_uri;
+	oauth2_cfg_openidc_provider_resolver_t *provider_resolver;
+	oauth2_unauth_action_t unauth_action;
+	char *state_cookie_name_prefix;
+	char *passphrase;
+} oauth2_cfg_openidc_t;
+
+#define OAUTH2_OPENIDC_STATE_COOKIE_NAME_PREFIX_DEFAULT "openidc_state_"
+
+char *oauth2_openidc_cfg_state_cookie_name_prefix_get(
+    oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg);
+
+/*
+ * generic
+ */
 
 #define _OAUTH2_CFG_CTX_TYPE_START(type) typedef struct type##_t {
 
