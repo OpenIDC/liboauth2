@@ -67,7 +67,127 @@ void oauth2_nginx_log(oauth2_log_sink_t *sink, const char *filename,
 			   "# %s: %s", function, msg);
 }
 
-// OAUTH2_NGINX_REQUEST_COPY_HACK
+#define _OAUTH2_NGINX_STRING_COPY(ctx, r_member, set_func)                     \
+	char *v = (ctx->r->r_member.len > 0)                                   \
+		      ? oauth2_strndup((const char *)ctx->r->r_member.data,    \
+				       ctx->r->r_member.len)                   \
+		      : NULL;                                                  \
+	oauth2_http_request_##set_func##_set(ctx->log, ctx->request, v);       \
+	oauth2_mem_free(v);
+
+#define _OAUTH2_NGINX_START_END_COPY(ctx, r_member_start, r_member_end,        \
+				     set_func)                                 \
+	int len = ctx->r->r_member_end - ctx->r->r_member_start;               \
+	char *v =                                                              \
+	    (len > 0)                                                          \
+		? oauth2_strndup((const char *)ctx->r->r_member_start, len)    \
+		: NULL;                                                        \
+	oauth2_http_request_##set_func##_set(ctx->log, ctx->request, v);       \
+	oauth2_mem_free(v);
+
+static void _oauth2_nginx_schema_copy(oauth2_nginx_request_context_t *ctx)
+{
+	_OAUTH2_NGINX_START_END_COPY(ctx, schema_start, schema_end, scheme);
+}
+
+static void _oauth2_nginx_host_copy(oauth2_nginx_request_context_t *ctx)
+{
+	_OAUTH2_NGINX_START_END_COPY(ctx, host_start, host_end, hostname);
+}
+
+static void _oauth2_nginx_port_copy(oauth2_nginx_request_context_t *ctx)
+{
+	char *v = NULL;
+	int len = ctx->r->port_end - ctx->r->port_start;
+	if (len > 0) {
+		v = oauth2_strndup((const char *)ctx->r->port_start, len);
+		oauth2_http_request_port_set(ctx->log, ctx->request,
+					     oauth2_parse_uint(NULL, v, 0));
+		oauth2_mem_free(v);
+	}
+}
+
+static void _oauth2_nginx_path_copy(oauth2_nginx_request_context_t *ctx)
+{
+	_OAUTH2_NGINX_STRING_COPY(ctx, uri, path);
+}
+
+static void _oauth2_nginx_method_copy(oauth2_nginx_request_context_t *ctx)
+{
+	oauth2_http_method_t m = OAUTH2_HTTP_METHOD_UNKNOWN;
+	char *v = (ctx->r->method_name.len > 0)
+		      ? oauth2_strndup((const char *)ctx->r->method_name.data,
+				       ctx->r->method_name.len)
+		      : NULL;
+
+	if (v == NULL)
+		goto end;
+
+	if (strcmp(v, "GET") == 0)
+		m = OAUTH2_HTTP_METHOD_GET;
+	else if (strcmp(v, "POST") == 0)
+		m = OAUTH2_HTTP_METHOD_POST;
+	else if (strcmp(v, "PUT") == 0)
+		m = OAUTH2_HTTP_METHOD_PUT;
+	else if (strcmp(v, "DELETE") == 0)
+		m = OAUTH2_HTTP_METHOD_DELETE;
+	else if (strcmp(v, "CONNECT") == 0)
+		m = OAUTH2_HTTP_METHOD_CONNECT;
+	else if (strcmp(v, "OPTIONS") == 0)
+		m = OAUTH2_HTTP_METHOD_OPTIONS;
+
+	oauth2_http_request_method_set(ctx->log, ctx->request, m);
+
+end:
+
+	if (v)
+		oauth2_mem_free(v);
+}
+
+static void _oauth2_nginx_query_copy(oauth2_nginx_request_context_t *ctx)
+{
+	_OAUTH2_NGINX_STRING_COPY(ctx, args, query);
+}
+
+static void _oauth2_nginx_headers_copy(oauth2_nginx_request_context_t *ctx)
+{
+	char *name = NULL, *value = NULL;
+	ngx_list_part_t *part;
+	ngx_table_elt_t *h;
+	ngx_uint_t i;
+	part = &ctx->r->headers_in.headers.part;
+	h = part->elts;
+	for (i = 0; /* void */; i++) {
+		if (i >= part->nelts) {
+			if (part->next == NULL) {
+				break;
+			}
+			part = part->next;
+			h = part->elts;
+			i = 0;
+		}
+		name =
+		    oauth2_strndup((const char *)h[i].key.data, h[i].key.len);
+		value = oauth2_strndup((const char *)h[i].value.data,
+				       h[i].value.len);
+		// TODO: avoid duplicate copy
+		oauth2_http_request_header_add(ctx->log, ctx->request, name,
+					       value);
+		oauth2_mem_free(name);
+		oauth2_mem_free(value);
+	}
+}
+
+void _oauth2_nginx_request_copy(oauth2_nginx_request_context_t *ctx)
+{
+	_oauth2_nginx_schema_copy(ctx);
+	_oauth2_nginx_host_copy(ctx);
+	_oauth2_nginx_port_copy(ctx);
+	_oauth2_nginx_path_copy(ctx);
+	_oauth2_nginx_query_copy(ctx);
+	_oauth2_nginx_method_copy(ctx);
+	_oauth2_nginx_headers_copy(ctx);
+}
 
 oauth2_nginx_request_context_t *
 oauth2_nginx_request_context_init(ngx_http_request_t *r)
@@ -90,7 +210,7 @@ oauth2_nginx_request_context_init(ngx_http_request_t *r)
 	ctx->request = oauth2_http_request_init(ctx->log);
 	ctx->r = r;
 
-	//_oauth2_nginx_request_copy(ctx);
+	_oauth2_nginx_request_copy(ctx);
 
 	oauth2_debug(ctx->log, "created NGINX request context: %p", ctx);
 
@@ -121,7 +241,7 @@ ngx_int_t oauth2_nginx_http_response_set(oauth2_log_t *log,
 	if ((response == NULL) || (r == NULL))
 		goto end;
 
-	// oauth2_http_response_headers_loop(log, response,
+	//	oauth2_http_response_headers_loop(log, response,
 	//				  oauth2_nginx_response_header_set, r);
 
 	r->headers_out.status =
