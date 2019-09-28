@@ -25,13 +25,6 @@
 #include "cfg_int.h"
 #include "openidc_int.h"
 
-#define _OAUTH2_OPENIDC_PROTO_STATE_KEY_ISSUER "i"
-#define _OAUTH2_OPENIDC_PROTO_STATE_KEY_TARGET_LINK_URI "l"
-#define _OAUTH2_OPENIDC_PROTO_STATE_KEY_REQUEST_METHOD "m"
-#define _OAUTH2_OPENIDC_PROTO_STATE_KEY_RESPONSE_MODE "r"
-#define _OAUTH2_OPENIDC_PROTO_STATE_KEY_RESPONSE_TYPE "y"
-#define _OAUTH2_OPENIDC_PROTO_STATE_KEY_TIMESTAMP "t"
-
 typedef struct oauth2_openidc_proto_state_t {
 	json_t *state;
 } oauth2_openidc_proto_state_t;
@@ -50,6 +43,8 @@ oauth2_openidc_proto_state_clone(oauth2_log_t *log,
 {
 	oauth2_openidc_proto_state_t *dst =
 	    oauth2_openidc_proto_state_init(log);
+	if (dst->state)
+		json_decref(dst->state);
 	dst->state = json_deep_copy(src->state);
 	return dst;
 }

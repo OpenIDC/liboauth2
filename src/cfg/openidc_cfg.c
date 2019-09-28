@@ -115,6 +115,9 @@ void oauth2_cfg_openidc_free(oauth2_log_t *log, oauth2_cfg_openidc_t *c)
 		oauth2_mem_free(c->state_cookie_name_prefix);
 	if (c->passphrase)
 		oauth2_mem_free(c->passphrase);
+	if (c->provider_resolver)
+		oauth2_cfg_openidc_provider_resolver_free(log,
+							  c->provider_resolver);
 
 	oauth2_mem_free(c);
 

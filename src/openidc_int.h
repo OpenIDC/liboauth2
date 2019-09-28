@@ -36,6 +36,13 @@ typedef struct oauth2_openidc_provider_t {
 	bool ssl_verify;
 } oauth2_openidc_provider_t;
 
+#define _OAUTH2_OPENIDC_PROTO_STATE_KEY_ISSUER "i"
+#define _OAUTH2_OPENIDC_PROTO_STATE_KEY_TARGET_LINK_URI "l"
+#define _OAUTH2_OPENIDC_PROTO_STATE_KEY_REQUEST_METHOD "m"
+#define _OAUTH2_OPENIDC_PROTO_STATE_KEY_RESPONSE_MODE "r"
+#define _OAUTH2_OPENIDC_PROTO_STATE_KEY_RESPONSE_TYPE "y"
+#define _OAUTH2_OPENIDC_PROTO_STATE_KEY_TIMESTAMP "t"
+
 bool _oauth2_openidc_state_cookie_get(
     oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg,
     oauth2_http_request_t *request, oauth2_http_response_t *response,

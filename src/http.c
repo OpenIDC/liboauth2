@@ -760,14 +760,15 @@ static bool _oauth2_http_url_query_encode_param(oauth2_log_t *log, void *rec,
 						const char *key,
 						const char *value)
 {
-	_oauth2_http_encode_str_t encode_str = {_OAUTH2_STR_AMP, rec};
+	_oauth2_http_encode_str_t encode_str = {_OAUTH2_STR_AMP, (char **)rec};
 	return _oauth2_http_url_encode_list(log, &encode_str, key, value);
 }
 
 static bool _oauth2_http_url_encode_cookie(oauth2_log_t *log, void *rec,
 					   const char *key, const char *value)
 {
-	_oauth2_http_encode_str_t encode_str = {_OAUTH2_STR_SEMICOL " ", rec};
+	_oauth2_http_encode_str_t encode_str = {_OAUTH2_STR_SEMICOL " ",
+						(char **)rec};
 	return _oauth2_http_url_encode_list(log, &encode_str, key, value);
 }
 

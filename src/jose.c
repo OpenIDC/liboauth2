@@ -168,8 +168,7 @@ end:
 	return rc;
 }
 
-bool oauth2_jose_jwk_create_symmetric(oauth2_log_t *log,
-				      const char *client_secret,
+bool oauth2_jose_jwk_create_symmetric(oauth2_log_t *log, const char *secret,
 				      const char *hash_algo,
 				      oauth2_jose_jwk_t **jwk)
 {
@@ -182,22 +181,22 @@ bool oauth2_jose_jwk_create_symmetric(oauth2_log_t *log,
 	if (jwk == NULL)
 		goto end;
 
-	oauth2_trace1(log, "client secret: %s", client_secret);
+	oauth2_trace1(log, "secret: %s", secret);
 
 	if (hash_algo != NULL) {
 		/*
 		 * hash the client_secret first, this is OpenID Connect specific
 		 */
 		rc = oauth2_jose_hash_bytes(
-		    log, hash_algo, (const unsigned char *)client_secret,
-		    client_secret ? strlen(client_secret) : 0, &key, &key_len);
+		    log, hash_algo, (const unsigned char *)secret,
+		    secret ? strlen(secret) : 0, &key, &key_len);
 		if (rc == false) {
 			oauth2_error(log, "oauth2_jose_hash_bytes failed");
 			goto end;
 		}
-	} else if (client_secret != NULL) {
-		key_len = strlen(client_secret);
-		key = (unsigned char *)oauth2_strdup(client_secret);
+	} else if (secret != NULL) {
+		key_len = strlen(secret);
+		key = (unsigned char *)oauth2_strdup(secret);
 	}
 	oauth2_trace1(log, "key and key_len (%d) set", key_len);
 

@@ -396,6 +396,12 @@ static bool _oauth2_openidc_redirect_uri_handler(
 
 end:
 
+	if (s_id_token)
+		oauth2_mem_free(s_id_token);
+	if (location)
+		oauth2_mem_free(location);
+	if (proto_state)
+		oauth2_openidc_proto_state_free(log, proto_state);
 	if (provider)
 		oauth2_openidc_provider_free(log, provider);
 	if (id_token)

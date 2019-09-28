@@ -20,7 +20,10 @@
  **************************************************************************/
 
 #include "check_liboauth2.h"
+
 #include "oauth2/apache.h"
+#include "oauth2/mem.h"
+
 #include <check.h>
 
 static apr_pool_t *pool = NULL;
@@ -153,6 +156,7 @@ START_TEST(test_apache_request_state)
 	oauth2_json_string_get(log, out_claims, "sub", &value, NULL);
 	ck_assert_ptr_ne(value, NULL);
 	ck_assert_str_eq(value, "joe");
+	oauth2_mem_free(value);
 
 	json_decref(in_claims);
 	json_decref(out_claims);

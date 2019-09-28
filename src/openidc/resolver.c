@@ -108,6 +108,8 @@ _oauth2_openidc_provider_metadata_parse(oauth2_log_t *log, const char *s_json,
 
 end:
 
+	if (token_endpoint_auth)
+		oauth2_mem_free(token_endpoint_auth);
 	if (json)
 		json_decref(json);
 
