@@ -64,7 +64,7 @@ bool oauth2_session_rec_id_token_claims_set(oauth2_log_t *log,
 	return true;
 }
 
-#define OAUTH_SESSION_COOKIE_NAME_DEFAULT "mod_auth_openidc_session"
+#define OAUTH_SESSION_COOKIE_NAME_DEFAULT "openidc_session"
 
 #define OAUTH_SESSION_KEY_USER "u"
 #define OAUTH_SESSION_ID_TOKEN_CLAIMS "i"

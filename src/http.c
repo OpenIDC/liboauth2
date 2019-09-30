@@ -1554,6 +1554,41 @@ const char *oauth2_http_response_header_get(oauth2_log_t *log,
 	return oauth2_nv_list_get(log, response->headers, name);
 }
 
+typedef struct _oauth2_http_response_header_set_cookie_prefix_match_t {
+	const char *prefix;
+	const char *result;
+} _oauth2_http_response_header_set_cookie_prefix_match_t;
+
+static bool _oauth2_http_response_header_set_cookie_prefix_match(
+    oauth2_log_t *log, void *rec, const char *name, const char *value)
+{
+	bool rc = true;
+	_oauth2_http_response_header_set_cookie_prefix_match_t *ctx =
+	    (_oauth2_http_response_header_set_cookie_prefix_match_t *)rec;
+	if (strcasecmp(OAUTH2_HTTP_HDR_SET_COOKIE, name) == 0) {
+		oauth2_debug(log, "matching: value=%s prefix=%s", value,
+			     ctx->prefix);
+		if (strstr(value, ctx->prefix) == value) {
+			ctx->result = value;
+			rc = false;
+		}
+	}
+	return rc;
+}
+
+const char *oauth2_http_response_header_set_cookie_prefix_get(
+    oauth2_log_t *log, oauth2_http_response_t *response, const char *prefix)
+{
+	_oauth2_http_response_header_set_cookie_prefix_match_t ctx;
+	ctx.prefix = prefix;
+	ctx.result = NULL;
+	oauth2_http_response_headers_loop(
+	    log, response, _oauth2_http_response_header_set_cookie_prefix_match,
+	    (void *)&ctx);
+	oauth2_debug(log, "on search for %s, return: %s", prefix, ctx.result);
+	return ctx.result;
+}
+
 bool oauth2_http_response_cookie_set(oauth2_log_t *log,
 				     oauth2_http_response_t *response,
 				     const char *name, const char *value,

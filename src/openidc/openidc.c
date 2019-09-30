@@ -71,7 +71,6 @@ static bool _oauth2_openidc_authenticate(oauth2_log_t *log,
 
 	// TODO: handle POST binding as well
 
-	*response = oauth2_http_response_init(log);
 	if (*response == NULL)
 		goto end;
 

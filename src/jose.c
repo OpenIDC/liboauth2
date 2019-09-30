@@ -991,7 +991,8 @@ _oauth2_jose_jwt_validate_iat(oauth2_log_t *log, const json_t *json_payload,
 	oauth2_time_t now;
 
 	oauth2_debug(log,
-		     "enter: validate=%s, slack_before=%lu, slack_after=%lu",
+		     "enter: validate=%s, slack_before=" OAUTH2_UINT_FORMAT
+		     ", slack_after=" OAUTH2_UINT_FORMAT,
 		     _oauth2_validate_claim_option2s(validate), slack_before,
 		     slack_after);
 

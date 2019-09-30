@@ -109,6 +109,8 @@ bool oauth2_http_response_header_set(oauth2_log_t *log,
 const char *oauth2_http_response_header_get(oauth2_log_t *log,
 					    oauth2_http_response_t *response,
 					    const char *name);
+const char *oauth2_http_response_header_set_cookie_prefix_get(
+    oauth2_log_t *log, oauth2_http_response_t *response, const char *prefix);
 bool oauth2_http_response_cookie_set(oauth2_log_t *log,
 				     oauth2_http_response_t *response,
 				     const char *name, const char *value,

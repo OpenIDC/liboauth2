@@ -101,13 +101,19 @@ _oauth2_openidc_provider_metadata_parse(oauth2_log_t *log, const char *s_json,
 	rv = oauth2_cfg_endpoint_auth_add_options(log, p->token_endpoint_auth,
 						  token_endpoint_auth, params);
 	oauth2_nv_list_free(log, params);
-	if (rv != NULL)
+	if (rv != NULL) {
+		oauth2_mem_free(rv);
 		goto end;
+	}
 
 	rc = true;
 
 end:
 
+	if ((rc == false) && (*provider)) {
+		oauth2_openidc_provider_free(log, *provider);
+		*provider = NULL;
+	}
 	if (token_endpoint_auth)
 		oauth2_mem_free(token_endpoint_auth);
 	if (json)
@@ -289,7 +295,7 @@ end:
 	return rc;
 }
 
-char *_oauth2_cfg_openidc_provider_resolver_string_set_options(
+static char *_oauth2_cfg_openidc_provider_resolver_string_set_options(
     oauth2_log_t *log, const char *value, const oauth2_nv_list_t *params,
     void *c)
 {
@@ -328,6 +334,11 @@ char *oauth2_cfg_openidc_provider_resolver_set_options(
     oauth2_log_t *log, oauth2_cfg_openidc_t *cfg, const char *type,
     const char *value, const char *options)
 {
+	if (cfg->provider_resolver) {
+		oauth2_cfg_openidc_provider_resolver_free(
+		    log, cfg->provider_resolver);
+		cfg->provider_resolver = NULL;
+	}
 	return oauth2_cfg_set_options(log, cfg, type, value, options,
 				      _oauth2_cfg_resolver_options_set);
 }

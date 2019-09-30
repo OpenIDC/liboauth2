@@ -81,9 +81,14 @@ OAUTH2_TYPE_DECLARE(openidc, provider)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, issuer, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, authorization_endpoint,
 				   char *)
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, token_endpoint, char *)
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, token_endpoint_auth,
+				   oauth2_cfg_endpoint_auth_t *)
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, jwks_uri, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, scope, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, client_id, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, client_secret, char *)
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, ssl_verify, bool)
 
 bool oauth2_cfg_openidc_provider_resolver_set(
     oauth2_log_t *log, oauth2_cfg_openidc_t *cfg,
