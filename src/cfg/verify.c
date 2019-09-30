@@ -63,7 +63,7 @@ oauth2_cfg_token_verify_t *oauth2_cfg_token_verify_init(oauth2_log_t *log)
 		sizeof(oauth2_cfg_token_verify_t));
 	verify->ctx = NULL;
 	verify->callback = NULL;
-	verify->cache = oauth2_cfg_cache_init(log);
+	verify->cache = NULL;
 	verify->next = NULL;
 	return verify;
 }
@@ -116,6 +116,7 @@ _oauth2_cfg_token_verify_add(oauth2_log_t *log,
 	if (v == NULL)
 		goto end;
 
+	v->cache = oauth2_cfg_cache_init(log);
 	v->callback = NULL;
 	v->ctx = oauth2_cfg_ctx_init(log);
 	if (v->ctx == NULL)

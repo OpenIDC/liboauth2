@@ -32,4 +32,8 @@
 _OAUTH_CFG_CTX_CALLBACK(oauth2_verify_options_set_introspect_url);
 _OAUTH_CFG_CTX_CALLBACK(oauth2_verify_options_set_metadata_url);
 
+bool oauth2_auth_basic(oauth2_log_t *log, oauth2_http_call_ctx_t *ctx,
+		       oauth2_cfg_endpoint_auth_t *auth,
+		       oauth2_nv_list_t *params);
+
 #endif /* _OAUTH2_INT_H_ */

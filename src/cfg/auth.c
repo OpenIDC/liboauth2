@@ -308,6 +308,12 @@ static char *oauth2_cfg_endpoint_auth_private_key_jwt_options_set(
 
 	err.code = CJOSE_ERR_NONE;
 	jwk = oauth2_nv_list_get(log, params, "jwk");
+	if (jwk == NULL) {
+		rv = oauth2_stradd(NULL, "jwk", " must be set for ",
+				   OAUTH2_ENDPOINT_AUTH_PRIVATE_KEY_JWT_STR);
+		goto end;
+	}
+
 	auth->private_key_jwt.jwk = cjose_jwk_import(jwk, strlen(jwk), &err);
 	if (auth->private_key_jwt.jwk == NULL) {
 		rv = oauth2_stradd(NULL, "parsing JWK failed: ",
