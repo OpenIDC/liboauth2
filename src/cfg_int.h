@@ -26,6 +26,7 @@
 #include "oauth2/cfg.h"
 #include "oauth2/oauth2.h"
 #include "oauth2/openidc.h"
+#include "oauth2/session.h"
 
 #include <cjose/cjose.h>
 
@@ -167,6 +168,45 @@ char *oauth2_cfg_set_options(oauth2_log_t *log, void *cfg, const char *type,
 			     const oauth2_cfg_set_options_ctx_t *set);
 
 /*
+ * session
+ */
+
+typedef bool(oauth2_session_load_callback_t)(oauth2_log_t *log,
+					     const oauth2_cfg_session_t *cfg,
+					     oauth2_http_request_t *request,
+					     json_t **json);
+typedef bool(oauth2_session_save_callback_t)(
+    oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
+    const oauth2_http_request_t *request, oauth2_http_response_t *response,
+    json_t *json);
+
+bool oauth2_session_load_cookie(oauth2_log_t *log,
+				const oauth2_cfg_session_t *cfg,
+				oauth2_http_request_t *request, json_t **json);
+bool oauth2_session_save_cookie(oauth2_log_t *log,
+				const oauth2_cfg_session_t *cfg,
+				const oauth2_http_request_t *request,
+				oauth2_http_response_t *response, json_t *json);
+bool oauth2_session_load_cache(oauth2_log_t *log,
+			       const oauth2_cfg_session_t *cfg,
+			       oauth2_http_request_t *request, json_t **json);
+bool oauth2_session_save_cache(oauth2_log_t *log,
+			       const oauth2_cfg_session_t *cfg,
+			       const oauth2_http_request_t *request,
+			       oauth2_http_response_t *response, json_t *json);
+
+typedef struct oauth2_cfg_session_t {
+	oauth2_cfg_session_type_t type;
+	char *cookie_name;
+	oauth2_uint_t inactivity_timeout_s;
+	oauth2_uint_t expiry_s;
+	oauth2_cfg_cache_t *cache;
+	char *passphrase;
+	oauth2_session_load_callback_t *load_callback;
+	oauth2_session_save_callback_t *save_callback;
+} oauth2_cfg_session_t;
+
+/*
  * openidc
  */
 
@@ -188,6 +228,7 @@ typedef struct oauth2_cfg_openidc_t {
 	oauth2_unauth_action_t unauth_action;
 	char *state_cookie_name_prefix;
 	char *passphrase;
+	oauth2_cfg_session_t *session;
 } oauth2_cfg_openidc_t;
 
 #define OAUTH2_OPENIDC_STATE_COOKIE_NAME_PREFIX_DEFAULT "openidc_state_"

@@ -24,6 +24,7 @@
 #include "oauth2/mem.h"
 #include "oauth2/util.h"
 
+#include "cfg_int.h"
 #include "util_int.h"
 
 typedef struct oauth2_session_rec_t {
@@ -31,7 +32,7 @@ typedef struct oauth2_session_rec_t {
 	json_t *id_token_claims;
 } oauth2_session_rec_t;
 
-static oauth2_session_rec_t *oauth2_session_rec_init(oauth2_log_t *log)
+oauth2_session_rec_t *oauth2_session_rec_init(oauth2_log_t *log)
 {
 	oauth2_session_rec_t *s = (oauth2_session_rec_t *)oauth2_mem_alloc(
 	    sizeof(oauth2_session_rec_t));
@@ -64,18 +65,87 @@ bool oauth2_session_rec_id_token_claims_set(oauth2_log_t *log,
 	return true;
 }
 
-#define OAUTH_SESSION_COOKIE_NAME_DEFAULT "openidc_session"
-
 #define OAUTH_SESSION_KEY_USER "u"
 #define OAUTH_SESSION_ID_TOKEN_CLAIMS "i"
 
-bool oauth2_session_load(oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg,
+bool oauth2_session_load_cookie(oauth2_log_t *log,
+				const oauth2_cfg_session_t *cfg,
+				oauth2_http_request_t *request, json_t **json)
+{
+	bool rc = false;
+	const char *name = NULL;
+	char *value = NULL;
+
+	name = oauth2_cfg_session_cookie_name_get(log, cfg);
+
+	value = oauth2_http_request_cookie_get(log, request, name, true);
+	if (value == NULL) {
+		oauth2_debug(log, "no session cookie found");
+		rc = true;
+		goto end;
+	}
+
+	rc = oauth2_jose_jwt_decrypt(
+	    log, oauth2_cfg_session_passphrase_get(log, cfg), value, json);
+
+end:
+
+	if (value)
+		oauth2_mem_free(value);
+
+	return rc;
+}
+
+bool oauth2_session_save_cookie(oauth2_log_t *log,
+				const oauth2_cfg_session_t *cfg,
+				const oauth2_http_request_t *request,
+				oauth2_http_response_t *response, json_t *json)
+{
+	bool rc = false;
+	const char *name = NULL;
+	char *value = NULL;
+
+	if (oauth2_jose_jwt_encrypt(log,
+				    oauth2_cfg_session_passphrase_get(log, cfg),
+				    json, &value) == false)
+		goto end;
+
+	name = oauth2_cfg_session_cookie_name_get(log, cfg);
+
+	// TODO: get cookie path from config
+	rc = oauth2_http_response_cookie_set(log, response, name, value, "/");
+
+end:
+
+	if (value)
+		oauth2_mem_free(value);
+
+	return rc;
+}
+
+bool oauth2_session_load_cache(oauth2_log_t *log,
+			       const oauth2_cfg_session_t *cfg,
+			       oauth2_http_request_t *request, json_t **json)
+{
+	return false;
+}
+
+bool oauth2_session_save_cache(oauth2_log_t *log,
+			       const oauth2_cfg_session_t *cfg,
+			       const oauth2_http_request_t *request,
+			       oauth2_http_response_t *response, json_t *json)
+{
+	return false;
+}
+
+bool oauth2_session_load(oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
 			 oauth2_http_request_t *request,
 			 oauth2_session_rec_t **session)
 {
 	bool rc = false;
-	char *name = NULL, *value = NULL;
 	json_t *json = NULL;
+
+	oauth2_debug(log, "enter");
 
 	if (session == NULL)
 		goto end;
@@ -85,19 +155,14 @@ bool oauth2_session_load(oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg,
 	if (*session == NULL)
 		goto end;
 
-	// TODO: get cookie name from config
-	name = OAUTH_SESSION_COOKIE_NAME_DEFAULT;
-
-	value = oauth2_http_request_cookie_get(log, request, name, true);
-	if (value == NULL) {
-		oauth2_debug(log, "no session cookie found");
-		rc = true;
+	if ((cfg == NULL) || (cfg->load_callback == NULL)) {
+		oauth2_error(log, "session configuration not defined");
 		goto end;
 	}
 
-	if (oauth2_jose_jwt_decrypt(log,
-				    oauth2_cfg_openidc_passphrase_get(log, cfg),
-				    value, &json) == false)
+	rc = cfg->load_callback(log, cfg, request, &json);
+
+	if ((rc == false) || (json == NULL))
 		goto end;
 
 	if (oauth2_json_string_get(log, json, OAUTH_SESSION_KEY_USER,
@@ -108,26 +173,23 @@ bool oauth2_session_load(oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg,
 				   &(*session)->id_token_claims) == false)
 		goto end;
 
-	rc = true;
-
 end:
 
-	if (value)
-		oauth2_mem_free(value);
 	if (json)
 		json_decref(json);
+
+	oauth2_debug(log, "return: %d", rc);
 
 	return rc;
 }
 
-bool oauth2_session_save(oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg,
+bool oauth2_session_save(oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
 			 const oauth2_http_request_t *request,
 			 oauth2_http_response_t *response,
 			 oauth2_session_rec_t *session)
 {
 	bool rc = false;
 	json_t *json = NULL;
-	char *name = NULL, *value = NULL;
 
 	if (session == NULL)
 		goto end;
@@ -144,21 +206,10 @@ bool oauth2_session_save(oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg,
 		json_object_set(json, OAUTH_SESSION_ID_TOKEN_CLAIMS,
 				session->id_token_claims);
 
-	if (oauth2_jose_jwt_encrypt(log,
-				    oauth2_cfg_openidc_passphrase_get(log, cfg),
-				    json, &value) == false)
-		goto end;
-
-	// TODO: get cookie name from config
-	name = OAUTH_SESSION_COOKIE_NAME_DEFAULT;
-
-	// TODO: get cookie path from config
-	rc = oauth2_http_response_cookie_set(log, response, name, value, "/");
+	rc = cfg->save_callback(log, cfg, request, response, json);
 
 end:
 
-	if (value)
-		oauth2_mem_free(value);
 	if (json)
 		json_decref(json);
 

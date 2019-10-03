@@ -339,6 +339,16 @@ char *oauth2_cfg_openidc_provider_resolver_set_options(
 		    log, cfg->provider_resolver);
 		cfg->provider_resolver = NULL;
 	}
+
+	if (cfg->session) {
+		oauth2_cfg_session_free(log, cfg->session);
+		cfg->session = NULL;
+	}
+
+	// TODO: separate out into session
+	cfg->session = oauth2_cfg_session_init(log);
+	oauth2_cfg_session_set_options(log, cfg->session, "cookie", NULL);
+
 	return oauth2_cfg_set_options(log, cfg, type, value, options,
 				      _oauth2_cfg_resolver_options_set);
 }

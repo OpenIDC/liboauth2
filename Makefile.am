@@ -63,6 +63,7 @@ liboauth2_la_SOURCES = \
 	src/cfg/verify.c \
 	src/cfg/target.c \
 	src/cfg/openidc_cfg.c \
+	src/cfg/session_cfg.c \
 	src/ipc.c \
 	src/cache_int.h \
 	src/cache/shm.c \

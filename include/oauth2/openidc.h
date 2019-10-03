@@ -30,6 +30,7 @@
 
 #define OAUTH2_CLAIM_ISS "iss"
 
+OAUTH2_CFG_TYPE_DECLARE(cfg, session)
 OAUTH2_CFG_TYPE_DECLARE(cfg, openidc_provider_resolver)
 
 /*
@@ -45,6 +46,8 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, unauth_action,
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, state_cookie_name_prefix,
 				   char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, passphrase, char *)
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, session,
+				   oauth2_cfg_session_t *)
 
 char *oauth2_cfg_openidc_redirect_uri_get(oauth2_log_t *,
 					  const oauth2_cfg_openidc_t *,

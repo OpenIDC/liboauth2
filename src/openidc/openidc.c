@@ -24,6 +24,7 @@
 #include "oauth2/oauth2.h"
 #include "oauth2/session.h"
 
+#include "cfg_int.h"
 #include "openidc_int.h"
 
 static bool _oauth2_openidc_authenticate(oauth2_log_t *log,
@@ -378,7 +379,7 @@ static bool _oauth2_openidc_redirect_uri_handler(
 	    log, session, json_string_value(json_object_get(id_token, "sub")));
 	oauth2_session_rec_id_token_claims_set(log, session, id_token);
 
-	oauth2_session_save(log, cfg, request, *response, session);
+	oauth2_session_save(log, cfg->session, request, *response, session);
 
 	// redirect to where we wanted to go originally
 	if (oauth2_openidc_proto_state_target_link_uri_get(log, proto_state,
@@ -493,7 +494,7 @@ bool oauth2_openidc_handle(oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg,
 			 ? oauth2_http_request_query_get(log, request)
 			 : "");
 
-	if (oauth2_session_load(log, cfg, request, &session) == false)
+	if (oauth2_session_load(log, cfg->session, request, &session) == false)
 		goto end;
 
 	rc = _oauth2_openidc_internal_requests(log, cfg, request, session,

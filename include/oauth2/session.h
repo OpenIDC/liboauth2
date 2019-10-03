@@ -25,18 +25,36 @@
 #include "oauth2/openidc.h"
 #include "oauth2/util.h"
 
-typedef struct oauth2_session_rec_t oauth2_session_rec_t;
+// TODO: this can/should be internal I guess
+typedef enum oauth2_cfg_session_type_t {
+	OAUTH2_SESSION_TYPE_COOKIE,
+	OAUTH2_SESSION_TYPE_CACHE
+} oauth2_cfg_session_type_t;
+
+OAUTH2_CFG_TYPE_DECLARE(cfg, session)
+OAUTH2_TYPE_DECLARE_MEMBER_GET(cfg, session, cookie_name, char *)
+OAUTH2_TYPE_DECLARE_MEMBER_GET(cfg, session, passphrase, char *)
+OAUTH2_TYPE_DECLARE_MEMBER_GET(cfg, session, inactivity_timeout_s,
+			       oauth2_uint_t)
+OAUTH2_TYPE_DECLARE_MEMBER_GET(cfg, session, expiry_s, oauth2_uint_t)
+
+char *oauth2_cfg_session_set_options(oauth2_log_t *log,
+				     oauth2_cfg_session_t *cfg,
+				     const char *type, const char *options);
+
+OAUTH2_TYPE_DECLARE(session, rec);
 
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(session, rec, user, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_GET(session, rec, id_token_claims, json_t *)
+
 bool oauth2_session_rec_id_token_claims_set(oauth2_log_t *log,
 					    oauth2_session_rec_t *session,
 					    json_t *id_token);
 
-bool oauth2_session_load(oauth2_log_t *log, const oauth2_cfg_openidc_t *c,
+bool oauth2_session_load(oauth2_log_t *log, const oauth2_cfg_session_t *c,
 			 oauth2_http_request_t *r,
 			 oauth2_session_rec_t **session);
-bool oauth2_session_save(oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg,
+bool oauth2_session_save(oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
 			 const oauth2_http_request_t *request,
 			 oauth2_http_response_t *response,
 			 oauth2_session_rec_t *session);
