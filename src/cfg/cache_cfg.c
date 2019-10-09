@@ -37,9 +37,16 @@ oauth2_cfg_cache_t *oauth2_cfg_cache_clone(oauth2_log_t *log,
 					   oauth2_cfg_cache_t *src)
 {
 	oauth2_cfg_cache_t *dst = NULL;
+
+	if (src == NULL)
+		goto end;
+
 	dst = oauth2_cfg_cache_init(log);
 	dst->cache = oauth2_cache_clone(log, src->cache);
 	dst->expiry_s = src->expiry_s;
+
+end:
+
 	return dst;
 }
 

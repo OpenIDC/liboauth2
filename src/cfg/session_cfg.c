@@ -40,12 +40,18 @@ oauth2_cfg_session_t *oauth2_cfg_session_clone(oauth2_log_t *log,
 					       oauth2_cfg_session_t *src)
 {
 	oauth2_cfg_session_t *dst = NULL;
+
+	if (src == NULL)
+		goto end;
+
 	dst = oauth2_cfg_session_init(log);
 	dst->type = src->type;
 	dst->cookie_name = oauth2_strdup(src->cookie_name);
 	dst->inactivity_timeout_s = src->inactivity_timeout_s;
 	dst->expiry_s = src->expiry_s;
 	dst->cache = oauth2_cfg_cache_clone(log, src->cache);
+
+end:
 	return dst;
 }
 
