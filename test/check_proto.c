@@ -25,16 +25,16 @@
 #include <check.h>
 #include <stdlib.h>
 
-static oauth2_log_t *log = 0;
+static oauth2_log_t *_log = 0;
 
 static void setup(void)
 {
-	log = oauth2_log_init(OAUTH2_LOG_TRACE1, 0);
+	_log = oauth2_log_init(OAUTH2_LOG_TRACE1, 0);
 }
 
 static void teardown(void)
 {
-	oauth2_log_free(log);
+	oauth2_log_free(_log);
 }
 
 static const char *my_token_name = "access_token";
@@ -58,8 +58,8 @@ static bool _oauth2_check_proto_env_set_cb(oauth2_log_t *log, void *ctx,
 static bool _oauth2_check_proto_read_form_post(oauth2_log_t *log, void *ctx,
 					       oauth2_nv_list_t **params)
 {
-	*params = oauth2_nv_list_init(log);
-	oauth2_nv_list_add(log, *params, my_token_name, my_post_token);
+	*params = oauth2_nv_list_init(_log);
+	oauth2_nv_list_add(_log, *params, my_token_name, my_post_token);
 	return true;
 }
 
@@ -73,18 +73,18 @@ START_TEST(test_proto_get_source_token_environment)
 	oauth2_cfg_source_token_t *cfg = NULL;
 	oauth2_http_request_t *request = NULL;
 
-	request = oauth2_http_request_init(log);
+	request = oauth2_http_request_init(_log);
 
-	cfg = oauth2_cfg_source_token_init(log);
+	cfg = oauth2_cfg_source_token_init(_log);
 	ck_assert_ptr_ne(cfg, NULL);
-	token = oauth2_get_source_token(log, cfg, request,
+	token = oauth2_get_source_token(_log, cfg, request,
 					&_oauth2_check_proto_callbacks, NULL);
 	ck_assert_ptr_ne(token, NULL);
 	ck_assert_str_eq(token, my_env_var_token);
 	oauth2_mem_free(token);
-	oauth2_cfg_source_token_free(log, cfg);
+	oauth2_cfg_source_token_free(_log, cfg);
 
-	oauth2_http_request_free(log, request);
+	oauth2_http_request_free(_log, request);
 }
 END_TEST
 
@@ -95,22 +95,22 @@ START_TEST(test_proto_get_source_token_header)
 	oauth2_cfg_source_token_t *cfg = NULL;
 	oauth2_http_request_t *request = NULL;
 
-	request = oauth2_http_request_init(log);
+	request = oauth2_http_request_init(_log);
 
-	cfg = oauth2_cfg_source_token_init(log);
+	cfg = oauth2_cfg_source_token_init(_log);
 	ck_assert_ptr_ne(cfg, NULL);
-	rv = oauth2_cfg_source_token_set_accept_in(log, cfg, "header", NULL);
+	rv = oauth2_cfg_source_token_set_accept_in(_log, cfg, "header", NULL);
 	ck_assert_ptr_eq(rv, NULL);
-	oauth2_http_request_header_set(log, request, "Authorization",
+	oauth2_http_request_header_set(_log, request, "Authorization",
 				       "bearer my_header_token");
-	token = oauth2_get_source_token(log, cfg, request,
+	token = oauth2_get_source_token(_log, cfg, request,
 					&_oauth2_check_proto_callbacks, NULL);
 	ck_assert_ptr_ne(token, NULL);
 	ck_assert_str_eq(token, "my_header_token");
 	oauth2_mem_free(token);
-	oauth2_cfg_source_token_free(log, cfg);
+	oauth2_cfg_source_token_free(_log, cfg);
 
-	oauth2_http_request_free(log, request);
+	oauth2_http_request_free(_log, request);
 }
 END_TEST
 
@@ -121,22 +121,22 @@ START_TEST(test_proto_get_source_token_query)
 	oauth2_cfg_source_token_t *cfg = NULL;
 	oauth2_http_request_t *request = NULL;
 
-	request = oauth2_http_request_init(log);
+	request = oauth2_http_request_init(_log);
 
-	cfg = oauth2_cfg_source_token_init(log);
+	cfg = oauth2_cfg_source_token_init(_log);
 	ck_assert_ptr_ne(cfg, NULL);
-	rv = oauth2_cfg_source_token_set_accept_in(log, cfg, "query", NULL);
+	rv = oauth2_cfg_source_token_set_accept_in(_log, cfg, "query", NULL);
 	ck_assert_ptr_eq(rv, NULL);
-	oauth2_http_request_query_set(log, request,
+	oauth2_http_request_query_set(_log, request,
 				      "access_token=my_query_token");
-	token = oauth2_get_source_token(log, cfg, request,
+	token = oauth2_get_source_token(_log, cfg, request,
 					&_oauth2_check_proto_callbacks, NULL);
 	ck_assert_ptr_ne(token, NULL);
 	ck_assert_str_eq(token, "my_query_token");
 	oauth2_mem_free(token);
-	oauth2_cfg_source_token_free(log, cfg);
+	oauth2_cfg_source_token_free(_log, cfg);
 
-	oauth2_http_request_free(log, request);
+	oauth2_http_request_free(_log, request);
 }
 END_TEST
 
@@ -147,22 +147,22 @@ START_TEST(test_proto_get_source_token_cookie)
 	oauth2_cfg_source_token_t *cfg = NULL;
 	oauth2_http_request_t *request = NULL;
 
-	request = oauth2_http_request_init(log);
+	request = oauth2_http_request_init(_log);
 
-	cfg = oauth2_cfg_source_token_init(log);
+	cfg = oauth2_cfg_source_token_init(_log);
 	ck_assert_ptr_ne(cfg, NULL);
-	rv = oauth2_cfg_source_token_set_accept_in(log, cfg, "cookie", NULL);
+	rv = oauth2_cfg_source_token_set_accept_in(_log, cfg, "cookie", NULL);
 	ck_assert_ptr_eq(rv, NULL);
-	oauth2_http_request_cookie_set(log, request, "access_token",
+	oauth2_http_request_cookie_set(_log, request, "access_token",
 				       "my_cookie_token");
-	token = oauth2_get_source_token(log, cfg, request,
+	token = oauth2_get_source_token(_log, cfg, request,
 					&_oauth2_check_proto_callbacks, NULL);
 	ck_assert_ptr_ne(token, NULL);
 	ck_assert_str_eq(token, "my_cookie_token");
 	oauth2_mem_free(token);
-	oauth2_cfg_source_token_free(log, cfg);
+	oauth2_cfg_source_token_free(_log, cfg);
 
-	oauth2_http_request_free(log, request);
+	oauth2_http_request_free(_log, request);
 }
 END_TEST
 
@@ -173,23 +173,23 @@ START_TEST(test_proto_get_source_token_post)
 	oauth2_cfg_source_token_t *cfg = NULL;
 	oauth2_http_request_t *request = NULL;
 
-	request = oauth2_http_request_init(log);
-	oauth2_http_request_method_set(log, request, OAUTH2_HTTP_METHOD_POST);
-	oauth2_http_request_header_set(log, request, "Content-Type",
+	request = oauth2_http_request_init(_log);
+	oauth2_http_request_method_set(_log, request, OAUTH2_HTTP_METHOD_POST);
+	oauth2_http_request_header_set(_log, request, "Content-Type",
 				       "application/x-www-form-urlencoded");
 
-	cfg = oauth2_cfg_source_token_init(log);
+	cfg = oauth2_cfg_source_token_init(_log);
 	ck_assert_ptr_ne(cfg, NULL);
-	rv = oauth2_cfg_source_token_set_accept_in(log, cfg, "post", NULL);
+	rv = oauth2_cfg_source_token_set_accept_in(_log, cfg, "post", NULL);
 	ck_assert_ptr_eq(rv, NULL);
-	token = oauth2_get_source_token(log, cfg, request,
+	token = oauth2_get_source_token(_log, cfg, request,
 					&_oauth2_check_proto_callbacks, NULL);
 	ck_assert_ptr_ne(token, NULL);
 	ck_assert_str_eq(token, my_post_token);
 	oauth2_mem_free(token);
-	oauth2_cfg_source_token_free(log, cfg);
+	oauth2_cfg_source_token_free(_log, cfg);
 
-	oauth2_http_request_free(log, request);
+	oauth2_http_request_free(_log, request);
 }
 END_TEST
 
@@ -200,22 +200,22 @@ START_TEST(test_proto_get_source_token_basic)
 	oauth2_cfg_source_token_t *cfg = NULL;
 	oauth2_http_request_t *request = NULL;
 
-	request = oauth2_http_request_init(log);
+	request = oauth2_http_request_init(_log);
 
-	cfg = oauth2_cfg_source_token_init(log);
+	cfg = oauth2_cfg_source_token_init(_log);
 	ck_assert_ptr_ne(cfg, NULL);
-	rv = oauth2_cfg_source_token_set_accept_in(log, cfg, "basic", NULL);
+	rv = oauth2_cfg_source_token_set_accept_in(_log, cfg, "basic", NULL);
 	ck_assert_ptr_eq(rv, NULL);
-	oauth2_http_request_header_set(log, request, "Authorization",
+	oauth2_http_request_header_set(_log, request, "Authorization",
 				       "Basic ZHVtbXk6bXlfYmFzaWNfdG9rZW4=");
-	token = oauth2_get_source_token(log, cfg, request,
+	token = oauth2_get_source_token(_log, cfg, request,
 					&_oauth2_check_proto_callbacks, NULL);
 	ck_assert_ptr_ne(token, NULL);
 	ck_assert_str_eq(token, "my_basic_token");
 	oauth2_mem_free(token);
-	oauth2_cfg_source_token_free(log, cfg);
+	oauth2_cfg_source_token_free(_log, cfg);
 
-	oauth2_http_request_free(log, request);
+	oauth2_http_request_free(_log, request);
 }
 END_TEST
 

@@ -28,7 +28,7 @@
 
 static apr_pool_t *pool = NULL;
 static request_rec *request = NULL;
-static oauth2_log_t *log = 0;
+static oauth2_log_t *_log = 0;
 
 static request_rec *setup_request(apr_pool_t *pool)
 {
@@ -115,12 +115,12 @@ static void check_apache_log_request(oauth2_log_sink_t *sink,
 				     const char *function,
 				     oauth2_log_level_t level, const char *msg)
 {
-	oauth2_log(log, filename, line, function, level, "%s", msg);
+	oauth2_log(_log, filename, line, function, level, "%s", msg);
 }
 
 static void setup(void)
 {
-	log = oauth2_init(OAUTH2_LOG_TRACE1, 0);
+	_log = oauth2_init(OAUTH2_LOG_TRACE1, 0);
 
 	apr_initialize();
 	apr_pool_create(&pool, NULL);
@@ -132,7 +132,7 @@ static void teardown(void)
 	apr_pool_destroy(pool);
 	apr_terminate();
 
-	oauth2_shutdown(log);
+	oauth2_shutdown(_log);
 }
 
 START_TEST(test_apache_request_state)
@@ -153,7 +153,7 @@ START_TEST(test_apache_request_state)
 	oauth2_apache_request_state_get_json(ctx, key, &out_claims);
 	ck_assert_ptr_ne(out_claims, NULL);
 
-	oauth2_json_string_get(log, out_claims, "sub", &value, NULL);
+	oauth2_json_string_get(_log, out_claims, "sub", &value, NULL);
 	ck_assert_ptr_ne(value, NULL);
 	ck_assert_str_eq(value, "joe");
 	oauth2_mem_free(value);
@@ -219,12 +219,12 @@ START_TEST(test_apache_http_response_set)
 	bool rc = false;
 	oauth2_http_response_t *response = NULL;
 
-	response = oauth2_http_response_init(log);
+	response = oauth2_http_response_init(_log);
 
-	rc = oauth2_apache_http_response_set(log, response, request);
+	rc = oauth2_apache_http_response_set(_log, response, request);
 	ck_assert_int_eq(rc, true);
 
-	oauth2_http_response_free(log, response);
+	oauth2_http_response_free(_log, response);
 }
 END_TEST
 

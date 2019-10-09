@@ -25,16 +25,16 @@
 #include <check.h>
 #include <stdlib.h>
 
-static oauth2_log_t *log = 0;
+static oauth2_log_t *_log = 0;
 
 static void setup(void)
 {
-	log = oauth2_init(OAUTH2_LOG_TRACE1, 0);
+	_log = oauth2_init(OAUTH2_LOG_TRACE1, 0);
 }
 
 static void teardown(void)
 {
-	oauth2_shutdown(log);
+	oauth2_shutdown(_log);
 }
 
 START_TEST(test_sema)
@@ -42,26 +42,26 @@ START_TEST(test_sema)
 	bool rc = false;
 	oauth2_ipc_sema_t *s = NULL;
 
-	s = oauth2_ipc_sema_init(log);
+	s = oauth2_ipc_sema_init(_log);
 	ck_assert_ptr_ne(s, NULL);
 
-	rc = oauth2_ipc_sema_post_config(log, s);
+	rc = oauth2_ipc_sema_post_config(_log, s);
 	ck_assert_int_eq(rc, true);
 
-	rc = oauth2_ipc_sema_post(log, s);
+	rc = oauth2_ipc_sema_post(_log, s);
 	ck_assert_int_eq(rc, true);
-	rc = oauth2_ipc_sema_post(log, s);
+	rc = oauth2_ipc_sema_post(_log, s);
 	ck_assert_int_eq(rc, true);
 
-	rc = oauth2_ipc_sema_wait(log, s);
+	rc = oauth2_ipc_sema_wait(_log, s);
 	ck_assert_int_eq(rc, true);
-	rc = oauth2_ipc_sema_wait(log, s);
+	rc = oauth2_ipc_sema_wait(_log, s);
 	ck_assert_int_eq(rc, true);
 	// TODO: check for timeout
-	// rc = oauth2_ipc_sema_wait(log, s);
+	// rc = oauth2_ipc_sema_wait(_log, s);
 	// ck_assert_int_eq(rc, true);
 
-	oauth2_ipc_sema_free(log, s);
+	oauth2_ipc_sema_free(_log, s);
 	s = NULL;
 }
 END_TEST
@@ -71,23 +71,23 @@ START_TEST(test_mutex)
 	bool rc = false;
 	oauth2_ipc_mutex_t *m = NULL;
 
-	m = oauth2_ipc_mutex_init(log);
+	m = oauth2_ipc_mutex_init(_log);
 	ck_assert_ptr_ne(m, NULL);
 
-	rc = oauth2_ipc_mutex_post_config(log, m);
+	rc = oauth2_ipc_mutex_post_config(_log, m);
 	ck_assert_int_eq(rc, true);
 
-	rc = oauth2_ipc_mutex_lock(log, m);
+	rc = oauth2_ipc_mutex_lock(_log, m);
 	ck_assert_int_eq(rc, true);
 
 	// TODO: check timeout
-	// rc = oauth2_ipc_mutex_lock(log, m);
+	// rc = oauth2_ipc_mutex_lock(_log, m);
 	// ck_assert_int_eq(rc, true);
 
-	rc = oauth2_ipc_mutex_unlock(log, m);
+	rc = oauth2_ipc_mutex_unlock(_log, m);
 	ck_assert_int_eq(rc, true);
 
-	oauth2_ipc_mutex_free(log, m);
+	oauth2_ipc_mutex_free(_log, m);
 	m = NULL;
 }
 END_TEST
@@ -98,16 +98,16 @@ START_TEST(test_shm)
 	oauth2_ipc_shm_t *shm = NULL;
 	void *ptr = NULL;
 
-	shm = oauth2_ipc_shm_init(log, 256);
+	shm = oauth2_ipc_shm_init(_log, 256);
 	ck_assert_ptr_ne(shm, NULL);
 
-	rc = oauth2_ipc_shm_post_config(log, shm);
+	rc = oauth2_ipc_shm_post_config(_log, shm);
 	ck_assert_int_eq(rc, true);
 
-	ptr = oauth2_ipc_shm_get(log, shm);
+	ptr = oauth2_ipc_shm_get(_log, shm);
 	ck_assert_ptr_ne(ptr, NULL);
 
-	oauth2_ipc_shm_free(log, shm);
+	oauth2_ipc_shm_free(_log, shm);
 	shm = NULL;
 }
 END_TEST

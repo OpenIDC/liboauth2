@@ -28,7 +28,7 @@
 #include "check_liboauth2.h"
 #include "jose_int.h"
 
-static oauth2_log_t *log = 0;
+static oauth2_log_t *_log = 0;
 
 static const char *secret1 = NULL;
 static const char *secret2 = NULL;
@@ -50,7 +50,7 @@ static const char *encrypted1_signed2_corrupt_payload = NULL;
 
 static void setup(void)
 {
-	log = oauth2_init(OAUTH2_LOG_TRACE1, 0);
+	_log = oauth2_init(OAUTH2_LOG_TRACE1, 0);
 
 	secret1 = "12345";
 	secret2 = "abcde";
@@ -111,7 +111,7 @@ static void teardown(void)
 {
 	json_decref(payload1);
 	json_decref(payload2);
-	oauth2_shutdown(log);
+	oauth2_shutdown(_log);
 }
 
 static void *faulty_alloc(size_t amt)
@@ -134,7 +134,7 @@ START_TEST(test_hash_bytes)
 
 	dst = NULL;
 	dst_len = 0;
-	rc = oauth2_jose_hash_bytes(log, OAUTH2_JOSE_OPENSSL_ALG_SHA256,
+	rc = oauth2_jose_hash_bytes(_log, OAUTH2_JOSE_OPENSSL_ALG_SHA256,
 				    (const unsigned char *)src, strlen(src),
 				    &dst, &dst_len);
 	ck_assert_int_eq(rc, true);
@@ -147,7 +147,7 @@ START_TEST(test_hash_bytes)
 	oauth2_mem_set_alloc_funcs(faulty_alloc, oauth2_mem_get_realloc(),
 				   oauth2_mem_get_dealloc());
 
-	rc = oauth2_jose_hash_bytes(log, OAUTH2_JOSE_OPENSSL_ALG_SHA256,
+	rc = oauth2_jose_hash_bytes(_log, OAUTH2_JOSE_OPENSSL_ALG_SHA256,
 				    (const unsigned char *)src, strlen(src),
 				    &dst, &dst_len);
 	ck_assert_int_eq(rc, false);
@@ -161,20 +161,20 @@ START_TEST(test_hash_bytes)
 
 	dst = NULL;
 	dst_len = 0;
-	rc = oauth2_jose_hash_bytes(log, "non-existing-digest",
+	rc = oauth2_jose_hash_bytes(_log, "non-existing-digest",
 				    (const unsigned char *)src, strlen(src),
 				    &dst, &dst_len);
 	ck_assert_int_eq(rc, false);
 	ck_assert_ptr_eq(dst, NULL);
 	ck_assert_int_eq(dst_len, 0);
 
-	rc = oauth2_jose_hash_bytes(log, OAUTH2_JOSE_OPENSSL_ALG_SHA256, NULL,
+	rc = oauth2_jose_hash_bytes(_log, OAUTH2_JOSE_OPENSSL_ALG_SHA256, NULL,
 				    0, &dst, &dst_len);
 	ck_assert_int_eq(rc, false);
 	ck_assert_ptr_eq(dst, NULL);
 	ck_assert_int_eq(dst_len, 0);
 
-	rc = oauth2_jose_hash_bytes(log, OAUTH2_JOSE_OPENSSL_ALG_SHA256, NULL,
+	rc = oauth2_jose_hash_bytes(_log, OAUTH2_JOSE_OPENSSL_ALG_SHA256, NULL,
 				    0, NULL, NULL);
 	ck_assert_int_eq(rc, false);
 }
@@ -186,26 +186,26 @@ START_TEST(test_jwk_create_symmetric)
 	const char *client_secret = "abc";
 	oauth2_jose_jwk_t *jwk = NULL;
 
-	rc = oauth2_jose_jwk_create_symmetric(log, client_secret, NULL, &jwk);
+	rc = oauth2_jose_jwk_create_symmetric(_log, client_secret, NULL, &jwk);
 	ck_assert_int_eq(rc, true);
 	oauth2_jose_jwk_release(jwk);
 
 	rc = oauth2_jose_jwk_create_symmetric(
-	    log, client_secret, OAUTH2_JOSE_OPENSSL_ALG_SHA256, &jwk);
+	    _log, client_secret, OAUTH2_JOSE_OPENSSL_ALG_SHA256, &jwk);
 	ck_assert_int_eq(rc, true);
 	oauth2_jose_jwk_release(jwk);
 
 	jwk = NULL;
 	rc = oauth2_jose_jwk_create_symmetric(
-	    log, NULL, OAUTH2_JOSE_OPENSSL_ALG_SHA256, &jwk);
+	    _log, NULL, OAUTH2_JOSE_OPENSSL_ALG_SHA256, &jwk);
 	ck_assert_int_eq(rc, false);
 	ck_assert_ptr_eq(jwk, NULL);
 
-	rc = oauth2_jose_jwk_create_symmetric(log, NULL, NULL, &jwk);
+	rc = oauth2_jose_jwk_create_symmetric(_log, NULL, NULL, &jwk);
 	ck_assert_int_eq(rc, false);
 	ck_assert_ptr_eq(jwk, NULL);
 
-	rc = oauth2_jose_jwk_create_symmetric(log, client_secret,
+	rc = oauth2_jose_jwk_create_symmetric(_log, client_secret,
 					      "bogus-algorithm", &jwk);
 	ck_assert_int_eq(rc, false);
 	ck_assert_ptr_eq(jwk, NULL);
@@ -217,7 +217,7 @@ START_TEST(test_jwt_encrypt)
 	bool rc;
 	char *cser = NULL;
 
-	rc = oauth2_jose_jwt_encrypt(log, secret1, payload1, &cser);
+	rc = oauth2_jose_jwt_encrypt(_log, secret1, payload1, &cser);
 
 	ck_assert_int_eq(rc, true);
 	// TODO: this fails intermittently in docker-valgrind (only on first
@@ -227,22 +227,22 @@ START_TEST(test_jwt_encrypt)
 	oauth2_mem_free(cser);
 	cser = NULL;
 
-	rc = oauth2_jose_jwt_encrypt(log, secret2, payload2, &cser);
+	rc = oauth2_jose_jwt_encrypt(_log, secret2, payload2, &cser);
 	ck_assert_int_eq(rc, true);
 	ck_assert(strncmp(cser, serialized_hdr, strlen(serialized_hdr)) == 0);
 
 	oauth2_mem_free(cser);
 	cser = NULL;
 
-	rc = oauth2_jose_jwt_encrypt(log, NULL, payload1, &cser);
+	rc = oauth2_jose_jwt_encrypt(_log, NULL, payload1, &cser);
 	ck_assert_int_eq(rc, false);
 	ck_assert_ptr_eq(cser, NULL);
 
-	rc = oauth2_jose_jwt_encrypt(log, secret1, NULL, &cser);
+	rc = oauth2_jose_jwt_encrypt(_log, secret1, NULL, &cser);
 	ck_assert_int_eq(rc, false);
 	ck_assert_ptr_eq(cser, NULL);
 
-	rc = oauth2_jose_jwt_encrypt(log, secret1, payload1, NULL);
+	rc = oauth2_jose_jwt_encrypt(_log, secret1, payload1, NULL);
 	ck_assert_int_eq(rc, false);
 }
 END_TEST
@@ -253,7 +253,7 @@ START_TEST(test_jwt_decrypt)
 	char *cser = NULL;
 	json_t *result = NULL;
 
-	rc = oauth2_jose_jwt_decrypt(log, secret1, encrypted1, &result);
+	rc = oauth2_jose_jwt_decrypt(_log, secret1, encrypted1, &result);
 	ck_assert_int_eq(rc, true);
 	ck_assert_ptr_ne(result, NULL);
 
@@ -264,43 +264,44 @@ START_TEST(test_jwt_decrypt)
 	json_decref(result);
 
 	result = NULL;
-	rc = oauth2_jose_jwt_decrypt(log, secret1, encrypted1_corrupt_tag,
+	rc = oauth2_jose_jwt_decrypt(_log, secret1, encrypted1_corrupt_tag,
 				     &result);
 	ck_assert_int_eq(rc, false);
 	ck_assert_ptr_eq(result, NULL);
 
-	rc = oauth2_jose_jwt_decrypt(log, secret1, encrypted1_signed2, &result);
+	rc =
+	    oauth2_jose_jwt_decrypt(_log, secret1, encrypted1_signed2, &result);
 	ck_assert_int_eq(rc, false);
 	ck_assert_ptr_eq(result, NULL);
 
-	rc = oauth2_jose_jwt_decrypt(log, secret1,
+	rc = oauth2_jose_jwt_decrypt(_log, secret1,
 				     encrypted1_signed2_corrupt_sig, &result);
 	ck_assert_int_eq(rc, false);
 	ck_assert_ptr_eq(result, NULL);
 
-	rc = oauth2_jose_jwt_decrypt(log, secret1,
+	rc = oauth2_jose_jwt_decrypt(_log, secret1,
 				     encrypted1_signed2_corrupt_hdr, &result);
 	ck_assert_int_eq(rc, false);
 	ck_assert_ptr_eq(result, NULL);
 
 	rc = oauth2_jose_jwt_decrypt(
-	    log, secret1, encrypted1_signed2_corrupt_payload, &result);
+	    _log, secret1, encrypted1_signed2_corrupt_payload, &result);
 	ck_assert_int_eq(rc, false);
 	ck_assert_ptr_eq(result, NULL);
 
-	rc = oauth2_jose_jwt_decrypt(log, secret2, encrypted1, &result);
+	rc = oauth2_jose_jwt_decrypt(_log, secret2, encrypted1, &result);
 	ck_assert_int_eq(rc, false);
 	ck_assert_ptr_eq(result, NULL);
 
-	rc = oauth2_jose_jwt_decrypt(log, NULL, encrypted1, &result);
+	rc = oauth2_jose_jwt_decrypt(_log, NULL, encrypted1, &result);
 	ck_assert_int_eq(rc, false);
 	ck_assert_ptr_eq(result, NULL);
 
-	rc = oauth2_jose_jwt_decrypt(log, secret1, NULL, &result);
+	rc = oauth2_jose_jwt_decrypt(_log, secret1, NULL, &result);
 	ck_assert_int_eq(rc, false);
 	ck_assert_ptr_eq(result, NULL);
 
-	rc = oauth2_jose_jwt_decrypt(log, secret1, encrypted1, NULL);
+	rc = oauth2_jose_jwt_decrypt(_log, secret1, encrypted1, NULL);
 	ck_assert_int_eq(rc, false);
 }
 END_TEST
@@ -357,17 +358,17 @@ START_TEST(test_jwks_resolve_uri)
 
 	url = oauth2_stradd(NULL, oauth2_check_http_base_url(), jwks_uri_path,
 			    NULL);
-	rv = oauth2_cfg_token_verify_add_options(log, &verify, "jwks_uri", url,
+	rv = oauth2_cfg_token_verify_add_options(_log, &verify, "jwks_uri", url,
 						 "ssl_verify=false");
 	ck_assert_ptr_eq(rv, NULL);
 
 	ptr = (oauth2_jose_jwt_verify_ctx_t *)verify->ctx->ptr;
-	list = ptr->jwks_provider->resolve(log, ptr->jwks_provider, &refresh);
+	list = ptr->jwks_provider->resolve(_log, ptr->jwks_provider, &refresh);
 	ck_assert_ptr_ne(list, NULL);
 
-	oauth2_jose_jwk_list_free(log, list);
+	oauth2_jose_jwk_list_free(_log, list);
 	oauth2_mem_free(url);
-	oauth2_cfg_token_verify_free(log, verify);
+	oauth2_cfg_token_verify_free(_log, verify);
 }
 END_TEST
 
@@ -379,16 +380,16 @@ START_TEST(test_jwk_resolve_plain)
 	bool refresh = false;
 	oauth2_jose_jwt_verify_ctx_t *ptr = NULL;
 
-	rv = oauth2_cfg_token_verify_add_options(log, &verify, "plain",
+	rv = oauth2_cfg_token_verify_add_options(_log, &verify, "plain",
 						 "mysecret", "kid=mykid");
 	ck_assert_ptr_eq(rv, NULL);
 
 	ptr = (oauth2_jose_jwt_verify_ctx_t *)verify->ctx->ptr;
-	list = ptr->jwks_provider->resolve(log, ptr->jwks_provider, &refresh);
+	list = ptr->jwks_provider->resolve(_log, ptr->jwks_provider, &refresh);
 	ck_assert_ptr_ne(list, NULL);
 
-	oauth2_jose_jwk_list_free(log, list);
-	oauth2_cfg_token_verify_free(log, verify);
+	oauth2_jose_jwk_list_free(_log, list);
+	oauth2_cfg_token_verify_free(_log, verify);
 }
 END_TEST
 

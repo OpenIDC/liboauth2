@@ -31,18 +31,18 @@
 #include <check.h>
 #include <stdlib.h>
 
-static oauth2_log_t *log = 0;
+static oauth2_log_t *_log = 0;
 
 static char *_openidc_metadata = NULL;
 
 static void setup(void)
 {
-	log = oauth2_init(OAUTH2_LOG_TRACE1, 0);
+	_log = oauth2_init(OAUTH2_LOG_TRACE1, 0);
 }
 
 static void teardown(void)
 {
-	oauth2_shutdown(log);
+	oauth2_shutdown(_log);
 }
 
 static char *jwk_rsa_str =
@@ -138,7 +138,7 @@ _oauth2_check_openidc_idtoken_create(oauth2_log_t *log, cjose_jwk_t *jwk,
 	const char *jwt = NULL;
 	cjose_err err;
 
-	oauth2_debug(log, "## enter");
+	oauth2_debug(_log, "## enter");
 
 	json = json_object();
 	json_object_set_new(json, OAUTH2_JOSE_JWT_ISS, json_string(client_id));
@@ -152,17 +152,17 @@ _oauth2_check_openidc_idtoken_create(oauth2_log_t *log, cjose_jwk_t *jwk,
 
 	hdr = cjose_header_new(&err);
 	if (hdr == NULL) {
-		oauth2_error(log, "cjose_header_new failed: %s", err.message);
+		oauth2_error(_log, "cjose_header_new failed: %s", err.message);
 		goto end;
 	}
 	if (cjose_header_set(hdr, CJOSE_HDR_ALG, alg, &err) == false) {
-		oauth2_error(log, "cjose_header_set %s:%s failed: %s",
+		oauth2_error(_log, "cjose_header_set %s:%s failed: %s",
 			     CJOSE_HDR_ALG, alg, err.message);
 		goto end;
 	}
 	if (cjose_header_set(hdr, OAUTH2_JOSE_HDR_TYP, OAUTH2_JOSE_HDR_TYP_JWT,
 			     &err) == false) {
-		oauth2_error(log, "cjose_header_set %s:%s failed: %s",
+		oauth2_error(_log, "cjose_header_set %s:%s failed: %s",
 			     OAUTH2_JOSE_HDR_TYP, OAUTH2_JOSE_HDR_TYP_JWT,
 			     err.message);
 		goto end;
@@ -171,12 +171,12 @@ _oauth2_check_openidc_idtoken_create(oauth2_log_t *log, cjose_jwk_t *jwk,
 	jws = cjose_jws_sign(jwk, hdr, (const uint8_t *)payload,
 			     strlen(payload), &err);
 	if (jws == NULL) {
-		oauth2_error(log, "cjose_jws_sign failed: %s", err.message);
+		oauth2_error(_log, "cjose_jws_sign failed: %s", err.message);
 		goto end;
 	}
 
 	if (cjose_jws_export(jws, &jwt, &err) == false) {
-		oauth2_error(log, "cjose_jws_export failed: %s", err.message);
+		oauth2_error(_log, "cjose_jws_export failed: %s", err.message);
 		goto end;
 	}
 
@@ -195,7 +195,7 @@ end:
 	if (jws)
 		cjose_jws_release(jws);
 
-	oauth2_debug(log, "## return: %d", rc);
+	oauth2_debug(_log, "## return: %d", rc);
 
 	return rc;
 }
@@ -216,15 +216,15 @@ static char *oauth2_check_openidc_serve_post(const char *request)
 		if (data == NULL)
 			goto error;
 		data += strlen(sep);
-		if (oauth2_parse_form_encoded_params(log, data, &params) ==
+		if (oauth2_parse_form_encoded_params(_log, data, &params) ==
 		    false)
 			goto error;
-		code = oauth2_nv_list_get(log, params, "code");
+		code = oauth2_nv_list_get(_log, params, "code");
 		if (code == NULL)
 			goto error;
 
 		if (_oauth2_check_openidc_idtoken_create(
-			log, oauth2_jwk_rsa_get(), "RS256", "myclient",
+			_log, oauth2_jwk_rsa_get(), "RS256", "myclient",
 			"myclient", &id_token) == false)
 			goto error;
 
@@ -233,7 +233,7 @@ static char *oauth2_check_openidc_serve_post(const char *request)
 		rv = oauth2_stradd(rv, "\"access_token\": \"", "xxxx", "\" }");
 
 		oauth2_mem_free(id_token);
-		oauth2_nv_list_free(log, params);
+		oauth2_nv_list_free(_log, params);
 		goto end;
 	}
 
@@ -254,51 +254,51 @@ START_TEST(test_openidc_cfg)
 	oauth2_openidc_provider_t *p = NULL;
 	char *value = NULL;
 
-	c = oauth2_cfg_openidc_init(log);
-	r = oauth2_http_request_init(log);
+	c = oauth2_cfg_openidc_init(_log);
+	r = oauth2_http_request_init(_log);
 
 	rc = oauth2_cfg_openidc_redirect_uri_set(
-	    log, c, "https://example.org/redirect_uri");
+	    _log, c, "https://example.org/redirect_uri");
 	ck_assert_int_eq(rc, true);
-	value = oauth2_cfg_openidc_redirect_uri_get(log, c, r);
+	value = oauth2_cfg_openidc_redirect_uri_get(_log, c, r);
 	ck_assert_str_eq(value, "https://example.org/redirect_uri");
 	oauth2_mem_free(value);
 
 	rc = oauth2_cfg_openidc_redirect_uri_set(
-	    log, c, "https://example.com/redirect_uri");
+	    _log, c, "https://example.com/redirect_uri");
 	ck_assert_int_eq(rc, true);
-	value = oauth2_cfg_openidc_redirect_uri_get(log, c, r);
+	value = oauth2_cfg_openidc_redirect_uri_get(_log, c, r);
 	ck_assert_str_eq(value, "https://example.com/redirect_uri");
 	oauth2_mem_free(value);
 
-	rc = oauth2_cfg_openidc_redirect_uri_set(log, c, "/redirect_uri");
+	rc = oauth2_cfg_openidc_redirect_uri_set(_log, c, "/redirect_uri");
 	ck_assert_int_eq(rc, true);
-	value = oauth2_cfg_openidc_redirect_uri_get(log, c, r);
+	value = oauth2_cfg_openidc_redirect_uri_get(_log, c, r);
 	ck_assert_ptr_eq(value, NULL);
 
-	rc = oauth2_http_request_header_set(log, r, "Host", "example.com");
+	rc = oauth2_http_request_header_set(_log, r, "Host", "example.com");
 	ck_assert_int_eq(rc, true);
-	value = oauth2_cfg_openidc_redirect_uri_get(log, c, r);
+	value = oauth2_cfg_openidc_redirect_uri_get(_log, c, r);
 	ck_assert_str_eq(value, "https://example.com/redirect_uri");
 	oauth2_mem_free(value);
 
-	p = oauth2_openidc_provider_init(log);
+	p = oauth2_openidc_provider_init(_log);
 	ck_assert_ptr_ne(p, NULL);
 
-	value = oauth2_cfg_openidc_redirect_uri_get_iss(log, c, r, p);
+	value = oauth2_cfg_openidc_redirect_uri_get_iss(_log, c, r, p);
 	// ck_assert_ptr_eq(value, NULL);
 	ck_assert_str_eq(value, "https://example.com/redirect_uri");
 	oauth2_mem_free(value);
 
-	rc = oauth2_openidc_provider_issuer_set(log, p, "jan");
+	rc = oauth2_openidc_provider_issuer_set(_log, p, "jan");
 	ck_assert_int_eq(rc, true);
-	value = oauth2_cfg_openidc_redirect_uri_get_iss(log, c, r, p);
+	value = oauth2_cfg_openidc_redirect_uri_get_iss(_log, c, r, p);
 	ck_assert_str_eq(value, "https://example.com/redirect_uri?iss=jan");
 	oauth2_mem_free(value);
 
-	oauth2_openidc_provider_free(log, p);
-	oauth2_http_request_free(log, r);
-	oauth2_cfg_openidc_free(log, c);
+	oauth2_openidc_provider_free(_log, p);
+	oauth2_http_request_free(_log, r);
+	oauth2_cfg_openidc_free(_log, c);
 }
 END_TEST
 
@@ -346,23 +346,24 @@ START_TEST(test_openidc_proto_state)
 	bool rc = false;
 	json_t *json = NULL;
 	oauth2_cfg_openidc_t *c = NULL;
-	oauth2_http_request_t *r = oauth2_http_request_init(log);
+	oauth2_http_request_t *r = oauth2_http_request_init(_log);
 	oauth2_http_response_t *response = NULL;
 	oauth2_openidc_provider_t *provider = NULL;
 	char *value = NULL;
 	const char *cookie = NULL;
 
-	c = oauth2_cfg_openidc_init(log);
-	oauth2_cfg_openidc_passphrase_set(log, c, "mypassphrase1234");
+	c = oauth2_cfg_openidc_init(_log);
+	oauth2_cfg_openidc_passphrase_set(_log, c, "mypassphrase1234");
 	oauth2_cfg_openidc_provider_resolver_set_options(
-	    log, c, "string", test_openidc_metadata_get(), NULL);
+	    _log, c, "string", test_openidc_metadata_get(), NULL);
 
-	oauth2_openidc_proto_state_t *p1 = oauth2_openidc_proto_state_init(log);
+	oauth2_openidc_proto_state_t *p1 =
+	    oauth2_openidc_proto_state_init(_log);
 	ck_assert_ptr_ne(p1, NULL);
 
-	rc = oauth2_openidc_proto_state_set(log, p1, "one", "string");
+	rc = oauth2_openidc_proto_state_set(_log, p1, "one", "string");
 	ck_assert_int_eq(rc, true);
-	rc = oauth2_openidc_proto_state_set_int(log, p1, "two", 2);
+	rc = oauth2_openidc_proto_state_set_int(_log, p1, "two", 2);
 	ck_assert_int_eq(rc, true);
 
 	json = oauth2_openidc_proto_state_json_get(p1);
@@ -372,26 +373,26 @@ START_TEST(test_openidc_proto_state)
 	ck_assert_int_eq(json_integer_value(json_object_get(json, "two")), 2);
 
 	rc = oauth2_openidc_proto_state_set(
-	    log, p1, _OAUTH2_OPENIDC_PROTO_STATE_KEY_ISSUER,
+	    _log, p1, _OAUTH2_OPENIDC_PROTO_STATE_KEY_ISSUER,
 	    "https://op.example.org");
 	ck_assert_int_eq(rc, true);
 	rc = oauth2_openidc_proto_state_set_int(
-	    log, p1, _OAUTH2_OPENIDC_PROTO_STATE_KEY_TIMESTAMP,
+	    _log, p1, _OAUTH2_OPENIDC_PROTO_STATE_KEY_TIMESTAMP,
 	    oauth2_time_now_sec());
 	ck_assert_int_eq(rc, true);
 	rc = oauth2_openidc_proto_state_set(
-	    log, p1, _OAUTH2_OPENIDC_PROTO_STATE_KEY_TARGET_LINK_URI,
+	    _log, p1, _OAUTH2_OPENIDC_PROTO_STATE_KEY_TARGET_LINK_URI,
 	    "https://example.org/secure");
-	rc = _oauth2_openidc_state_validate(log, c, r, p1, &provider);
+	rc = _oauth2_openidc_state_validate(_log, c, r, p1, &provider);
 	ck_assert_int_eq(rc, true);
-	rc = oauth2_openidc_proto_state_target_link_uri_get(log, p1, &value);
+	rc = oauth2_openidc_proto_state_target_link_uri_get(_log, p1, &value);
 	ck_assert_int_eq(rc, true);
 	ck_assert_str_eq(value, "https://example.org/secure");
 	oauth2_mem_free(value);
 	value = NULL;
 
 	oauth2_openidc_proto_state_t *p2 =
-	    oauth2_openidc_proto_state_clone(log, p1);
+	    oauth2_openidc_proto_state_clone(_log, p1);
 	ck_assert_ptr_ne(c, NULL);
 
 	json = oauth2_openidc_proto_state_json_get(p2);
@@ -400,37 +401,38 @@ START_TEST(test_openidc_proto_state)
 			 "string");
 	ck_assert_int_eq(json_integer_value(json_object_get(json, "two")), 2);
 
-	oauth2_openidc_proto_state_free(log, p2);
-	oauth2_openidc_proto_state_free(log, p1);
+	oauth2_openidc_proto_state_free(_log, p2);
+	oauth2_openidc_proto_state_free(_log, p1);
 
-	oauth2_http_request_scheme_set(log, r, "https");
-	oauth2_http_request_hostname_set(log, r, "example.org");
-	oauth2_http_request_path_set(log, r, "/secure");
+	oauth2_http_request_scheme_set(_log, r, "https");
+	oauth2_http_request_hostname_set(_log, r, "example.org");
+	oauth2_http_request_path_set(_log, r, "/secure");
 
-	response = oauth2_http_response_init(log);
-	rc = _oauth2_openidc_state_cookie_set(log, c, provider, r, response,
+	response = oauth2_http_response_init(_log);
+	rc = _oauth2_openidc_state_cookie_set(_log, c, provider, r, response,
 					      "1234");
 	ck_assert_int_eq(rc, true);
-	cookie = oauth2_http_response_header_get(log, response, "Set-Cookie");
+	cookie = oauth2_http_response_header_get(_log, response, "Set-Cookie");
 	ck_assert_ptr_ne(strstr(cookie, "openidc_state_1234="), NULL);
 
 	oauth2_openidc_proto_state_t *p3 = NULL;
-	oauth2_http_request_header_set(log, r, "Cookie", cookie);
-	rc = _oauth2_openidc_state_cookie_get(log, c, r, response, "1234", &p3);
+	oauth2_http_request_header_set(_log, r, "Cookie", cookie);
+	rc =
+	    _oauth2_openidc_state_cookie_get(_log, c, r, response, "1234", &p3);
 	ck_assert_int_eq(rc, true);
 	ck_assert_ptr_ne(p3, NULL);
-	rc = oauth2_openidc_proto_state_target_link_uri_get(log, p3, &value);
+	rc = oauth2_openidc_proto_state_target_link_uri_get(_log, p3, &value);
 	ck_assert_int_eq(rc, true);
 	ck_assert_ptr_ne(value, NULL);
 	ck_assert_str_eq(value, "https://example.org/secure");
 	oauth2_mem_free(value);
 	value = NULL;
-	oauth2_openidc_proto_state_free(log, p3);
+	oauth2_openidc_proto_state_free(_log, p3);
 
-	oauth2_openidc_provider_free(log, provider);
-	oauth2_http_response_free(log, response);
-	oauth2_http_request_free(log, r);
-	oauth2_cfg_openidc_free(log, c);
+	oauth2_openidc_provider_free(_log, provider);
+	oauth2_http_response_free(_log, response);
+	oauth2_http_request_free(_log, r);
+	oauth2_cfg_openidc_free(_log, c);
 }
 END_TEST
 
@@ -442,10 +444,10 @@ static void _test_openidc_resolve_to_false(oauth2_cfg_openidc_t *c,
 	char *rv = NULL;
 	oauth2_openidc_provider_t *provider = NULL;
 
-	rv = oauth2_cfg_openidc_provider_resolver_set_options(log, c, "string",
+	rv = oauth2_cfg_openidc_provider_resolver_set_options(_log, c, "string",
 							      metadata, NULL);
 	ck_assert_ptr_eq(rv, NULL);
-	rc = _oauth2_openidc_provider_resolve(log, c, r, NULL, &provider);
+	rc = _oauth2_openidc_provider_resolve(_log, c, r, NULL, &provider);
 	ck_assert_int_eq(rc, false);
 	ck_assert_ptr_eq(NULL, provider);
 }
@@ -458,67 +460,67 @@ START_TEST(test_openidc_resolver)
 	oauth2_http_request_t *r = NULL;
 	oauth2_openidc_provider_t *provider = NULL;
 
-	c = oauth2_cfg_openidc_init(log);
-	r = oauth2_http_request_init(log);
+	c = oauth2_cfg_openidc_init(_log);
+	r = oauth2_http_request_init(_log);
 
 	rv = oauth2_cfg_openidc_provider_resolver_set_options(
-	    log, c, "string", test_openidc_metadata_get(), NULL);
+	    _log, c, "string", test_openidc_metadata_get(), NULL);
 	ck_assert_ptr_eq(rv, NULL);
 
-	rc = _oauth2_openidc_provider_resolve(log, c, r, NULL, &provider);
+	rc = _oauth2_openidc_provider_resolve(_log, c, r, NULL, &provider);
 	ck_assert_int_eq(rc, true);
 	ck_assert_ptr_ne(NULL, provider);
 	ck_assert_str_eq("https://op.example.org",
-			 oauth2_openidc_provider_issuer_get(log, provider));
-	oauth2_openidc_provider_free(log, provider);
+			 oauth2_openidc_provider_issuer_get(_log, provider));
+	oauth2_openidc_provider_free(_log, provider);
 	provider = NULL;
 
 	rv = oauth2_cfg_openidc_provider_resolver_set_options(
-	    log, c, "file", "./test/provider.json", NULL);
+	    _log, c, "file", "./test/provider.json", NULL);
 	ck_assert_ptr_eq(rv, NULL);
 
-	rc = _oauth2_openidc_provider_resolve(log, c, r, NULL, &provider);
+	rc = _oauth2_openidc_provider_resolve(_log, c, r, NULL, &provider);
 	ck_assert_int_eq(rc, true);
 	ck_assert_ptr_ne(NULL, provider);
 	ck_assert_str_eq("https://pingfed:9031",
-			 oauth2_openidc_provider_issuer_get(log, provider));
+			 oauth2_openidc_provider_issuer_get(_log, provider));
 
 	ck_assert_ptr_ne(
 	    NULL,
-	    oauth2_openidc_provider_authorization_endpoint_get(log, provider));
+	    oauth2_openidc_provider_authorization_endpoint_get(_log, provider));
 	ck_assert_ptr_ne(
-	    NULL, oauth2_openidc_provider_token_endpoint_get(log, provider));
+	    NULL, oauth2_openidc_provider_token_endpoint_get(_log, provider));
 	ck_assert_ptr_ne(NULL, oauth2_openidc_provider_token_endpoint_auth_get(
-				   log, provider));
-	ck_assert_int_eq(false,
-			 oauth2_openidc_provider_ssl_verify_get(log, provider));
+				   _log, provider));
+	ck_assert_int_eq(
+	    false, oauth2_openidc_provider_ssl_verify_get(_log, provider));
 	ck_assert_ptr_ne(NULL,
-			 oauth2_openidc_provider_jwks_uri_get(log, provider));
+			 oauth2_openidc_provider_jwks_uri_get(_log, provider));
 	ck_assert_ptr_ne(NULL,
-			 oauth2_openidc_provider_scope_get(log, provider));
+			 oauth2_openidc_provider_scope_get(_log, provider));
 	ck_assert_ptr_ne(NULL,
-			 oauth2_openidc_provider_client_id_get(log, provider));
+			 oauth2_openidc_provider_client_id_get(_log, provider));
 	ck_assert_ptr_ne(
-	    NULL, oauth2_openidc_provider_client_secret_get(log, provider));
+	    NULL, oauth2_openidc_provider_client_secret_get(_log, provider));
 
 	ck_assert_int_eq(
-	    true, oauth2_openidc_provider_ssl_verify_set(log, provider, true));
+	    true, oauth2_openidc_provider_ssl_verify_set(_log, provider, true));
 	ck_assert_int_eq(true,
 			 oauth2_openidc_provider_authorization_endpoint_set(
-			     log, provider, "https://other.org/authorize"));
+			     _log, provider, "https://other.org/authorize"));
 	ck_assert_int_eq(true, oauth2_openidc_provider_token_endpoint_set(
-				   log, provider, "https://other.org/token"));
+				   _log, provider, "https://other.org/token"));
 	ck_assert_int_eq(true,
 			 oauth2_openidc_provider_jwks_uri_set(
-			     log, provider, "https://other.org/jwks_uri"));
+			     _log, provider, "https://other.org/jwks_uri"));
 	ck_assert_int_eq(true, oauth2_openidc_provider_scope_set(
-				   log, provider, "openid profile other"));
+				   _log, provider, "openid profile other"));
 	ck_assert_int_eq(true, oauth2_openidc_provider_client_id_set(
-				   log, provider, "someclientid"));
+				   _log, provider, "someclientid"));
 	ck_assert_int_eq(true, oauth2_openidc_provider_client_secret_set(
-				   log, provider, "someclientsecret"));
+				   _log, provider, "someclientsecret"));
 
-	oauth2_openidc_provider_free(log, provider);
+	oauth2_openidc_provider_free(_log, provider);
 	provider = NULL;
 
 	_test_openidc_resolve_to_false(c, r, NULL);
@@ -569,14 +571,14 @@ START_TEST(test_openidc_resolver)
 	    "\"https://example.org/authorize\", \"issuer\": "
 	    "\"https://example.org\" }");
 
-	rv = oauth2_cfg_openidc_provider_resolver_set_options(log, c, "dir",
+	rv = oauth2_cfg_openidc_provider_resolver_set_options(_log, c, "dir",
 							      NULL, NULL);
 	ck_assert_ptr_eq(rv, NULL);
-	rc = _oauth2_openidc_provider_resolve(log, c, r, NULL, &provider);
+	rc = _oauth2_openidc_provider_resolve(_log, c, r, NULL, &provider);
 	ck_assert_int_eq(rc, false);
 
-	oauth2_http_request_free(log, r);
-	oauth2_cfg_openidc_free(log, c);
+	oauth2_http_request_free(_log, r);
+	oauth2_cfg_openidc_free(_log, c);
 }
 END_TEST
 
@@ -591,27 +593,27 @@ START_TEST(test_openidc_handle)
 	     *query_str = NULL, *session_cookie = NULL;
 	json_t *claims = NULL;
 
-	c = oauth2_cfg_openidc_init(log);
-	r = oauth2_http_request_init(log);
+	c = oauth2_cfg_openidc_init(_log);
+	r = oauth2_http_request_init(_log);
 
-	oauth2_cfg_openidc_passphrase_set(log, c, "mypassphrase1234");
+	oauth2_cfg_openidc_passphrase_set(_log, c, "mypassphrase1234");
 	oauth2_cfg_openidc_provider_resolver_set_options(
-	    log, c, "string", test_openidc_metadata_get(), NULL);
+	    _log, c, "string", test_openidc_metadata_get(), NULL);
 
-	rc = oauth2_http_request_path_set(log, r, "/secure");
+	rc = oauth2_http_request_path_set(_log, r, "/secure");
 	ck_assert_int_eq(rc, true);
-	rc = oauth2_http_request_header_set(log, r, "Host", "app.example.org");
+	rc = oauth2_http_request_header_set(_log, r, "Host", "app.example.org");
 	ck_assert_int_eq(rc, true);
-	rc = oauth2_http_request_header_set(log, r, "Accept", "text/html");
+	rc = oauth2_http_request_header_set(_log, r, "Accept", "text/html");
 	ck_assert_int_eq(rc, true);
 
-	rc = oauth2_openidc_handle(log, c, r, &response, &claims);
+	rc = oauth2_openidc_handle(_log, c, r, &response, &claims);
 	ck_assert_int_eq(rc, true);
 	ck_assert_ptr_ne(NULL, response);
 
-	ck_assert_uint_eq(oauth2_http_response_status_code_get(log, response),
+	ck_assert_uint_eq(oauth2_http_response_status_code_get(_log, response),
 			  302);
-	location = oauth2_http_response_header_get(log, response, "Location");
+	location = oauth2_http_response_header_get(_log, response, "Location");
 	ck_assert_ptr_ne(NULL, strstr(location, "response_type=code"));
 	ck_assert_ptr_ne(NULL,
 			 strstr(location, "https://op.example.org/authorize"));
@@ -627,79 +629,79 @@ START_TEST(test_openidc_handle)
 	state_cookie_name = oauth2_stradd(NULL, "openidc_state_", state, NULL);
 
 	state_cookie = oauth2_strdup(
-	    oauth2_http_response_header_get(log, response, "Set-Cookie"));
+	    oauth2_http_response_header_get(_log, response, "Set-Cookie"));
 	ck_assert_ptr_ne(NULL, state_cookie);
 	ck_assert_ptr_ne(NULL, strstr(state_cookie, state_cookie_name));
 
-	oauth2_http_response_free(log, response);
+	oauth2_http_response_free(_log, response);
 	response = NULL;
-	oauth2_http_request_free(log, r);
+	oauth2_http_request_free(_log, r);
 
-	r = oauth2_http_request_init(log);
-	rc = oauth2_http_request_path_set(log, r,
+	r = oauth2_http_request_init(_log);
+	rc = oauth2_http_request_path_set(_log, r,
 					  "/openid-connect/redirect_uri");
 	ck_assert_int_eq(rc, true);
-	rc = oauth2_http_request_header_set(log, r, "Host", "app.example.org");
+	rc = oauth2_http_request_header_set(_log, r, "Host", "app.example.org");
 	ck_assert_int_eq(rc, true);
-	rc = oauth2_http_request_header_set(log, r, "Accept", "text/html");
+	rc = oauth2_http_request_header_set(_log, r, "Accept", "text/html");
 	ck_assert_int_eq(rc, true);
-	rc = oauth2_http_request_header_set(log, r, "Cookie", state_cookie);
+	rc = oauth2_http_request_header_set(_log, r, "Cookie", state_cookie);
 	ck_assert_int_eq(rc, true);
 
 	query_str = oauth2_stradd(NULL, "code=4321&state", "=", state);
-	rc = oauth2_http_request_query_set(log, r, query_str);
+	rc = oauth2_http_request_query_set(_log, r, query_str);
 	ck_assert_int_eq(rc, true);
 
-	rc = oauth2_openidc_handle(log, c, r, &response, &claims);
+	rc = oauth2_openidc_handle(_log, c, r, &response, &claims);
 	ck_assert_int_eq(rc, true);
 	ck_assert_ptr_ne(NULL, response);
-	ck_assert_uint_eq(oauth2_http_response_status_code_get(log, response),
+	ck_assert_uint_eq(oauth2_http_response_status_code_get(_log, response),
 			  302);
 
 	oauth2_mem_free(state_cookie);
 
 	state_cookie =
 	    oauth2_strdup(oauth2_http_response_header_set_cookie_prefix_get(
-		log, response, state_cookie_name));
+		_log, response, state_cookie_name));
 	ck_assert_ptr_ne(NULL, state_cookie);
 	ck_assert_ptr_ne(NULL, strstr(state_cookie,
 				      "expires=Thu, 01 Jan 1970 00:00:00 GMT"));
 
-	location = oauth2_http_response_header_get(log, response, "Location");
+	location = oauth2_http_response_header_get(_log, response, "Location");
 	ck_assert_ptr_ne(NULL, response);
 	ck_assert_int_eq(strcmp(location, "https://app.example.org/secure"), 0);
 
 	session_cookie =
 	    oauth2_strdup(oauth2_http_response_header_set_cookie_prefix_get(
-		log, response, "openidc_session"));
+		_log, response, "openidc_session"));
 	ck_assert_ptr_ne(NULL, session_cookie);
 
-	oauth2_http_response_free(log, response);
-	oauth2_http_request_free(log, r);
+	oauth2_http_response_free(_log, response);
+	oauth2_http_request_free(_log, r);
 
-	r = oauth2_http_request_init(log);
-	rc = oauth2_http_request_path_set(log, r,
+	r = oauth2_http_request_init(_log);
+	rc = oauth2_http_request_path_set(_log, r,
 					  "https://app.example.org/secure");
 	ck_assert_int_eq(rc, true);
-	rc = oauth2_http_request_header_set(log, r, "Host", "app.example.org");
+	rc = oauth2_http_request_header_set(_log, r, "Host", "app.example.org");
 	ck_assert_int_eq(rc, true);
-	rc = oauth2_http_request_header_set(log, r, "Accept", "text/html");
+	rc = oauth2_http_request_header_set(_log, r, "Accept", "text/html");
 	ck_assert_int_eq(rc, true);
-	rc = oauth2_http_request_header_set(log, r, "Cookie", session_cookie);
+	rc = oauth2_http_request_header_set(_log, r, "Cookie", session_cookie);
 	ck_assert_int_eq(rc, true);
 
-	rc = oauth2_openidc_handle(log, c, r, &response, &claims);
+	rc = oauth2_openidc_handle(_log, c, r, &response, &claims);
 	ck_assert_int_eq(rc, true);
 	ck_assert_ptr_ne(NULL, response);
 	// TODO:
-	ck_assert_uint_eq(oauth2_http_response_status_code_get(log, response),
+	ck_assert_uint_eq(oauth2_http_response_status_code_get(_log, response),
 			  0);
 	// ck_assert_ptr_ne(NULL,
-	// oauth2_http_response_header_set_cookie_prefix_get(log, response,
+	// oauth2_http_response_header_set_cookie_prefix_get(_log, response,
 	// "openidc_session"));
 
-	oauth2_http_response_free(log, response);
-	oauth2_http_request_free(log, r);
+	oauth2_http_response_free(_log, response);
+	oauth2_http_request_free(_log, r);
 
 	json_decref(claims);
 	oauth2_mem_free(state);
@@ -708,7 +710,7 @@ START_TEST(test_openidc_handle)
 	oauth2_mem_free(state_cookie);
 	oauth2_mem_free(session_cookie);
 
-	oauth2_cfg_openidc_free(log, c);
+	oauth2_cfg_openidc_free(_log, c);
 }
 END_TEST
 

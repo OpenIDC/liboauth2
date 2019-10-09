@@ -106,7 +106,7 @@ _save_dealloc3);
 }
 */
 
-static oauth2_log_t *log = 0;
+static oauth2_log_t *_log = 0;
 
 static void setup(void)
 {
@@ -124,12 +124,12 @@ static void setup(void)
 	// for coverage
 	oauth2_log_free(NULL);
 
-	log = oauth2_init(OAUTH2_LOG_TRACE1, 0);
+	_log = oauth2_init(OAUTH2_LOG_TRACE1, 0);
 }
 
 static void teardown(void)
 {
-	oauth2_shutdown(log);
+	oauth2_shutdown(_log);
 }
 
 START_TEST(test_log)
@@ -139,9 +139,9 @@ START_TEST(test_log)
 	// TODO: could return bytes written from oauth2_log statements
 	oauth2_debug(NULL, NULL);
 	// TOOD: could return bool from oauth2_log_sink_add
-	oauth2_log_sink_add(log, &oauth2_log_sink_stderr);
-	oauth2_info(log, NULL);
-	oauth2_info(log, "");
+	oauth2_log_sink_add(_log, &oauth2_log_sink_stderr);
+	oauth2_info(_log, NULL);
+	oauth2_info(_log, "");
 	oauth2_log_sink_level_set(&oauth2_log_sink_stderr, OAUTH2_LOG_ERROR);
 }
 END_TEST
@@ -223,7 +223,7 @@ START_TEST(test_base64url_encode)
 	const char *plain = "Node.js is awesome.";
 	const char *encoded = "Tm9kZS5qcyBpcyBhd2Vzb21lLg";
 
-	dst_len = oauth2_base64url_encode(log, (const uint8_t *)plain,
+	dst_len = oauth2_base64url_encode(_log, (const uint8_t *)plain,
 					  strlen(plain), &dst);
 
 	ck_assert_int_eq(dst_len, strlen(encoded));
@@ -232,14 +232,14 @@ START_TEST(test_base64url_encode)
 	oauth2_mem_free(dst);
 
 	dst = NULL;
-	dst_len = oauth2_base64url_encode(log, NULL, 0, &dst);
+	dst_len = oauth2_base64url_encode(_log, NULL, 0, &dst);
 	ck_assert_ptr_eq(dst, NULL);
 	ck_assert_int_eq(dst_len, 0);
 
-	dst_len = oauth2_base64url_encode(log, NULL, 0, NULL);
+	dst_len = oauth2_base64url_encode(_log, NULL, 0, NULL);
 	ck_assert_int_eq(dst_len, 0);
 
-	dst_len = oauth2_base64url_encode(log, (const uint8_t *)"", 0, NULL);
+	dst_len = oauth2_base64url_encode(_log, (const uint8_t *)"", 0, NULL);
 	ck_assert_int_eq(dst_len, 0);
 }
 END_TEST
@@ -253,7 +253,7 @@ START_TEST(test_base64url_decode)
 	const char *encoded = "Tm9kZS5qcyBpcyBhd2Vzb21lLg";
 	const char *plain = "Node.js is awesome.";
 
-	rc = oauth2_base64url_decode(log, encoded, &dst, &dst_len);
+	rc = oauth2_base64url_decode(_log, encoded, &dst, &dst_len);
 
 	ck_assert_int_eq(rc, true);
 	ck_assert_int_eq(dst_len, strlen(plain));
@@ -263,18 +263,18 @@ START_TEST(test_base64url_decode)
 
 	dst = NULL;
 	dst_len = 0;
-	rc = oauth2_base64url_decode(log, NULL, &dst, &dst_len);
+	rc = oauth2_base64url_decode(_log, NULL, &dst, &dst_len);
 
 	ck_assert_int_eq(rc, false);
 	ck_assert_ptr_eq(dst, NULL);
 	ck_assert_int_eq(dst_len, 0);
 
-	rc = oauth2_base64url_decode(log, NULL, NULL, 0);
+	rc = oauth2_base64url_decode(_log, NULL, NULL, 0);
 	ck_assert_int_eq(rc, false);
 	ck_assert_ptr_eq(dst, NULL);
 	ck_assert_int_eq(dst_len, 0);
 
-	rc = oauth2_base64url_decode(log, "", NULL, 0);
+	rc = oauth2_base64url_decode(_log, "", NULL, 0);
 	ck_assert_int_eq(rc, false);
 	ck_assert_ptr_eq(dst, NULL);
 	ck_assert_int_eq(dst_len, 0);
@@ -287,19 +287,19 @@ START_TEST(test_url_encode)
 
 	src = "bla bla";
 	enc = "bla%20bla";
-	dst = oauth2_url_encode(log, src);
+	dst = oauth2_url_encode(_log, src);
 	ck_assert_str_eq(dst, enc);
 	oauth2_mem_free(dst);
 
 	src = "Hello Günter";
 	enc = "Hello%20G%C3%BCnter";
-	dst = oauth2_url_encode(log, src);
+	dst = oauth2_url_encode(_log, src);
 	ck_assert_str_eq(dst, enc);
 	oauth2_mem_free(dst);
 
 	dst = NULL;
 	src = NULL;
-	dst = oauth2_url_encode(log, src);
+	dst = oauth2_url_encode(_log, src);
 	ck_assert_ptr_eq(dst, NULL);
 }
 END_TEST
@@ -310,26 +310,26 @@ START_TEST(test_url_decode)
 
 	src = "bla%20bla";
 	dec = "bla bla";
-	dst = oauth2_url_decode(log, src);
+	dst = oauth2_url_decode(_log, src);
 	ck_assert_str_eq(dst, dec);
 	oauth2_mem_free(dst);
 
 	dst = NULL;
 	src = "http://www.example.com/path/foo+bar/path?query+name=query+value";
 	dec = "http://www.example.com/path/foo bar/path?query name=query value";
-	dst = oauth2_url_decode(log, src);
+	dst = oauth2_url_decode(_log, src);
 	ck_assert_str_eq(dst, dec);
 	oauth2_mem_free(dst);
 
 	src = "Hello%20G%C3%BCnter";
 	dec = "Hello Günter";
-	dst = oauth2_url_decode(log, src);
+	dst = oauth2_url_decode(_log, src);
 	ck_assert_str_eq(dst, dec);
 	oauth2_mem_free(dst);
 
 	dst = NULL;
 	src = NULL;
-	dst = oauth2_url_decode(log, src);
+	dst = oauth2_url_decode(_log, src);
 	ck_assert_ptr_eq(dst, NULL);
 }
 END_TEST
@@ -340,7 +340,7 @@ START_TEST(test_html_encode)
 
 	src = "bla&bla";
 	enc = "bla&amp;bla";
-	dst = oauth2_html_escape(log, src);
+	dst = oauth2_html_escape(_log, src);
 	ck_assert_str_eq(dst, enc);
 	oauth2_mem_free(dst);
 	dst = NULL;
@@ -349,13 +349,13 @@ START_TEST(test_html_encode)
 	src = "<a href=\"https://www.w3schools.com\">Go to w3schools.com</a>";
 	enc = "&lt;a href=&quot;https://www.w3schools.com&quot;&gt;Go to "
 	      "w3schools.com&lt;/a&gt;";
-	dst = oauth2_html_escape(log, src);
+	dst = oauth2_html_escape(_log, src);
 	ck_assert_str_eq(dst, enc);
 	oauth2_mem_free(dst);
 	dst = NULL;
 
 	src = NULL;
-	dst = oauth2_html_escape(log, src);
+	dst = oauth2_html_escape(_log, src);
 	ck_assert_ptr_eq(dst, NULL);
 }
 END_TEST
@@ -364,19 +364,19 @@ START_TEST(test_random)
 {
 	char *rv = NULL;
 
-	rv = oauth2_rand_str(log, 8);
+	rv = oauth2_rand_str(_log, 8);
 	ck_assert_ptr_ne(rv, NULL);
 	ck_assert_str_ne(rv, "");
 	ck_assert_int_eq(strlen(rv), 8);
 	oauth2_mem_free(rv);
 
-	rv = oauth2_rand_str(log, 16);
+	rv = oauth2_rand_str(_log, 16);
 	ck_assert_ptr_ne(rv, NULL);
 	ck_assert_str_ne(rv, "");
 	ck_assert_int_eq(strlen(rv), 16);
 	oauth2_mem_free(rv);
 
-	rv = oauth2_rand_str(log, 7);
+	rv = oauth2_rand_str(_log, 7);
 	ck_assert_ptr_ne(rv, NULL);
 	ck_assert_str_ne(rv, "");
 	ck_assert_int_eq(strlen(rv), 7);
