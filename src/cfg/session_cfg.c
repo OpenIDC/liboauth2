@@ -32,7 +32,6 @@ oauth2_cfg_session_t *oauth2_cfg_session_init(oauth2_log_t *log)
 	session->cookie_name = NULL;
 	session->inactivity_timeout_s = OAUTH2_CFG_UINT_UNSET;
 	session->expiry_s = OAUTH2_CFG_UINT_UNSET;
-	session->cache = NULL;
 	return session;
 }
 
@@ -49,7 +48,6 @@ oauth2_cfg_session_t *oauth2_cfg_session_clone(oauth2_log_t *log,
 	dst->cookie_name = oauth2_strdup(src->cookie_name);
 	dst->inactivity_timeout_s = src->inactivity_timeout_s;
 	dst->expiry_s = src->expiry_s;
-	dst->cache = oauth2_cfg_cache_clone(log, src->cache);
 
 end:
 	return dst;
@@ -63,8 +61,6 @@ end:
 
 void oauth2_cfg_session_free(oauth2_log_t *log, oauth2_cfg_session_t *session)
 {
-	if (session->cache)
-		oauth2_cfg_cache_free(log, session->cache);
 	if (session->cookie_name)
 		oauth2_mem_free(session->cookie_name);
 	oauth2_mem_free(session);
@@ -76,7 +72,8 @@ oauth2_uint_t
 oauth2_cfg_session_inactivity_timeout_s_get(oauth2_log_t *log,
 					    const oauth2_cfg_session_t *cfg)
 {
-	if (cfg->inactivity_timeout_s == OAUTH2_CFG_UINT_UNSET)
+	if ((cfg == NULL) ||
+	    (cfg->inactivity_timeout_s == OAUTH2_CFG_UINT_UNSET))
 		return OAUTH2_INACTIVITY_TIMEOUT_S_DEFAULT;
 	return cfg->inactivity_timeout_s;
 }
@@ -86,7 +83,7 @@ oauth2_cfg_session_inactivity_timeout_s_get(oauth2_log_t *log,
 oauth2_uint_t oauth2_cfg_session_expiry_s_get(oauth2_log_t *log,
 					      const oauth2_cfg_session_t *cfg)
 {
-	if (cfg->expiry_s == OAUTH2_CFG_UINT_UNSET)
+	if ((cfg == NULL) && (cfg->expiry_s == OAUTH2_CFG_UINT_UNSET))
 		return OAUTH2_SESSION_EXPIRY_S_DEFAULT;
 	return cfg->expiry_s;
 }
@@ -96,7 +93,7 @@ oauth2_uint_t oauth2_cfg_session_expiry_s_get(oauth2_log_t *log,
 char *oauth2_cfg_session_cookie_name_get(oauth2_log_t *log,
 					 const oauth2_cfg_session_t *cfg)
 {
-	if (cfg->cookie_name == NULL)
+	if ((cfg == NULL) || (cfg->cookie_name == NULL))
 		return OAUTH2_SESSION_COOKIE_NAME_DEFAULT;
 	return cfg->cookie_name;
 }
@@ -107,9 +104,27 @@ char *oauth2_cfg_session_cookie_name_get(oauth2_log_t *log,
 char *oauth2_cfg_session_passphrase_get(oauth2_log_t *log,
 					const oauth2_cfg_session_t *cfg)
 {
-	if (cfg->passphrase == NULL)
+	if ((cfg == NULL) || (cfg->passphrase == NULL))
 		return OAUTH2_SESSION_PASSPHRASE_DEFAULT;
 	return cfg->passphrase;
+}
+
+oauth2_session_load_callback_t *
+oauth2_cfg_session_load_callback_get(oauth2_log_t *log,
+				     const oauth2_cfg_session_t *cfg)
+{
+	if ((cfg == NULL) || (cfg->load_callback == NULL))
+		return oauth2_session_load_cookie;
+	return cfg->load_callback;
+}
+
+oauth2_session_save_callback_t *
+oauth2_cfg_session_save_callback_get(oauth2_log_t *log,
+				     const oauth2_cfg_session_t *cfg)
+{
+	if ((cfg == NULL) || (cfg->save_callback == NULL))
+		return oauth2_session_save_cookie;
+	return cfg->save_callback;
 }
 
 _OAUTH_CFG_CTX_CALLBACK(oauth2_cfg_session_set_options_cookie)
@@ -140,8 +155,6 @@ _OAUTH_CFG_CTX_CALLBACK(oauth2_cfg_session_set_options_cache)
 	cfg->type = OAUTH2_SESSION_TYPE_CACHE;
 	cfg->load_callback = oauth2_session_load_cache;
 	cfg->save_callback = oauth2_session_save_cache;
-	oauth2_cfg_cache_set_options(log, cfg->cache, "session", params,
-				     OAUTH2_CFG_SESSION_CACHE_DEFAULT);
 
 	oauth2_debug(log, "leave: %s", rv);
 

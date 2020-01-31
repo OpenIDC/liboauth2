@@ -127,7 +127,41 @@ bool oauth2_session_load_cache(oauth2_log_t *log,
 			       const oauth2_cfg_session_t *cfg,
 			       oauth2_http_request_t *request, json_t **json)
 {
-	return false;
+	bool rc = false;
+	const char *name = NULL;
+	char *key = NULL, *value = NULL;
+
+	name = oauth2_cfg_session_cookie_name_get(log, cfg);
+
+	key = oauth2_http_request_cookie_get(log, request, name, true);
+	if (key == NULL) {
+		oauth2_debug(log, "no session cookie found");
+		rc = true;
+		goto end;
+	}
+
+	//	if (oauth2_cache_get(log, cfg->cache, key, &value) == false)
+	//		goto end;
+
+	if (value == NULL) {
+		oauth2_debug(log, "no session found in cache");
+		rc = true;
+		goto end;
+	}
+
+	if (oauth2_json_decode_object(log, value, json) == false)
+		goto end;
+
+	rc = true;
+
+end:
+
+	if (key)
+		oauth2_mem_free(key);
+	if (value)
+		oauth2_mem_free(value);
+
+	return rc;
 }
 
 bool oauth2_session_save_cache(oauth2_log_t *log,
@@ -135,7 +169,34 @@ bool oauth2_session_save_cache(oauth2_log_t *log,
 			       const oauth2_http_request_t *request,
 			       oauth2_http_response_t *response, json_t *json)
 {
-	return false;
+	bool rc = false;
+	const char *name = NULL;
+	char *key = NULL, *value = NULL;
+
+	value = oauth2_json_encode(log, json, 0);
+	if (value == NULL)
+		goto end;
+
+	// TODO:
+	key = "";
+
+	// TODO: set to inactivity time out?
+	//	if (oauth2_cache_set(log, cfg->cache, key, value, cfg->expiry_s)
+	//== false) 		goto end;
+
+	name = oauth2_cfg_session_cookie_name_get(log, cfg);
+
+	// TODO: get cookie path from config
+	rc = oauth2_http_response_cookie_set(log, response, name, key, "/");
+
+end:
+
+	if (key)
+		oauth2_mem_free(key);
+	if (value)
+		oauth2_mem_free(value);
+
+	return rc;
 }
 
 bool oauth2_session_load(oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
@@ -144,6 +205,7 @@ bool oauth2_session_load(oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
 {
 	bool rc = false;
 	json_t *json = NULL;
+	oauth2_session_load_callback_t *session_load_callback = NULL;
 
 	oauth2_debug(log, "enter");
 
@@ -155,12 +217,11 @@ bool oauth2_session_load(oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
 	if (*session == NULL)
 		goto end;
 
-	if ((cfg == NULL) || (cfg->load_callback == NULL)) {
-		oauth2_error(log, "session configuration not defined");
+	session_load_callback = oauth2_cfg_session_load_callback_get(log, cfg);
+	if (session_load_callback == NULL)
 		goto end;
-	}
 
-	rc = cfg->load_callback(log, cfg, request, &json);
+	rc = session_load_callback(log, cfg, request, &json);
 
 	if ((rc == false) || (json == NULL))
 		goto end;
@@ -190,6 +251,7 @@ bool oauth2_session_save(oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
 {
 	bool rc = false;
 	json_t *json = NULL;
+	oauth2_session_save_callback_t *session_save_callback = NULL;
 
 	if (session == NULL)
 		goto end;
@@ -206,7 +268,11 @@ bool oauth2_session_save(oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
 		json_object_set(json, OAUTH_SESSION_ID_TOKEN_CLAIMS,
 				session->id_token_claims);
 
-	rc = cfg->save_callback(log, cfg, request, response, json);
+	session_save_callback = oauth2_cfg_session_save_callback_get(log, cfg);
+	if (session_save_callback == NULL)
+		goto end;
+
+	rc = session_save_callback(log, cfg, request, response, json);
 
 end:
 

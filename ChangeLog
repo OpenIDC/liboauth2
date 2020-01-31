@@ -1,3 +1,6 @@
+01/31/2020
+- sane session cfg defaults
+
 09/12/2019
 - change http request header function naming
 - more openidc handling

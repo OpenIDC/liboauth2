@@ -38,6 +38,20 @@ OAUTH2_TYPE_DECLARE_MEMBER_GET(cfg, session, inactivity_timeout_s,
 			       oauth2_uint_t)
 OAUTH2_TYPE_DECLARE_MEMBER_GET(cfg, session, expiry_s, oauth2_uint_t)
 
+typedef bool(oauth2_session_load_callback_t)(oauth2_log_t *log,
+					     const oauth2_cfg_session_t *cfg,
+					     oauth2_http_request_t *request,
+					     json_t **json);
+typedef bool(oauth2_session_save_callback_t)(
+    oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
+    const oauth2_http_request_t *request, oauth2_http_response_t *response,
+    json_t *json);
+
+OAUTH2_TYPE_DECLARE_MEMBER_GET(cfg, session, load_callback,
+			       oauth2_session_load_callback_t *)
+OAUTH2_TYPE_DECLARE_MEMBER_GET(cfg, session, save_callback,
+			       oauth2_session_save_callback_t *)
+
 char *oauth2_cfg_session_set_options(oauth2_log_t *log,
 				     oauth2_cfg_session_t *cfg,
 				     const char *type, const char *options);
