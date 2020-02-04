@@ -3,7 +3,7 @@
 
 /***************************************************************************
  *
- * Copyright (C) 2018-2019 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2020 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -99,8 +99,22 @@ char *oauth2_cfg_endpoint_auth_add_options(oauth2_log_t *log,
 					   const char *type,
 					   const oauth2_nv_list_t *params);
 
-oauth2_cfg_endpoint_auth_type_t
-oauth2_cfg_endpoint_auth_type(oauth2_cfg_endpoint_auth_t *auth);
+const oauth2_cfg_endpoint_auth_type_t
+oauth2_cfg_endpoint_auth_type(const oauth2_cfg_endpoint_auth_t *auth);
+
+/*
+ * endpoint
+ */
+
+OAUTH2_CFG_TYPE_DECLARE(cfg, endpoint)
+
+const char *oauth2_cfg_endpoint_get_url(const oauth2_cfg_endpoint_t *cfg);
+const oauth2_cfg_endpoint_auth_t *
+oauth2_cfg_endpoint_get_auth(const oauth2_cfg_endpoint_t *cfg);
+oauth2_flag_t
+oauth2_cfg_endpoint_get_ssl_verify(const oauth2_cfg_endpoint_t *cfg);
+oauth2_uint_t
+oauth2_cfg_endpoint_get_http_timeout(const oauth2_cfg_endpoint_t *cfg);
 
 /*
  * token verify
@@ -221,5 +235,22 @@ const char *
 oauth2_cfg_target_pass_get_authn_header(oauth2_cfg_target_pass_t *cfg);
 const char *
 oauth2_cfg_target_get_remote_user_claim(oauth2_cfg_target_pass_t *cfg);
+
+/*
+ * resource owner password credentials
+ */
+
+OAUTH2_CFG_TYPE_DECLARE(cfg, ropc)
+
+char *oauth2_cfg_set_ropc_options(oauth2_log_t *log, oauth2_cfg_ropc_t *cfg,
+				  const char *options);
+
+// TODO: just ropc_exec, no member get functions?
+
+const oauth2_cfg_endpoint_t *
+oauth2_cfg_ropc_get_token_endpoint(oauth2_cfg_ropc_t *cfg);
+const char *oauth2_cfg_ropc_get_client_id(oauth2_cfg_ropc_t *cfg);
+const char *oauth2_cfg_ropc_get_username(oauth2_cfg_ropc_t *cfg);
+const char *oauth2_cfg_ropc_get_password(oauth2_cfg_ropc_t *cfg);
 
 #endif /* _OAUTH2_CFG_H_ */

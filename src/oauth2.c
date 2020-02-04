@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2019 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2020 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -132,10 +132,10 @@ end:
 	return rc;
 }
 
-static bool oauth2_auth_client_secret_jwt(oauth2_log_t *log,
-					  oauth2_http_call_ctx_t *ctx,
-					  oauth2_cfg_endpoint_auth_t *auth,
-					  oauth2_nv_list_t *params)
+static bool
+oauth2_auth_client_secret_jwt(oauth2_log_t *log, oauth2_http_call_ctx_t *ctx,
+			      const oauth2_cfg_endpoint_auth_t *auth,
+			      oauth2_nv_list_t *params)
 {
 	bool rc = false;
 
@@ -160,7 +160,7 @@ end:
 
 static bool oauth2_auth_private_key_jwt(oauth2_log_t *log,
 					oauth2_http_call_ctx_t *ctx,
-					oauth2_cfg_endpoint_auth_t *auth,
+					const oauth2_cfg_endpoint_auth_t *auth,
 					oauth2_nv_list_t *params)
 {
 	bool rc = false;
@@ -197,10 +197,10 @@ end:
 	return rc;
 }
 
-static bool oauth2_auth_client_secret_basic(oauth2_log_t *log,
-					    oauth2_http_call_ctx_t *ctx,
-					    oauth2_cfg_endpoint_auth_t *auth,
-					    oauth2_nv_list_t *params)
+static bool
+oauth2_auth_client_secret_basic(oauth2_log_t *log, oauth2_http_call_ctx_t *ctx,
+				const oauth2_cfg_endpoint_auth_t *auth,
+				oauth2_nv_list_t *params)
 {
 	bool rc = false;
 
@@ -216,10 +216,10 @@ end:
 	return rc;
 }
 
-static bool oauth2_auth_client_secret_post(oauth2_log_t *log,
-					   oauth2_http_call_ctx_t *ctx,
-					   oauth2_cfg_endpoint_auth_t *auth,
-					   oauth2_nv_list_t *params)
+static bool
+oauth2_auth_client_secret_post(oauth2_log_t *log, oauth2_http_call_ctx_t *ctx,
+			       const oauth2_cfg_endpoint_auth_t *auth,
+			       oauth2_nv_list_t *params)
 {
 	bool rc = false;
 
@@ -243,7 +243,7 @@ end:
 
 static bool oauth2_auth_client_cert(oauth2_log_t *log,
 				    oauth2_http_call_ctx_t *ctx,
-				    oauth2_cfg_endpoint_auth_t *auth,
+				    const oauth2_cfg_endpoint_auth_t *auth,
 				    oauth2_nv_list_t *params)
 {
 	bool rc = false;
@@ -261,7 +261,7 @@ end:
 }
 
 bool oauth2_auth_basic(oauth2_log_t *log, oauth2_http_call_ctx_t *ctx,
-		       oauth2_cfg_endpoint_auth_t *auth,
+		       const oauth2_cfg_endpoint_auth_t *auth,
 		       oauth2_nv_list_t *params)
 {
 	bool rc = false;
@@ -272,10 +272,9 @@ bool oauth2_auth_basic(oauth2_log_t *log, oauth2_http_call_ctx_t *ctx,
 	return rc;
 }
 
-typedef bool(oauth2_http_ctx_add_auth_cb_t)(oauth2_log_t *log,
-					    oauth2_http_call_ctx_t *ctx,
-					    oauth2_cfg_endpoint_auth_t *auth,
-					    oauth2_nv_list_t *params);
+typedef bool(oauth2_http_ctx_add_auth_cb_t)(
+    oauth2_log_t *log, oauth2_http_call_ctx_t *ctx,
+    const oauth2_cfg_endpoint_auth_t *auth, oauth2_nv_list_t *params);
 
 typedef struct oauth2_http_ctx_auth_cb_ctx_t {
 	oauth2_cfg_endpoint_auth_type_t type;
@@ -296,7 +295,7 @@ static oauth2_http_ctx_auth_cb_ctx_t oauth2_http_ctx_auth_cb[] = {
 // clang-format on
 
 bool oauth2_http_ctx_auth_add(oauth2_log_t *log, oauth2_http_call_ctx_t *ctx,
-			      oauth2_cfg_endpoint_auth_t *auth,
+			      const oauth2_cfg_endpoint_auth_t *auth,
 			      oauth2_nv_list_t *params)
 {
 	bool rc = false;

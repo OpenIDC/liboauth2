@@ -3,7 +3,7 @@
 
 /***************************************************************************
  *
- * Copyright (C) 2018-2019 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2020 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -62,7 +62,7 @@ typedef enum {
 } oauth2_unauth_action_t;
 
 bool oauth2_http_ctx_auth_add(oauth2_log_t *log, oauth2_http_call_ctx_t *ctx,
-			      oauth2_cfg_endpoint_auth_t *auth,
+			      const oauth2_cfg_endpoint_auth_t *auth,
 			      oauth2_nv_list_t *params);
 
 bool oauth2_token_verify(oauth2_log_t *log, oauth2_cfg_token_verify_t *verify,

@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2019 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2020 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -90,6 +90,7 @@ void oauth2_cfg_target_pass_merge(oauth2_log_t *log,
 	cfg->as_headers = add->as_headers != OAUTH2_CFG_FLAG_UNSET
 			      ? add->as_headers
 			      : base->as_headers;
+	// TODO: eeuhm, oauth2_strdup...??
 	cfg->authn_header =
 	    add->authn_header != NULL ? add->authn_header : base->authn_header;
 	cfg->prefix = add->prefix != NULL ? add->prefix : base->prefix;

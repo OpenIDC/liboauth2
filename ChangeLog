@@ -1,3 +1,7 @@
+02/04/2020
+- add generic endpoint config struct and ROPC client capability
+- bump to 1.2.1 and bump copyright year
+
 01/31/2020
 - sane session cfg defaults
 
