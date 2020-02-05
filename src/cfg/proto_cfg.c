@@ -164,6 +164,8 @@ oauth2_cfg_endpoint_get_http_timeout(const oauth2_cfg_endpoint_t *cfg)
 }
 
 #define OAUTH2_CFG_ROPC_CLIENT_ID_DEFAULT NULL
+#define OAUTH2_CFG_ROPC_USERNAME_DEFAULT NULL
+#define OAUTH2_CFG_ROPC_PASSWORD_DEFAULT NULL
 
 typedef struct oauth2_cfg_ropc_t {
 	oauth2_cfg_endpoint_t *token_endpoint;
@@ -232,6 +234,26 @@ end:
 	return;
 }
 
+oauth2_cfg_ropc_t *oauth2_cfg_ropc_clone(oauth2_log_t *log,
+					 oauth2_cfg_ropc_t *src)
+{
+	oauth2_cfg_ropc_t *dst = NULL;
+
+	if (src == NULL)
+		goto end;
+
+	dst = oauth2_cfg_ropc_init(log);
+	dst->token_endpoint =
+	    oauth2_cfg_endpoint_clone(log, src->token_endpoint);
+	dst->client_id = oauth2_strdup(src->client_id);
+	dst->username = oauth2_strdup(src->username);
+	dst->password = oauth2_strdup(src->password);
+
+end:
+
+	return dst;
+}
+
 char *oauth2_cfg_set_ropc_options(oauth2_log_t *log, oauth2_cfg_ropc_t *cfg,
 				  const char *options)
 {
@@ -286,6 +308,12 @@ end:
 	return rv;
 }
 
+const oauth2_cfg_endpoint_t *
+oauth2_cfg_ropc_get_token_endpoint(oauth2_cfg_ropc_t *cfg)
+{
+	return cfg ? cfg->token_endpoint : NULL;
+}
+
 const char *oauth2_cfg_ropc_get_client_id(oauth2_cfg_ropc_t *cfg)
 {
 	if ((cfg == NULL) || (cfg->client_id == NULL))
@@ -293,8 +321,16 @@ const char *oauth2_cfg_ropc_get_client_id(oauth2_cfg_ropc_t *cfg)
 	return cfg->client_id;
 }
 
-const oauth2_cfg_endpoint_t *
-oauth2_cfg_ropc_get_token_endpoint(oauth2_cfg_ropc_t *cfg)
+const char *oauth2_cfg_ropc_get_username(oauth2_cfg_ropc_t *cfg)
 {
-	return (cfg) ? cfg->token_endpoint : NULL;
+	if ((cfg == NULL) || (cfg->username == NULL))
+		return OAUTH2_CFG_ROPC_USERNAME_DEFAULT;
+	return cfg->username;
+}
+
+const char *oauth2_cfg_ropc_get_password(oauth2_cfg_ropc_t *cfg)
+{
+	if ((cfg == NULL) || (cfg->password == NULL))
+		return OAUTH2_CFG_ROPC_PASSWORD_DEFAULT;
+	return cfg->password;
 }

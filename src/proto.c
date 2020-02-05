@@ -439,6 +439,10 @@ bool oauth2_ropc_exec(oauth2_log_t *log, oauth2_cfg_ropc_t *cfg,
 
 	oauth2_debug(log, "enter");
 
+	if (cfg == NULL) {
+		oauth2_error(log, "token endpoint cfg is not set");
+		goto end;
+	}
 	if (token_endpoint == NULL) {
 		oauth2_warn(log, "token endpoint is not set");
 		goto end;

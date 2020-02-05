@@ -1,3 +1,7 @@
+02/05/2020
+- add missing ROPC config functions
+- bump to 1.2.2
+
 02/04/2020
 - add generic endpoint config struct and ROPC client capability
 - bump to 1.2.1 and bump copyright year
