@@ -347,7 +347,7 @@ char *oauth2_cfg_openidc_provider_resolver_set_options(
 
 	// TODO: separate out into session
 	cfg->session = oauth2_cfg_session_init(log);
-	oauth2_cfg_session_set_options(log, cfg->session, "cookie", NULL);
+	oauth2_cfg_session_set_options(log, cfg->session, "cookie", options);
 
 	return oauth2_cfg_set_options(log, cfg, type, value, options,
 				      _oauth2_cfg_resolver_options_set);

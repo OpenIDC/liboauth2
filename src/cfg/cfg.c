@@ -76,6 +76,33 @@ end:
 	return rv;
 }
 
+const char *oauth2_cfg_set_time_slot(void *cfg, size_t offset,
+				     const char *value)
+{
+	const char *rv = NULL;
+	oauth2_time_t *fp = NULL;
+	long int v = 0;
+	;
+
+	v = strtol(value, NULL, 10);
+
+	if (v == LONG_MIN) {
+		rv = "strtol underflow";
+		goto end;
+	}
+	if (v == LONG_MAX) {
+		rv = "strtol overflow";
+		goto end;
+	}
+
+	fp = (oauth2_time_t *)((char *)cfg + offset);
+	*fp = (oauth2_time_t)v;
+
+end:
+
+	return rv;
+}
+
 const char *oauth2_cfg_set_str_slot(void *cfg, size_t offset, const char *value)
 {
 	const char *rv = NULL;

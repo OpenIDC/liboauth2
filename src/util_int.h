@@ -114,6 +114,8 @@ bool _oauth2_struct_slot_ptr_set(void *struct_ptr, size_t offset,
 				 const void *value);
 bool _oauth2_struct_slot_uint_set(void *struct_ptr, size_t offset,
 				  oauth2_uint_t value);
+bool _oauth2_struct_slot_time_set(void *struct_ptr, size_t offset,
+				  oauth2_time_t value);
 
 char *_oauth2_stradd4(char *s1, const char *s2, const char *s3, const char *s4,
 		      const char *s5);

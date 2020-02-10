@@ -30,8 +30,8 @@ oauth2_cfg_session_t *oauth2_cfg_session_init(oauth2_log_t *log)
 	    sizeof(oauth2_cfg_session_t));
 	session->type = OAUTH2_CFG_UINT_UNSET;
 	session->cookie_name = NULL;
-	session->inactivity_timeout_s = OAUTH2_CFG_UINT_UNSET;
-	session->expiry_s = OAUTH2_CFG_UINT_UNSET;
+	session->inactivity_timeout_s = OAUTH2_CFG_TIME_UNSET;
+	session->max_duration_s = OAUTH2_CFG_TIME_UNSET;
 	return session;
 }
 
@@ -47,7 +47,7 @@ oauth2_cfg_session_t *oauth2_cfg_session_clone(oauth2_log_t *log,
 	dst->type = src->type;
 	dst->cookie_name = oauth2_strdup(src->cookie_name);
 	dst->inactivity_timeout_s = src->inactivity_timeout_s;
-	dst->expiry_s = src->expiry_s;
+	dst->max_duration_s = src->max_duration_s;
 
 end:
 	return dst;
@@ -68,24 +68,25 @@ void oauth2_cfg_session_free(oauth2_log_t *log, oauth2_cfg_session_t *session)
 
 #define OAUTH2_INACTIVITY_TIMEOUT_S_DEFAULT 60 * 5
 
-oauth2_uint_t
+oauth2_time_t
 oauth2_cfg_session_inactivity_timeout_s_get(oauth2_log_t *log,
 					    const oauth2_cfg_session_t *cfg)
 {
 	if ((cfg == NULL) ||
-	    (cfg->inactivity_timeout_s == OAUTH2_CFG_UINT_UNSET))
+	    (cfg->inactivity_timeout_s == OAUTH2_CFG_TIME_UNSET))
 		return OAUTH2_INACTIVITY_TIMEOUT_S_DEFAULT;
 	return cfg->inactivity_timeout_s;
 }
 
-#define OAUTH2_SESSION_EXPIRY_S_DEFAULT 60 * 60 * 8
+#define OAUTH2_SESSION_MAX_DURATION_S_DEFAULT 60 * 60 * 8
 
-oauth2_uint_t oauth2_cfg_session_expiry_s_get(oauth2_log_t *log,
-					      const oauth2_cfg_session_t *cfg)
+oauth2_time_t
+oauth2_cfg_session_max_duration_s_get(oauth2_log_t *log,
+				      const oauth2_cfg_session_t *cfg)
 {
-	if ((cfg == NULL) && (cfg->expiry_s == OAUTH2_CFG_UINT_UNSET))
-		return OAUTH2_SESSION_EXPIRY_S_DEFAULT;
-	return cfg->expiry_s;
+	if ((cfg == NULL) || (cfg->max_duration_s == OAUTH2_CFG_TIME_UNSET))
+		return OAUTH2_SESSION_MAX_DURATION_S_DEFAULT;
+	return cfg->max_duration_s;
 }
 
 #define OAUTH2_SESSION_COOKIE_NAME_DEFAULT "openidc_session"
@@ -197,15 +198,15 @@ char *oauth2_cfg_session_set_options(oauth2_log_t *log,
 	if (value)
 		cfg->cookie_name = oauth2_strdup(value);
 
-	value = oauth2_nv_list_get(log, params, "expiry");
+	value = oauth2_nv_list_get(log, params, "max_duration");
 	if (value)
-		cfg->expiry_s =
-		    oauth2_parse_uint(log, value, OAUTH2_CFG_UINT_UNSET);
+		cfg->max_duration_s =
+		    oauth2_parse_time_sec(log, value, OAUTH2_CFG_TIME_UNSET);
 
 	value = oauth2_nv_list_get(log, params, "inactivity_timeout");
 	if (value)
 		cfg->inactivity_timeout_s =
-		    oauth2_parse_uint(log, value, OAUTH2_CFG_UINT_UNSET);
+		    oauth2_parse_time_sec(log, value, OAUTH2_CFG_TIME_UNSET);
 
 end:
 

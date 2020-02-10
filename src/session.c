@@ -28,6 +28,8 @@
 #include "util_int.h"
 
 typedef struct oauth2_session_rec_t {
+	oauth2_time_t start;
+	oauth2_time_t expiry;
 	char *user;
 	json_t *id_token_claims;
 } oauth2_session_rec_t;
@@ -38,6 +40,8 @@ oauth2_session_rec_t *oauth2_session_rec_init(oauth2_log_t *log)
 	    sizeof(oauth2_session_rec_t));
 	s->user = NULL;
 	s->id_token_claims = NULL;
+	s->expiry = 0;
+	s->start = oauth2_time_now_sec();
 	return s;
 }
 
@@ -52,6 +56,8 @@ void oauth2_session_rec_free(oauth2_log_t *log, oauth2_session_rec_t *s)
 }
 
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(session, rec, user, char *, str)
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(session, rec, start, oauth2_time_t, time)
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(session, rec, expiry, oauth2_time_t, time)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_GET(session, rec, id_token_claims, json_t *)
 
 bool oauth2_session_rec_id_token_claims_set(oauth2_log_t *log,
@@ -67,6 +73,8 @@ bool oauth2_session_rec_id_token_claims_set(oauth2_log_t *log,
 
 #define OAUTH_SESSION_KEY_USER "u"
 #define OAUTH_SESSION_ID_TOKEN_CLAIMS "i"
+#define OAUTH_SESSION_KEY_START "s"
+#define OAUTH_SESSION_KEY_EXPIRY "e"
 
 bool oauth2_session_load_cookie(oauth2_log_t *log,
 				const oauth2_cfg_session_t *cfg,
@@ -206,6 +214,8 @@ bool oauth2_session_load(oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
 	bool rc = false;
 	json_t *json = NULL;
 	oauth2_session_load_callback_t *session_load_callback = NULL;
+	json_int_t expiry = 0, start = 0;
+	oauth2_time_t now = 0;
 
 	oauth2_debug(log, "enter");
 
@@ -226,6 +236,35 @@ bool oauth2_session_load(oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
 	if ((rc == false) || (json == NULL))
 		goto end;
 
+	now = oauth2_time_now_sec();
+
+	if (oauth2_json_number_get(log, json, OAUTH_SESSION_KEY_START, &start,
+				   0) == false)
+		goto end;
+	if (now >= start + oauth2_cfg_session_max_duration_s_get(log, cfg)) {
+		oauth2_warn(log,
+			    "session has exceeded maximum duration; "
+			    "start=" OAUTH2_TIME_T_FORMAT
+			    " expiry=" OAUTH2_TIME_T_FORMAT
+			    " now=" OAUTH2_TIME_T_FORMAT "",
+			    start,
+			    oauth2_cfg_session_max_duration_s_get(log, cfg),
+			    now);
+		rc = false;
+		goto end;
+	}
+	(*session)->start = start;
+
+	if (oauth2_json_number_get(log, json, OAUTH_SESSION_KEY_EXPIRY, &expiry,
+				   0) == false)
+		goto end;
+	if (now >= expiry) {
+		oauth2_warn(log, "session has expired");
+		rc = false;
+		goto end;
+	}
+	(*session)->expiry = expiry;
+
 	if (oauth2_json_string_get(log, json, OAUTH_SESSION_KEY_USER,
 				   &(*session)->user, NULL) == false)
 		goto end;
@@ -240,6 +279,54 @@ end:
 		json_decref(json);
 
 	oauth2_debug(log, "return: %d", rc);
+
+	return rc;
+}
+
+bool oauth2_session_handle(oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
+			   const oauth2_http_request_t *request,
+			   oauth2_http_response_t *response,
+			   oauth2_session_rec_t *session)
+{
+
+	bool rc = false;
+	bool needs_save = false;
+
+	/*
+	 * reset the session inactivity timer
+	 * but only do this once per 10% of the inactivity timeout interval
+	 * (with a max to 60 seconds) for performance reasons
+	 *
+	 * now there's a small chance that the session ends 10% (or a minute)
+	 * earlier than configured/expected cq. when there's a request after a
+	 * recent save (so no update) and then no activity happens until a
+	 * request comes in just before the session should expire
+	 * ("recent" and "just before" refer to 10%-with-a-max-of-60-seconds of
+	 * the inactivity interval after the start/last-update and before the
+	 * expiry of the session respectively)
+	 *
+	 * this is be deemed acceptable here because of performance gain
+	 */
+	oauth2_time_t interval =
+	    oauth2_cfg_session_inactivity_timeout_s_get(log, cfg);
+	oauth2_time_t now = oauth2_time_now_sec();
+	oauth2_time_t slack = interval / 10;
+	if (slack > 60)
+		slack = 60;
+	if (session->expiry - now < interval - slack) {
+		// session->expiry = now + interval;
+		needs_save = true;
+	}
+
+	oauth2_debug(log,
+		     "session inactivity timeout: " OAUTH2_TIME_T_FORMAT
+		     ", interval: " OAUTH2_TIME_T_FORMAT "",
+		     session->expiry - now, interval);
+
+	if (needs_save)
+		rc = oauth2_session_save(log, cfg, request, response, session);
+	else
+		rc = true;
 
 	return rc;
 }
@@ -259,6 +346,25 @@ bool oauth2_session_save(oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
 	json = json_object();
 	if (json == NULL)
 		goto end;
+
+	if (session->start > 0)
+		json_object_set_new(json, OAUTH_SESSION_KEY_START,
+				    json_integer(session->start));
+
+	if (session->expiry == 0) {
+		oauth2_debug(
+		    log,
+		    "setting expiry according to "
+		    "cfg->inactivity_timeout_s=" OAUTH2_TIME_T_FORMAT "",
+		    oauth2_cfg_session_inactivity_timeout_s_get(log, cfg));
+		session->expiry =
+		    oauth2_time_now_sec() +
+		    oauth2_cfg_session_inactivity_timeout_s_get(log, cfg);
+	}
+
+	if (session->expiry > 0)
+		json_object_set_new(json, OAUTH_SESSION_KEY_EXPIRY,
+				    json_integer(session->expiry));
 
 	if (session->user)
 		json_object_set_new(json, OAUTH_SESSION_KEY_USER,

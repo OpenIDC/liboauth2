@@ -663,6 +663,7 @@ end:
 _OAUTH2_STRUCT_MEMBER_SET(bln, bool)
 _OAUTH2_STRUCT_MEMBER_SET(integer, int)
 _OAUTH2_STRUCT_MEMBER_SET(uint, oauth2_uint_t)
+_OAUTH2_STRUCT_MEMBER_SET(time, oauth2_time_t)
 
 bool _oauth2_struct_slot_ptr_set(void *struct_ptr, size_t offset,
 				 const void *value)

@@ -35,8 +35,8 @@ OAUTH2_CFG_TYPE_DECLARE(cfg, session)
 OAUTH2_TYPE_DECLARE_MEMBER_GET(cfg, session, cookie_name, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_GET(cfg, session, passphrase, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_GET(cfg, session, inactivity_timeout_s,
-			       oauth2_uint_t)
-OAUTH2_TYPE_DECLARE_MEMBER_GET(cfg, session, expiry_s, oauth2_uint_t)
+			       oauth2_time_t)
+OAUTH2_TYPE_DECLARE_MEMBER_GET(cfg, session, max_duration_s, oauth2_time_t)
 
 typedef bool(oauth2_session_load_callback_t)(oauth2_log_t *log,
 					     const oauth2_cfg_session_t *cfg,
@@ -60,6 +60,8 @@ OAUTH2_TYPE_DECLARE(session, rec);
 
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(session, rec, user, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_GET(session, rec, id_token_claims, json_t *)
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(session, rec, start, oauth2_time_t)
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(session, rec, expiry, oauth2_time_t)
 
 bool oauth2_session_rec_id_token_claims_set(oauth2_log_t *log,
 					    oauth2_session_rec_t *session,
@@ -73,5 +75,9 @@ bool oauth2_session_save(oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
 			 oauth2_http_response_t *response,
 			 oauth2_session_rec_t *session);
 void oauth2_session_rec_free(oauth2_log_t *log, oauth2_session_rec_t *s);
+bool oauth2_session_handle(oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
+			   const oauth2_http_request_t *request,
+			   oauth2_http_response_t *response,
+			   oauth2_session_rec_t *session);
 
 #endif /* _OAUTH2_SESSION_H_ */

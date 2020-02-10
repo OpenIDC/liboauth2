@@ -40,6 +40,8 @@ const char *oauth2_cfg_set_flag_slot(void *cfg, size_t offset,
 				     const char *value);
 const char *oauth2_cfg_set_uint_slot(void *cfg, size_t offset,
 				     const char *value);
+const char *oauth2_cfg_set_time_slot(void *cfg, size_t offset,
+				     const char *value);
 const char *oauth2_cfg_set_str_slot(void *cfg, size_t offset,
 				    const char *value);
 

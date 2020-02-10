@@ -30,6 +30,8 @@
 
 #include <check.h>
 #include <stdlib.h>
+#include <time.h>
+#include <unistd.h>
 
 static oauth2_log_t *_log = 0;
 
@@ -598,7 +600,8 @@ START_TEST(test_openidc_handle)
 
 	oauth2_cfg_openidc_passphrase_set(_log, c, "mypassphrase1234");
 	oauth2_cfg_openidc_provider_resolver_set_options(
-	    _log, c, "string", test_openidc_metadata_get(), NULL);
+	    _log, c, "string", test_openidc_metadata_get(),
+	    "inactivity_timeout=1");
 
 	rc = oauth2_http_request_path_set(_log, r, "/secure");
 	ck_assert_int_eq(rc, true);
@@ -680,8 +683,7 @@ START_TEST(test_openidc_handle)
 	oauth2_http_request_free(_log, r);
 
 	r = oauth2_http_request_init(_log);
-	rc = oauth2_http_request_path_set(_log, r,
-					  "https://app.example.org/secure");
+	rc = oauth2_http_request_path_set(_log, r, "/secure");
 	ck_assert_int_eq(rc, true);
 	rc = oauth2_http_request_header_set(_log, r, "Host", "app.example.org");
 	ck_assert_int_eq(rc, true);
@@ -700,10 +702,28 @@ START_TEST(test_openidc_handle)
 	// oauth2_http_response_header_set_cookie_prefix_get(_log, response,
 	// "openidc_session"));
 
+	oauth2_http_request_free(_log, r);
 	oauth2_http_response_free(_log, response);
+	json_decref(claims);
+
+	sleep(2);
+
+	r = oauth2_http_request_init(_log);
+	rc = oauth2_http_request_path_set(_log, r, "/secure");
+	ck_assert_int_eq(rc, true);
+	rc = oauth2_http_request_header_set(_log, r, "Host", "app.example.org");
+	ck_assert_int_eq(rc, true);
+	rc = oauth2_http_request_header_set(_log, r, "Accept", "text/html");
+	ck_assert_int_eq(rc, true);
+	rc = oauth2_http_request_header_set(_log, r, "Cookie", session_cookie);
+	ck_assert_int_eq(rc, true);
+
+	response = NULL;
+	rc = oauth2_openidc_handle(_log, c, r, &response, &claims);
+	ck_assert_int_eq(rc, false);
+
 	oauth2_http_request_free(_log, r);
 
-	json_decref(claims);
 	oauth2_mem_free(state);
 	oauth2_mem_free(query_str);
 	oauth2_mem_free(state_cookie_name);

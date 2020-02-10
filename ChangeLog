@@ -1,3 +1,7 @@
+02/10/2020
+- implement session expiry checks
+- bump to 1.2.3
+
 02/05/2020
 - add missing ROPC config functions
 - bump to 1.2.2

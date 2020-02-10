@@ -165,15 +165,24 @@ static bool _oauth2_openidc_existing_session(oauth2_log_t *log,
 					     oauth2_http_response_t **response,
 					     json_t **claims)
 {
-	bool rc = true;
+	bool rc = false;
 	json_t *json = NULL;
 
 	oauth2_debug(log, "enter");
 
+	*response = oauth2_http_response_init(log);
+
+	if (oauth2_session_handle(log, c->session, r, *response, session) ==
+	    false)
+		goto end;
+
 	json = oauth2_session_rec_id_token_claims_get(log, session);
 
-	*response = oauth2_http_response_init(log);
 	*claims = json ? json_incref(json) : NULL;
+
+	rc = true;
+
+end:
 
 	oauth2_debug(log, "return: %d (%p, %p)", rc, *response, *claims);
 
