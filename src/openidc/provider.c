@@ -36,6 +36,7 @@ oauth2_openidc_provider_t *oauth2_openidc_provider_init(oauth2_log_t *log)
 	p->authorization_endpoint = NULL;
 	p->token_endpoint = NULL;
 	p->token_endpoint_auth = NULL;
+	p->userinfo_endpoint = NULL;
 	p->jwks_uri = NULL;
 	p->scope = NULL;
 	p->client_id = NULL;
@@ -63,6 +64,8 @@ void oauth2_openidc_provider_free(oauth2_log_t *log,
 		oauth2_cfg_endpoint_auth_free(log, p->token_endpoint_auth);
 	if (p->jwks_uri)
 		oauth2_mem_free(p->jwks_uri);
+	if (p->userinfo_endpoint)
+		oauth2_mem_free(p->userinfo_endpoint);
 	if (p->scope)
 		oauth2_mem_free(p->scope);
 	if (p->client_id)

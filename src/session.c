@@ -41,6 +41,7 @@ oauth2_session_rec_t *oauth2_session_rec_init(oauth2_log_t *log)
 	    sizeof(oauth2_session_rec_t));
 	s->user = NULL;
 	s->id_token_claims = NULL;
+	s->userinfo_claims = NULL;
 	s->expiry = 0;
 	s->start = oauth2_time_now_sec();
 	return s;
@@ -52,6 +53,8 @@ void oauth2_session_rec_free(oauth2_log_t *log, oauth2_session_rec_t *s)
 		oauth2_mem_free(s->user);
 	if (s->id_token_claims)
 		json_decref(s->id_token_claims);
+	if (s->userinfo_claims)
+		json_decref(s->userinfo_claims);
 	if (s)
 		oauth2_mem_free(s);
 }

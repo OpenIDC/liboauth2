@@ -484,6 +484,8 @@ end:
 
 	if (s_id_token)
 		oauth2_mem_free(s_id_token);
+	if (s_access_token)
+		oauth2_mem_free(s_access_token);
 	if (location)
 		oauth2_mem_free(location);
 	if (proto_state)

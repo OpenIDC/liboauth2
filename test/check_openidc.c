@@ -347,6 +347,7 @@ static char *test_openidc_metadata_get()
 
 	oauth2_mem_free(token_endpoint);
 	oauth2_mem_free(jwks_uri);
+	oauth2_mem_free(userinfo_endpoint);
 
 end:
 
