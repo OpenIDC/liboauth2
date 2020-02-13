@@ -8,13 +8,14 @@ Generic library that can be used to build OAuth 2.0 and OpenID Connect C-based s
 - reusable code across for other OAuth 2.0 (and REST) related protocols
   e.g. token exchange with endpoint authentication, source token retrieval, target pass settings etc.
 - generic code with plugins for Apache, NGINX and possibly more (e.g. Envoy, HA Proxy, IIS)
-- cache backend/size/options per cache element type (i.e. no longer a single flat shared backend/storage/namespace)
-- configurable cache key hashing algorithm
-- shm: support configurable key sizes (ie. storage)
+- configurable cache backend/size/options per cache element type
+- cookie-based session management (i.e. enforce inactivity timeout, expiry)
 
 ## Features
+- OpenID Connect 1.0 [https://openid.net/specs/openid-connect-core-1_0.html](https://openid.net/specs/openid-connect-core-1_0.html)
+- OAuth 2.0 Resource Owner Password Credentials [https://tools.ietf.org/html/rfc6749#section-4.3](https://tools.ietf.org/html/rfc6749#section-4.3)
 - OAuth 2.0 Token Introspection [https://tools.ietf.org/html/rfc7662](https://tools.ietf.org/html/rfc7662)
-- JWT bearer token validation using: JWK, JWKS URI, shared symmetric key, X.509 cert, RSA public key
+- JWT bearer token validation using: JWK, JWKS URI, shared symmetric key, X.509 cert, RSA public key [https://tools.ietf.org/html/rfc6750](https://tools.ietf.org/html/rfc6750)
 - OAuth 2.0 Authorization Server Metadata [https://tools.ietf.org/html/rfc8414](https://tools.ietf.org/html/rfc8414)
 - Amazon ALB [EC key URL based `x-amzn-oidc-data` JWT verification](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/listener-authenticate-users.html)
 - endpoint authentication methods: `client_secret_basic`, `client_secret_post`, [`client_secret_jwt`, `private_key_jwt`](https://tools.ietf.org/html/rfc7523), [TLS client certificate](https://tools.ietf.org/id/draft-ietf-oauth-mtls) and HTTP basic authentication
