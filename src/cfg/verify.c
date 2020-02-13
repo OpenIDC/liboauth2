@@ -23,6 +23,7 @@
 #include "oauth2/jose.h"
 #include "oauth2/mem.h"
 
+#include "cache_int.h"
 #include "cfg_int.h"
 #include "jose_int.h"
 #include "oauth2_int.h"
@@ -64,6 +65,7 @@ oauth2_cfg_token_verify_t *oauth2_cfg_token_verify_init(oauth2_log_t *log)
 	verify->ctx = NULL;
 	verify->callback = NULL;
 	verify->cache = NULL;
+	verify->expiry_s = OAUTH2_CFG_UINT_UNSET;
 	verify->next = NULL;
 	return verify;
 }
@@ -75,7 +77,7 @@ void oauth2_cfg_token_verify_free(oauth2_log_t *log,
 	while (ptr) {
 		verify = verify->next;
 		if (ptr->cache)
-			oauth2_cfg_cache_free(log, ptr->cache);
+			oauth2_cache_release(log, ptr->cache);
 		if (ptr->ctx)
 			oauth2_cfg_ctx_free(log, ptr->ctx);
 		oauth2_mem_free(ptr);
@@ -93,7 +95,8 @@ oauth2_cfg_token_verify_clone(oauth2_log_t *log, oauth2_cfg_token_verify_t *src)
 		goto end;
 
 	dst = oauth2_cfg_token_verify_init(NULL);
-	dst->cache = oauth2_cfg_cache_clone(log, src->cache);
+	dst->cache = oauth2_cache_clone(log, src->cache);
+	dst->expiry_s = src->expiry_s;
 	dst->callback = src->callback;
 	dst->ctx = oauth2_cfg_ctx_clone(log, src->ctx);
 	dst->next = oauth2_cfg_token_verify_clone(NULL, src->next);
@@ -116,7 +119,7 @@ _oauth2_cfg_token_verify_add(oauth2_log_t *log,
 	if (v == NULL)
 		goto end;
 
-	v->cache = oauth2_cfg_cache_init(log);
+	v->cache = NULL;
 	v->callback = NULL;
 	v->ctx = oauth2_cfg_ctx_init(log);
 	if (v->ctx == NULL)
@@ -156,11 +159,14 @@ char *oauth2_cfg_token_verify_add_options(oauth2_log_t *log,
 
 	v = _oauth2_cfg_token_verify_add(log, verify);
 
+	v->cache =
+	    _oauth2_cache_obtain(log, oauth2_nv_list_get(log, params, "cache"));
+	v->expiry_s =
+	    oauth2_parse_uint(log, oauth2_nv_list_get(log, params, "expiry"),
+			      OAUTH2_CFG_VERIFY_RESULT_CACHE_DEFAULT);
+
 	rv = oauth2_cfg_set_options(log, v, type, value, options,
 				    _oauth2_cfg_verify_options_set);
-
-	oauth2_cfg_cache_set_options(log, v->cache, "verify", params,
-				     OAUTH2_CFG_VERIFY_RESULT_CACHE_DEFAULT);
 
 end:
 

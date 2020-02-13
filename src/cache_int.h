@@ -34,7 +34,9 @@ typedef struct oauth2_cache_t {
 	oauth2_uint_t refcount;
 } oauth2_cache_t;
 
-void _oauth2_cache_register(oauth2_cache_type_t *type);
+void _oauth2_cache_type_register(oauth2_cache_type_t *type);
+
+oauth2_cache_t *_oauth2_cache_obtain(oauth2_log_t *log, const char *name);
 
 // clang-format off
 #define OAUTH2_CACHE_TYPE_DECLARE(type, encrypt)	\

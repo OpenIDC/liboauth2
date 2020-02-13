@@ -1,6 +1,7 @@
 02/13/2020
 - add userinfo endpoint request and claims
 - bump to 1.2.4
+- change to named cache configurations
 
 02/10/2020
 - implement session expiry checks

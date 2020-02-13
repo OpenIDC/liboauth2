@@ -41,7 +41,8 @@ typedef struct oauth2_jose_jwk_list_t {
 typedef struct oauth2_uri_ctx_t {
 	char *uri;
 	bool ssl_verify;
-	oauth2_cfg_cache_t *cache;
+	oauth2_cache_t *cache;
+	oauth2_time_t expiry_s;
 } oauth2_uri_ctx_t;
 
 typedef enum oauth2_jose_jwks_provider_type_t {

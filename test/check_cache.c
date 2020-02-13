@@ -98,8 +98,13 @@ START_TEST(test_cache_shm)
 	bool rc = false;
 	char *value = NULL;
 	oauth2_cache_t *c = NULL;
+	oauth2_nv_list_t *params = NULL;
 
-	c = oauth2_cache_init(_log, "shm", "max_val_size=16&max_entries=2");
+	rc = oauth2_parse_form_encoded_params(
+	    _log, "max_val_size=16&max_entries=2", &params);
+	ck_assert_int_eq(rc, true);
+
+	c = oauth2_cache_init(_log, "shm", params);
 	ck_assert_ptr_ne(c, NULL);
 	rc = oauth2_cache_post_config(_log, c);
 	ck_assert_int_eq(rc, true);
@@ -123,9 +128,14 @@ START_TEST(test_cache_shm)
 			      1);
 	ck_assert_int_eq(rc, false);
 
-	oauth2_cache_free(_log, c);
+	oauth2_cache_release(_log, c);
+	oauth2_nv_list_free(_log, params);
 
-	c = oauth2_cache_init(_log, NULL, "key_hash_algo=none&max_key_size=8");
+	rc = oauth2_parse_form_encoded_params(
+	    _log, "key_hash_algo=none&max_key_size=8", &params);
+	ck_assert_int_eq(rc, true);
+
+	c = oauth2_cache_init(_log, NULL, params);
 	ck_assert_ptr_ne(c, NULL);
 	rc = oauth2_cache_post_config(_log, c);
 	ck_assert_int_eq(rc, true);
@@ -137,7 +147,8 @@ START_TEST(test_cache_shm)
 			      1);
 	ck_assert_int_eq(rc, false);
 
-	oauth2_cache_free(_log, c);
+	oauth2_nv_list_free(_log, params);
+	oauth2_cache_release(_log, c);
 }
 END_TEST
 
@@ -145,8 +156,13 @@ START_TEST(test_cache_file)
 {
 	bool rc = false;
 	oauth2_cache_t *c = NULL;
+	oauth2_nv_list_t *params = NULL;
 
-	c = oauth2_cache_init(_log, "file", "key_hash_algo=none");
+	rc = oauth2_parse_form_encoded_params(
+	    _log, "key_hash_algo=none&max_key_size=8", &params);
+	ck_assert_int_eq(rc, true);
+
+	c = oauth2_cache_init(_log, "file", params);
 	ck_assert_ptr_ne(c, NULL);
 	rc = oauth2_cache_post_config(_log, c);
 	ck_assert_int_eq(rc, true);
@@ -157,7 +173,8 @@ START_TEST(test_cache_file)
 	ck_assert_int_eq(rc, true);
 	// TODO: test file /tmp/mod-auth-openidc-hans exists?
 
-	oauth2_cache_free(_log, c);
+	oauth2_nv_list_free(_log, params);
+	oauth2_cache_release(_log, c);
 }
 END_TEST
 
@@ -174,7 +191,7 @@ START_TEST(test_cache_memcache)
 
 	_test_basic_cache(c);
 
-	oauth2_cache_free(_log, c);
+	oauth2_cache_release(_log, c);
 }
 END_TEST
 #endif
@@ -192,7 +209,7 @@ START_TEST(test_cache_redis)
 
 	_test_basic_cache(c);
 
-	oauth2_cache_free(_log, c);
+	oauth2_cache_release(_log, c);
 }
 END_TEST
 #endif

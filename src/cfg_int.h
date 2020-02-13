@@ -98,20 +98,18 @@ typedef struct oauth2_cfg_source_token_t {
  * cache
  */
 
-typedef struct oauth2_cfg_cache_t {
-	oauth2_cache_t *cache;
-	oauth2_time_t expiry_s;
-} oauth2_cfg_cache_t;
+// typedef struct oauth2_cfg_cache_t {
+//	oauth2_cache_t *cache;
+//	oauth2_time_t expiry_s;
+//} oauth2_cfg_cache_t;
+//
+// oauth2_cfg_cache_t *oauth2_cfg_cache_init(oauth2_log_t *log);
+// oauth2_cfg_cache_t *oauth2_cfg_cache_clone(oauth2_log_t *log,
+//					   oauth2_cfg_cache_t *src);
+// void oauth2_cfg_cache_free(oauth2_log_t *log, oauth2_cfg_cache_t *cache);
 
-oauth2_cfg_cache_t *oauth2_cfg_cache_init(oauth2_log_t *log);
-oauth2_cfg_cache_t *oauth2_cfg_cache_clone(oauth2_log_t *log,
-					   oauth2_cfg_cache_t *src);
-void oauth2_cfg_cache_free(oauth2_log_t *log, oauth2_cfg_cache_t *cache);
-
-char *oauth2_cfg_cache_set_options(oauth2_log_t *log, oauth2_cfg_cache_t *cache,
-				   const char *prefix,
-				   const oauth2_nv_list_t *params,
-				   oauth2_uint_t default_expiry_s);
+char *oauth2_cfg_cache_set_options(oauth2_log_t *log, const char *type,
+				   const oauth2_nv_list_t *params);
 
 /*
  * verify
@@ -145,7 +143,8 @@ void oauth2_cfg_ctx_free(oauth2_log_t *log, oauth2_cfg_ctx_t *ctx);
 typedef struct oauth2_cfg_token_verify_t {
 	oauth2_cfg_token_verify_cb_t *callback;
 	oauth2_cfg_ctx_t *ctx;
-	oauth2_cfg_cache_t *cache;
+	oauth2_cache_t *cache;
+	oauth2_time_t expiry_s;
 	struct oauth2_cfg_token_verify_t *next;
 } oauth2_cfg_token_verify_t;
 
@@ -208,7 +207,7 @@ typedef bool(oauth2_openidc_provider_resolver_func_t)(
 typedef struct oauth2_cfg_openidc_provider_resolver_t {
 	oauth2_openidc_provider_resolver_func_t *callback;
 	oauth2_cfg_ctx_t *ctx;
-	oauth2_cfg_cache_t *cache;
+	oauth2_cache_t *cache;
 } oauth2_cfg_openidc_provider_resolver_t;
 
 // TODO: set add log

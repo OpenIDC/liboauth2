@@ -711,7 +711,7 @@ bool oauth2_token_verify(oauth2_log_t *log, oauth2_cfg_token_verify_t *verify,
 	ptr = verify;
 	while (ptr && ptr->callback) {
 
-		oauth2_cache_get(log, ptr->cache->cache, token, &s_payload);
+		oauth2_cache_get(log, ptr->cache, token, &s_payload);
 		if ((s_payload) &&
 		    (oauth2_json_decode_object(log, s_payload, json_payload))) {
 			rc = true;
@@ -719,8 +719,8 @@ bool oauth2_token_verify(oauth2_log_t *log, oauth2_cfg_token_verify_t *verify,
 		}
 
 		if (ptr->callback(log, ptr, token, json_payload, &s_payload)) {
-			oauth2_cache_set(log, ptr->cache->cache, token,
-					 s_payload, ptr->cache->expiry_s);
+			oauth2_cache_set(log, ptr->cache, token, s_payload,
+					 ptr->expiry_s);
 			rc = true;
 			break;
 		}

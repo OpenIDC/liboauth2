@@ -26,6 +26,7 @@
 
 #include "cjose/cjose.h"
 
+#include "cache_int.h"
 #include "jose_int.h"
 #include "util_int.h"
 
@@ -470,18 +471,20 @@ end:
 _OAUTH2_CFG_CTX_INIT_START(oauth2_uri_ctx)
 ctx->uri = NULL;
 ctx->ssl_verify = true;
-ctx->cache = oauth2_cfg_cache_init(log);
+ctx->cache = NULL;
+ctx->expiry_s = OAUTH2_CFG_UINT_UNSET;
 _OAUTH2_CFG_CTX_INIT_END
 
 _OAUTH2_CFG_CTX_CLONE_START(oauth2_uri_ctx)
 dst->uri = oauth2_strdup(src->uri);
 dst->ssl_verify = src->ssl_verify;
-dst->cache = oauth2_cfg_cache_clone(log, src->cache);
+dst->cache = oauth2_cache_clone(log, src->cache);
+dst->expiry_s = src->expiry_s;
 _OAUTH2_CFG_CTX_CLONE_END
 
 _OAUTH2_CFG_CTX_FREE_START(oauth2_uri_ctx)
 if (ctx->cache)
-	oauth2_cfg_cache_free(log, ctx->cache);
+	oauth2_cache_release(log, ctx->cache);
 if (ctx->uri)
 	oauth2_mem_free(ctx->uri);
 _OAUTH2_CFG_CTX_FREE_END
@@ -1592,10 +1595,20 @@ char *oauth2_jose_options_uri_ctx(oauth2_log_t *log, const char *value,
 	    oauth2_parse_bool(log, oauth2_nv_list_get(log, params, key), true);
 	oauth2_mem_free(key);
 
-	// TODO: if ssl_veriy == true and url is not a https URL then fail
+	// TODO: if ssl_verify == true and url is not a https URL then fail
 
-	rv = oauth2_cfg_cache_set_options(log, ctx->cache, prefix, params,
-					  OAUTH2_JOSE_URI_REFRESH_DEFAULT);
+	key = oauth2_stradd(NULL, prefix, ".", "cache");
+	ctx->cache =
+	    _oauth2_cache_obtain(log, oauth2_nv_list_get(log, params, key));
+	oauth2_mem_free(key);
+	if (ctx->cache == NULL)
+		rv = oauth2_strdup("cache could not be found");
+
+	key = oauth2_stradd(NULL, prefix, ".", "expiry");
+	ctx->expiry_s =
+	    oauth2_parse_uint(log, oauth2_nv_list_get(log, params, key),
+			      OAUTH2_JOSE_URI_REFRESH_DEFAULT);
+	oauth2_mem_free(key);
 
 	return rv;
 }
@@ -1854,8 +1867,7 @@ char *oauth2_jose_resolve_from_uri(oauth2_log_t *log, oauth2_uri_ctx_t *uri_ctx,
 
 	if (*refresh == false) {
 
-		oauth2_cache_get(log, uri_ctx->cache->cache, uri_ctx->uri,
-				 &response);
+		oauth2_cache_get(log, uri_ctx->cache, uri_ctx->uri, &response);
 	}
 
 	if (response == NULL) {
@@ -1876,8 +1888,8 @@ char *oauth2_jose_resolve_from_uri(oauth2_log_t *log, oauth2_uri_ctx_t *uri_ctx,
 			goto end;
 		}
 
-		oauth2_cache_set(log, uri_ctx->cache->cache, uri_ctx->uri,
-				 response, uri_ctx->cache->expiry_s);
+		oauth2_cache_set(log, uri_ctx->cache, uri_ctx->uri, response,
+				 uri_ctx->expiry_s);
 	}
 
 end:

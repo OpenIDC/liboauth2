@@ -49,10 +49,6 @@ START_TEST(test_oauth2_verify_clone)
 
 	dst = oauth2_cfg_token_verify_clone(_log, src);
 
-	rv = oauth2_cfg_cache_set_options(_log, NULL, NULL, NULL, 0);
-	ck_assert_ptr_ne(rv, NULL);
-	oauth2_mem_free(rv);
-
 	oauth2_cfg_token_verify_free(_log, dst);
 	oauth2_cfg_token_verify_free(_log, src);
 }
