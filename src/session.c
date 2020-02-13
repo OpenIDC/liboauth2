@@ -32,6 +32,7 @@ typedef struct oauth2_session_rec_t {
 	oauth2_time_t expiry;
 	char *user;
 	json_t *id_token_claims;
+	json_t *userinfo_claims;
 } oauth2_session_rec_t;
 
 oauth2_session_rec_t *oauth2_session_rec_init(oauth2_log_t *log)
@@ -59,20 +60,33 @@ _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(session, rec, user, char *, str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(session, rec, start, oauth2_time_t, time)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(session, rec, expiry, oauth2_time_t, time)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_GET(session, rec, id_token_claims, json_t *)
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_GET(session, rec, userinfo_claims, json_t *)
 
 bool oauth2_session_rec_id_token_claims_set(oauth2_log_t *log,
 					    oauth2_session_rec_t *session,
 					    json_t *id_token)
 {
 	char *s_id_token = oauth2_json_encode(log, id_token, 0);
-	oauth2_debug(log, "%s", s_id_token);
+	oauth2_debug(log, "id_token=%s", s_id_token);
 	session->id_token_claims = json_incref(id_token);
 	oauth2_mem_free(s_id_token);
 	return true;
 }
 
+bool oauth2_session_rec_userinfo_claims_set(oauth2_log_t *log,
+					    oauth2_session_rec_t *session,
+					    json_t *userinfo_claims)
+{
+	char *s_userinfo = oauth2_json_encode(log, userinfo_claims, 0);
+	oauth2_debug(log, "userinfo=%s", s_userinfo);
+	session->userinfo_claims = json_incref(userinfo_claims);
+	oauth2_mem_free(s_userinfo);
+	return true;
+}
+
 #define OAUTH_SESSION_KEY_USER "u"
 #define OAUTH_SESSION_ID_TOKEN_CLAIMS "i"
+#define OAUTH_SESSION_USERINFO_CLAIMS "c"
 #define OAUTH_SESSION_KEY_START "s"
 #define OAUTH_SESSION_KEY_EXPIRY "e"
 
@@ -273,6 +287,10 @@ bool oauth2_session_load(oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
 				   &(*session)->id_token_claims) == false)
 		goto end;
 
+	if (oauth2_json_object_get(log, json, OAUTH_SESSION_USERINFO_CLAIMS,
+				   &(*session)->userinfo_claims) == false)
+		goto end;
+
 end:
 
 	if (json)
@@ -373,6 +391,10 @@ bool oauth2_session_save(oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
 	if (session->id_token_claims)
 		json_object_set(json, OAUTH_SESSION_ID_TOKEN_CLAIMS,
 				session->id_token_claims);
+
+	if (session->userinfo_claims)
+		json_object_set(json, OAUTH_SESSION_USERINFO_CLAIMS,
+				session->userinfo_claims);
 
 	session_save_callback = oauth2_cfg_session_save_callback_get(log, cfg);
 	if (session_save_callback == NULL)

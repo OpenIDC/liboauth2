@@ -166,7 +166,9 @@ static bool _oauth2_openidc_existing_session(oauth2_log_t *log,
 					     json_t **claims)
 {
 	bool rc = false;
-	json_t *json = NULL;
+	json_t *id_token_claims = NULL, *userinfo_claims = NULL;
+	const char *key = NULL;
+	json_t *value = NULL;
 
 	oauth2_debug(log, "enter");
 
@@ -176,9 +178,18 @@ static bool _oauth2_openidc_existing_session(oauth2_log_t *log,
 	    false)
 		goto end;
 
-	json = oauth2_session_rec_id_token_claims_get(log, session);
+	id_token_claims = oauth2_session_rec_id_token_claims_get(log, session);
+	userinfo_claims = oauth2_session_rec_userinfo_claims_get(log, session);
 
-	*claims = json ? json_incref(json) : NULL;
+	*claims = json_object();
+	if (id_token_claims) {
+		json_object_foreach(id_token_claims, key, value)
+		    json_object_set_new(*claims, key, json_deep_copy(value));
+	}
+	if (userinfo_claims) {
+		json_object_foreach(userinfo_claims, key, value)
+		    json_object_set_new(*claims, key, json_deep_copy(value));
+	}
 
 	rc = true;
 
@@ -254,8 +265,9 @@ _oauth2_openidc_token_endpoint_call(oauth2_log_t *log,
 		log, http_ctx, provider->token_endpoint_auth, params) == false)
 		goto end;
 
-	if (oauth2_http_post_form(log, provider->token_endpoint, params,
-				  http_ctx, &s_response, &status_code) == false)
+	if (oauth2_http_post_form(
+		log, oauth2_openidc_provider_token_endpoint_get(log, provider),
+		params, http_ctx, &s_response, &status_code) == false)
 		goto end;
 
 	if ((status_code < 200) || (status_code >= 300)) {
@@ -282,7 +294,8 @@ static bool _oauth2_openidc_token_request(oauth2_log_t *log,
 					  const oauth2_cfg_openidc_t *cfg,
 					  oauth2_http_request_t *request,
 					  oauth2_openidc_provider_t *provider,
-					  const char *code, char **s_id_token)
+					  const char *code, char **s_id_token,
+					  char **s_access_token)
 {
 	bool rc = false;
 	oauth2_nv_list_t *params = NULL;
@@ -313,6 +326,13 @@ static bool _oauth2_openidc_token_request(oauth2_log_t *log,
 		goto end;
 	}
 
+	if (oauth2_json_string_get(log, json, OAUTH2_OPENIDC_ACCESS_TOKEN,
+				   s_access_token, NULL) == false) {
+		oauth2_error(log, "no %s found in token response",
+			     OAUTH2_OPENIDC_ID_TOKEN);
+		goto end;
+	}
+
 	rc = true;
 
 end:
@@ -327,6 +347,55 @@ end:
 	return rc;
 }
 
+static bool _oauth2_openidc_userinfo_request(
+    oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg,
+    oauth2_http_request_t *request, oauth2_openidc_provider_t *provider,
+    const char *s_access_token, json_t **userinfo_claims)
+{
+	bool rc = false;
+	oauth2_http_call_ctx_t *http_ctx = NULL;
+	char *s_response = NULL;
+	oauth2_uint_t status_code = 0;
+
+	http_ctx = oauth2_http_call_ctx_init(log);
+	if (http_ctx == NULL)
+		goto end;
+
+	if (oauth2_http_call_ctx_ssl_verify_set(log, http_ctx,
+						provider->ssl_verify) == false)
+		goto end;
+
+	if (oauth2_http_call_ctx_bearer_token_set(log, http_ctx,
+						  s_access_token) == false)
+		goto end;
+
+	if (oauth2_http_get(
+		log,
+		oauth2_openidc_provider_userinfo_endpoint_get(log, provider),
+		NULL, http_ctx, &s_response, &status_code) == false)
+		goto end;
+
+	if ((status_code < 200) || (status_code >= 300)) {
+		rc = false;
+		goto end;
+	}
+
+	if (oauth2_json_decode_check_error(log, s_response, userinfo_claims) ==
+	    false)
+		goto end;
+
+	rc = true;
+
+end:
+
+	if (s_response)
+		oauth2_mem_free(s_response);
+	if (http_ctx)
+		oauth2_http_call_ctx_free(log, http_ctx);
+
+	return rc;
+}
+
 static bool _oauth2_openidc_redirect_uri_handler(
     oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg,
     oauth2_http_request_t *request, oauth2_session_rec_t *session,
@@ -335,8 +404,8 @@ static bool _oauth2_openidc_redirect_uri_handler(
 	bool rc = false;
 	oauth2_openidc_provider_t *provider = NULL;
 	const char *code = NULL, *state = NULL;
-	char *location = NULL, *s_id_token = NULL;
-	json_t *id_token = NULL;
+	char *location = NULL, *s_id_token = NULL, *s_access_token = NULL;
+	json_t *id_token = NULL, *userinfo_claims = NULL;
 	oauth2_openidc_proto_state_t *proto_state = NULL;
 
 	oauth2_debug(log, "enter");
@@ -377,16 +446,24 @@ static bool _oauth2_openidc_redirect_uri_handler(
 	// validate response
 
 	if (_oauth2_openidc_token_request(log, cfg, request, provider, code,
-					  &s_id_token) == false)
+					  &s_id_token,
+					  &s_access_token) == false)
 		goto end;
 	if (_oauth2_openidc_id_token_verify(log, provider, s_id_token,
 					    &id_token) == false)
 		goto end;
+	if (oauth2_openidc_provider_token_endpoint_get(log, provider) != NULL) {
+		if (_oauth2_openidc_userinfo_request(log, cfg, request,
+						     provider, s_access_token,
+						     &userinfo_claims) == false)
+			goto end;
+	}
 
 	// TODO: evaluate and set configurable r->user claim
 	oauth2_session_rec_user_set(
 	    log, session, json_string_value(json_object_get(id_token, "sub")));
 	oauth2_session_rec_id_token_claims_set(log, session, id_token);
+	oauth2_session_rec_userinfo_claims_set(log, session, userinfo_claims);
 
 	oauth2_session_save(log, cfg->session, request, *response, session);
 
@@ -415,6 +492,8 @@ end:
 		oauth2_openidc_provider_free(log, provider);
 	if (id_token)
 		json_decref(id_token);
+	if (userinfo_claims)
+		json_decref(userinfo_claims);
 
 	oauth2_debug(log, "leave: %d", rc);
 

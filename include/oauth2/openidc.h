@@ -27,6 +27,7 @@
 #include "oauth2/util.h"
 
 #define OAUTH2_OPENIDC_ID_TOKEN "id_token"
+#define OAUTH2_OPENIDC_ACCESS_TOKEN "access_token"
 
 #define OAUTH2_CLAIM_ISS "iss"
 
@@ -87,6 +88,7 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, authorization_endpoint,
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, token_endpoint, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, token_endpoint_auth,
 				   oauth2_cfg_endpoint_auth_t *)
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, userinfo_endpoint, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, jwks_uri, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, scope, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, client_id, char *)

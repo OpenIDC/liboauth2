@@ -60,6 +60,11 @@ _oauth2_openidc_provider_metadata_parse(oauth2_log_t *log, const char *s_json,
 		oauth2_error(log, "could not parse token_endpoint");
 		goto end;
 	}
+	if (oauth2_json_string_get(log, json, "userinfo_endpoint",
+				   &p->userinfo_endpoint, NULL) == false) {
+		oauth2_error(log, "could not parse userinfo_endpoint");
+		goto end;
+	}
 	if (oauth2_json_string_get(log, json, "jwks_uri", &p->jwks_uri, NULL) ==
 	    false) {
 		oauth2_error(log, "could not parse jwks_uri");

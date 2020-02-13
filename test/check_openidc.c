@@ -93,6 +93,7 @@ static cjose_jwk_t *jwk_rsa = NULL;
 
 static char *jwks_uri_path = "/jwks_uri";
 static char *token_endpoint_path = "/token";
+static char *userinfo_endpoint_path = "/userinfo";
 
 static cjose_jwk_t *oauth2_jwk_rsa_get()
 {
@@ -120,6 +121,10 @@ static char *oauth2_check_openidc_serve_get(const char *request)
 		s = cjose_jwk_to_json(oauth2_jwk_rsa_get(), false, &err);
 		rv = oauth2_stradd(NULL, "{ \"keys\": [ ", s, " ] }");
 		cjose_get_dealloc()(s);
+	} else if (strncmp(request, userinfo_endpoint_path,
+			   strlen(userinfo_endpoint_path)) == 0) {
+		rv = oauth2_strdup("{ \"sub\": \"myclient\", "
+				   "\"myuserinfoclaim\": \"somevalue\" }");
 	} else {
 		rv = oauth2_strdup("problem");
 	}
@@ -314,6 +319,8 @@ static char *test_openidc_metadata_get()
 
 	char *token_endpoint = oauth2_stradd(NULL, oauth2_check_http_base_url(),
 					     token_endpoint_path, NULL);
+	char *userinfo_endpoint = oauth2_stradd(
+	    NULL, oauth2_check_http_base_url(), userinfo_endpoint_path, NULL);
 	char *jwks_uri = oauth2_stradd(NULL, oauth2_check_http_base_url(),
 				       jwks_uri_path, NULL);
 	_openidc_metadata =
@@ -323,6 +330,9 @@ static char *test_openidc_metadata_get()
 			  "\"https://op.example.org/authorize\",");
 	_openidc_metadata = oauth2_stradd(
 	    _openidc_metadata, "\"token_endpoint\": \"", token_endpoint, "\",");
+	_openidc_metadata =
+	    oauth2_stradd(_openidc_metadata, "\"userinfo_endpoint\": \"",
+			  userinfo_endpoint, "\",");
 	_openidc_metadata = oauth2_stradd(_openidc_metadata, "\"jwks_uri\": \"",
 					  jwks_uri, "\",");
 	_openidc_metadata =
@@ -636,6 +646,7 @@ START_TEST(test_openidc_handle)
 	ck_assert_ptr_ne(NULL, state_cookie);
 	ck_assert_ptr_ne(NULL, strstr(state_cookie, state_cookie_name));
 
+	json_decref(claims);
 	oauth2_http_response_free(_log, response);
 	response = NULL;
 	oauth2_http_request_free(_log, r);
@@ -679,6 +690,7 @@ START_TEST(test_openidc_handle)
 		_log, response, "openidc_session"));
 	ck_assert_ptr_ne(NULL, session_cookie);
 
+	json_decref(claims);
 	oauth2_http_response_free(_log, response);
 	oauth2_http_request_free(_log, r);
 
@@ -702,9 +714,13 @@ START_TEST(test_openidc_handle)
 	// oauth2_http_response_header_set_cookie_prefix_get(_log, response,
 	// "openidc_session"));
 
+	ck_assert_str_eq(
+	    json_string_value(json_object_get(claims, "myuserinfoclaim")),
+	    "somevalue");
+
+	json_decref(claims);
 	oauth2_http_request_free(_log, r);
 	oauth2_http_response_free(_log, response);
-	json_decref(claims);
 
 	sleep(2);
 

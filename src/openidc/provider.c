@@ -82,6 +82,8 @@ _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, authorization_endpoint,
 				      char *, str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, token_endpoint, char *,
 				      str)
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, userinfo_endpoint,
+				      char *, str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, token_endpoint_auth,
 				      oauth2_cfg_endpoint_auth_t *, ptr)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, jwks_uri, char *, str)

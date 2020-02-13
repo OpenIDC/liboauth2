@@ -30,6 +30,7 @@ typedef struct oauth2_openidc_provider_t {
 	char *token_endpoint;
 	oauth2_cfg_endpoint_auth_t *token_endpoint_auth;
 	char *jwks_uri;
+	char *userinfo_endpoint;
 	char *scope;
 	char *client_id;
 	char *client_secret;

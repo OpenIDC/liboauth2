@@ -60,12 +60,16 @@ OAUTH2_TYPE_DECLARE(session, rec);
 
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(session, rec, user, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_GET(session, rec, id_token_claims, json_t *)
+OAUTH2_TYPE_DECLARE_MEMBER_GET(session, rec, userinfo_claims, json_t *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(session, rec, start, oauth2_time_t)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(session, rec, expiry, oauth2_time_t)
 
 bool oauth2_session_rec_id_token_claims_set(oauth2_log_t *log,
 					    oauth2_session_rec_t *session,
 					    json_t *id_token);
+bool oauth2_session_rec_userinfo_claims_set(oauth2_log_t *log,
+					    oauth2_session_rec_t *session,
+					    json_t *userinfo_claims);
 
 bool oauth2_session_load(oauth2_log_t *log, const oauth2_cfg_session_t *c,
 			 oauth2_http_request_t *r,
