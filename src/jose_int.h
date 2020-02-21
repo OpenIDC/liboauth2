@@ -113,9 +113,5 @@ bool oauth2_jose_jwt_verify_set_options(
 char *oauth2_jose_jwt_header_peek(oauth2_log_t *log,
 				  const char *compact_encoded_jwt,
 				  const char **alg);
-bool oauth2_jose_jwt_verify(oauth2_log_t *log,
-			    oauth2_jose_jwt_verify_ctx_t *jwt_verify_ctx,
-			    const char *token, json_t **json_payload,
-			    char **s_payload);
 
 #endif /* _OAUTH2_JOSE_INT_H_ */

@@ -1,3 +1,8 @@
+02/21/2020
+- add serialized id_token to session
+- externalize oauth2_jose_jwt_verify and allow verification context to be NULL
+- bump to 1.2.5
+
 02/13/2020
 - add userinfo endpoint request and claims
 - bump to 1.2.4

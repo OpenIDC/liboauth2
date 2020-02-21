@@ -1118,30 +1118,33 @@ bool oauth2_jose_jwt_verify(oauth2_log_t *log,
 	if (hdr == NULL)
 		goto end;
 
-	keys = jwt_verify_ctx->jwks_provider->resolve(
-	    log, jwt_verify_ctx->jwks_provider, &refresh);
+	if (jwt_verify_ctx) {
 
-	ctx.jws = jws;
-	ctx.kid = cjose_header_get(hdr, "kid", &err);
-	ctx.verified = false;
-
-	_oauth2_jose_verification_keys_loop(log, keys,
-					    _oauth2_jose_jwt_verify_jwk, &ctx);
-
-	if (ctx.verified == false) {
-
-		if (refresh == false)
-			goto end;
-
-		if (keys)
-			oauth2_jose_jwk_list_free(log, keys);
 		keys = jwt_verify_ctx->jwks_provider->resolve(
 		    log, jwt_verify_ctx->jwks_provider, &refresh);
+
+		ctx.jws = jws;
+		ctx.kid = cjose_header_get(hdr, "kid", &err);
+		ctx.verified = false;
+
 		_oauth2_jose_verification_keys_loop(
 		    log, keys, _oauth2_jose_jwt_verify_jwk, &ctx);
 
-		if (ctx.verified == false)
-			goto end;
+		if (ctx.verified == false) {
+
+			if (refresh == false)
+				goto end;
+
+			if (keys)
+				oauth2_jose_jwk_list_free(log, keys);
+			keys = jwt_verify_ctx->jwks_provider->resolve(
+			    log, jwt_verify_ctx->jwks_provider, &refresh);
+			_oauth2_jose_verification_keys_loop(
+			    log, keys, _oauth2_jose_jwt_verify_jwk, &ctx);
+
+			if (ctx.verified == false)
+				goto end;
+		}
 	}
 
 	if (cjose_jws_get_plaintext(jws, &plaintext, &plaintext_len, &err) ==
@@ -1162,9 +1165,11 @@ bool oauth2_jose_jwt_verify(oauth2_log_t *log,
 	if (oauth2_json_decode_object(log, *s_payload, json_payload) == false)
 		goto end;
 
-	if (_oauth2_jose_jwt_payload_validate(log, jwt_verify_ctx,
-					      *json_payload, NULL) == false)
-		goto end;
+	if (jwt_verify_ctx) {
+		if (_oauth2_jose_jwt_payload_validate(
+			log, jwt_verify_ctx, *json_payload, NULL) == false)
+			goto end;
+	}
 
 	rc = true;
 

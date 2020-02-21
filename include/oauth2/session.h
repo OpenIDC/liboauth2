@@ -59,6 +59,7 @@ char *oauth2_cfg_session_set_options(oauth2_log_t *log,
 OAUTH2_TYPE_DECLARE(session, rec);
 
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(session, rec, user, char *)
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(session, rec, id_token, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_GET(session, rec, id_token_claims, json_t *)
 OAUTH2_TYPE_DECLARE_MEMBER_GET(session, rec, userinfo_claims, json_t *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(session, rec, start, oauth2_time_t)

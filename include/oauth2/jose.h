@@ -64,4 +64,11 @@ bool oauth2_jose_jwt_encrypt(oauth2_log_t *log, const char *secret,
 bool oauth2_jose_jwt_decrypt(oauth2_log_t *log, const char *secret,
 			     const char *cser, json_t **result);
 
+typedef struct oauth2_jose_jwt_verify_ctx_t oauth2_jose_jwt_verify_ctx_t;
+
+bool oauth2_jose_jwt_verify(oauth2_log_t *log,
+			    oauth2_jose_jwt_verify_ctx_t *jwt_verify_ctx,
+			    const char *token, json_t **json_payload,
+			    char **s_payload);
+
 #endif /* _OAUTH2_JOSE_H_ */
