@@ -449,7 +449,7 @@ end:
 	return rv;
 }
 
-const oauth2_cfg_endpoint_auth_type_t
+oauth2_cfg_endpoint_auth_type_t
 oauth2_cfg_endpoint_auth_type(const oauth2_cfg_endpoint_auth_t *auth)
 {
 	return auth->type;
