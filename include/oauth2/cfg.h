@@ -101,7 +101,7 @@ char *oauth2_cfg_endpoint_auth_add_options(oauth2_log_t *log,
 					   const char *type,
 					   const oauth2_nv_list_t *params);
 
-const oauth2_cfg_endpoint_auth_type_t
+oauth2_cfg_endpoint_auth_type_t
 oauth2_cfg_endpoint_auth_type(const oauth2_cfg_endpoint_auth_t *auth);
 
 /*
