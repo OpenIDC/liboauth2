@@ -22,6 +22,7 @@
  *
  **************************************************************************/
 
+#include "oauth2/cache.h"
 #include "oauth2/openidc.h"
 #include "oauth2/util.h"
 
@@ -32,11 +33,14 @@ typedef enum oauth2_cfg_session_type_t {
 } oauth2_cfg_session_type_t;
 
 OAUTH2_CFG_TYPE_DECLARE(cfg, session)
+void oauth2_cfg_session_release(oauth2_log_t *log,
+				oauth2_cfg_session_t *session);
 OAUTH2_TYPE_DECLARE_MEMBER_GET(cfg, session, cookie_name, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_GET(cfg, session, passphrase, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_GET(cfg, session, inactivity_timeout_s,
 			       oauth2_time_t)
 OAUTH2_TYPE_DECLARE_MEMBER_GET(cfg, session, max_duration_s, oauth2_time_t)
+OAUTH2_TYPE_DECLARE_MEMBER_GET(cfg, session, cache, oauth2_cache_t *)
 
 typedef bool(oauth2_session_load_callback_t)(oauth2_log_t *log,
 					     const oauth2_cfg_session_t *cfg,

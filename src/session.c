@@ -28,6 +28,7 @@
 #include "util_int.h"
 
 typedef struct oauth2_session_rec_t {
+	char *id;
 	oauth2_time_t start;
 	oauth2_time_t expiry;
 	char *user;
@@ -40,6 +41,7 @@ oauth2_session_rec_t *oauth2_session_rec_init(oauth2_log_t *log)
 {
 	oauth2_session_rec_t *s = (oauth2_session_rec_t *)oauth2_mem_alloc(
 	    sizeof(oauth2_session_rec_t));
+	s->id = NULL;
 	s->user = NULL;
 	s->id_token = NULL;
 	s->id_token_claims = NULL;
@@ -59,10 +61,13 @@ void oauth2_session_rec_free(oauth2_log_t *log, oauth2_session_rec_t *s)
 		json_decref(s->id_token_claims);
 	if (s->userinfo_claims)
 		json_decref(s->userinfo_claims);
+	if (s->id)
+		oauth2_mem_free(s->id);
 	if (s)
 		oauth2_mem_free(s);
 }
 
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(session, rec, id, char *, str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(session, rec, user, char *, str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(session, rec, id_token, char *, str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(session, rec, start, oauth2_time_t, time)
@@ -92,6 +97,7 @@ bool oauth2_session_rec_userinfo_claims_set(oauth2_log_t *log,
 	return true;
 }
 
+#define OAUTH_SESSION_KEY_ID "id"
 #define OAUTH_SESSION_KEY_USER "u"
 #define OAUTH_SESSION_KEY_ID_TOKEN "i"
 #define OAUTH_SESSION_KEY_ID_TOKEN_CLAIMS "ic"
@@ -171,8 +177,8 @@ bool oauth2_session_load_cache(oauth2_log_t *log,
 		goto end;
 	}
 
-	//	if (oauth2_cache_get(log, cfg->cache, key, &value) == false)
-	//		goto end;
+	if (oauth2_cache_get(log, cfg->cache, key, &value) == false)
+		goto end;
 
 	if (value == NULL) {
 		oauth2_debug(log, "no session found in cache");
@@ -182,6 +188,8 @@ bool oauth2_session_load_cache(oauth2_log_t *log,
 
 	if (oauth2_json_decode_object(log, value, json) == false)
 		goto end;
+
+	oauth2_debug(log, " #### restored: %s ###", value);
 
 	rc = true;
 
@@ -208,12 +216,17 @@ bool oauth2_session_save_cache(oauth2_log_t *log,
 	if (value == NULL)
 		goto end;
 
-	// TODO:
-	key = "";
+	if (oauth2_json_string_get(log, json, OAUTH_SESSION_KEY_ID, &key,
+				   NULL) == false) {
+		oauth2_error(log, "no session identifier found in session");
+		goto end;
+	}
 
-	// TODO: set to inactivity time out?
-	//	if (oauth2_cache_set(log, cfg->cache, key, value, cfg->expiry_s)
-	//== false) 		goto end;
+	if (oauth2_cache_set(log, cfg->cache, key, value,
+			     cfg->inactivity_timeout_s) == false) {
+		oauth2_error(log, "could not store session in cache");
+		goto end;
+	}
 
 	name = oauth2_cfg_session_cookie_name_get(log, cfg);
 
@@ -256,8 +269,11 @@ bool oauth2_session_load(oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
 
 	rc = session_load_callback(log, cfg, request, &json);
 
-	if ((rc == false) || (json == NULL))
+	if ((rc == false) || (json == NULL)) {
+		if ((rc) && ((*session)->id == NULL))
+			(*session)->id = oauth2_rand_str(log, 10);
 		goto end;
+	}
 
 	now = oauth2_time_now_sec();
 
@@ -287,6 +303,10 @@ bool oauth2_session_load(oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
 		goto end;
 	}
 	(*session)->expiry = expiry;
+
+	if (oauth2_json_string_get(log, json, OAUTH_SESSION_KEY_ID,
+				   &(*session)->id, NULL) == false)
+		goto end;
 
 	if (oauth2_json_string_get(log, json, OAUTH_SESSION_KEY_USER,
 				   &(*session)->user, NULL) == false)
@@ -396,6 +416,10 @@ bool oauth2_session_save(oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
 	if (session->expiry > 0)
 		json_object_set_new(json, OAUTH_SESSION_KEY_EXPIRY,
 				    json_integer(session->expiry));
+
+	if (session->id)
+		json_object_set_new(json, OAUTH_SESSION_KEY_ID,
+				    json_string(session->id));
 
 	if (session->user)
 		json_object_set_new(json, OAUTH_SESSION_KEY_USER,

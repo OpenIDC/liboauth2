@@ -26,6 +26,7 @@
 #include "oauth2/openidc.h"
 #include "oauth2/util.h"
 
+#include "cfg_int.h"
 #include "openidc_int.h"
 
 #include <check.h>
@@ -605,14 +606,30 @@ START_TEST(test_openidc_handle)
 	char *state = NULL, *state_cookie_name = NULL, *state_cookie = NULL,
 	     *query_str = NULL, *session_cookie = NULL;
 	json_t *claims = NULL;
+	oauth2_cfg_session_t *session_cfg = NULL;
+	oauth2_cache_t *cache = NULL;
+	oauth2_nv_list_t *params = NULL;
+
+	rc = oauth2_parse_form_encoded_params(_log, "name=memory&max_entries=5",
+					      &params);
+	ck_assert_int_eq(rc, true);
+
+	cache = oauth2_cache_init(_log, "shm", params);
+	rc = oauth2_cache_post_config(_log, cache);
+	ck_assert_int_eq(rc, true);
 
 	c = oauth2_cfg_openidc_init(_log);
 	r = oauth2_http_request_init(_log);
 
 	oauth2_cfg_openidc_passphrase_set(_log, c, "mypassphrase1234");
+
+	session_cfg = oauth2_cfg_session_init(_log);
+	oauth2_cfg_session_set_options(
+	    _log, session_cfg, "cache",
+	    "name=short&cache=memory&inactivity_timeout=1");
+
 	oauth2_cfg_openidc_provider_resolver_set_options(
-	    _log, c, "string", test_openidc_metadata_get(),
-	    "inactivity_timeout=1");
+	    _log, c, "string", test_openidc_metadata_get(), "session=short");
 
 	rc = oauth2_http_request_path_set(_log, r, "/secure");
 	ck_assert_int_eq(rc, true);
@@ -737,9 +754,13 @@ START_TEST(test_openidc_handle)
 
 	response = NULL;
 	rc = oauth2_openidc_handle(_log, c, r, &response, &claims);
-	ck_assert_int_eq(rc, false);
+	ck_assert_int_eq(rc, true);
 
 	oauth2_http_request_free(_log, r);
+
+	oauth2_cfg_session_release(_log, session_cfg);
+	oauth2_nv_list_free(_log, params);
+	oauth2_cache_release(_log, cache);
 
 	oauth2_mem_free(state);
 	oauth2_mem_free(query_str);

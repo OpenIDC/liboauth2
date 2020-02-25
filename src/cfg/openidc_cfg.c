@@ -124,9 +124,6 @@ void oauth2_cfg_openidc_free(oauth2_log_t *log, oauth2_cfg_openidc_t *c)
 	if (c->provider_resolver)
 		oauth2_cfg_openidc_provider_resolver_free(log,
 							  c->provider_resolver);
-	if (c->session)
-		oauth2_cfg_session_free(log, c->session);
-
 	oauth2_mem_free(c);
 
 end:

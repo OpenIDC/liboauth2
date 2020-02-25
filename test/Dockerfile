@@ -1,5 +1,5 @@
-FROM ubuntu:trusty
-#FROM ubuntu:bionic
+#FROM ubuntu:trusty
+FROM ubuntu:bionic
 MAINTAINER hans.zandbelt@zmartzone.eu
 
 RUN apt-get update && apt-get install -y pkg-config make gcc gdb lcov valgrind vim curl wget
@@ -7,17 +7,18 @@ RUN apt-get update && apt-get install -y autoconf automake libtool
 RUN apt-get update && apt-get install -y libssl-dev libjansson-dev libcurl4-openssl-dev check
 RUN apt-get update && apt-get install -y apache2-dev
 #RUN apt-get update && apt-get install -y libcjose-dev
+RUN apt-get update && apt-get install -y libpcre3-dev zlib1g-dev
 
-ENV NGINX_VERSION 1.15.8
+ENV NGINX_VERSION 1.16.1
 WORKDIR /root
 RUN wget https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz
 RUN tar zxvf nginx-${NGINX_VERSION}.tar.gz
 RUN ln -s nginx-${NGINX_VERSION} nginx
 RUN cd /root/nginx && ./configure --with-debug
 
-ENV FLAVOR trusty
-#ENV FLAVOR bionic
-ENV CJOSE_VERSION 0.6.1.3
+#ENV FLAVOR trusty
+ENV FLAVOR bionic
+ENV CJOSE_VERSION 0.6.1.5
 
 ENV CJOSE_PKG libcjose0_${CJOSE_VERSION}-1~${FLAVOR}+1_amd64.deb
 RUN curl -s -L -o ~/${CJOSE_PKG} https://mod-auth-openidc.org/download/${CJOSE_PKG}

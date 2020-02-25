@@ -11,6 +11,6 @@ Name: libauth2_nginx
 URL: https://github.com/zmartzone/libauth2
 Description: NGINX C bindings for liboauth2
 Version: @VERSION@
-Requires: liboauth2 >= 0.2.0
+Requires: liboauth2 >= 1.3.0
 Cflags: -I${includedir}
 Libs: -L${libdir} -loauth2_nginx

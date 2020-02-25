@@ -190,7 +190,11 @@ typedef struct oauth2_cfg_session_t {
 	char *cookie_name;
 	oauth2_time_t inactivity_timeout_s;
 	oauth2_time_t max_duration_s;
+
 	char *passphrase;
+
+	oauth2_cache_t *cache;
+
 	oauth2_session_load_callback_t *load_callback;
 	oauth2_session_save_callback_t *save_callback;
 	// TODO: free callback (init is done through set options)
@@ -292,5 +296,8 @@ char *oauth2_openidc_cfg_state_cookie_name_prefix_get(
 	_OAUTH2_CFG_CTX_FREE_END                                               \
                                                                                \
 	_OAUTH2_CFG_CTX_FUNCS(type)
+
+oauth2_cfg_session_t *_oauth2_cfg_session_obtain(oauth2_log_t *log,
+						 const char *name);
 
 #endif /* _OAUTH2_CFG_INT_H_ */

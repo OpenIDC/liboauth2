@@ -593,10 +593,14 @@ bool oauth2_openidc_handle(oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg,
 		goto end;
 
 	if (oauth2_session_rec_user_get(log, session) != NULL) {
+		oauth2_debug(log, "user found in session: %s",
+			     oauth2_session_rec_user_get(log, session));
 		rc = _oauth2_openidc_existing_session(
 		    log, cfg, request, session, response, claims);
 		goto end;
 	}
+
+	oauth2_debug(log, "no user found in session");
 
 	rc = _oauth2_openidc_unauthenticated_request(log, cfg, request, session,
 						     response);

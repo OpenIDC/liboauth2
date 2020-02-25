@@ -339,21 +339,30 @@ char *oauth2_cfg_openidc_provider_resolver_set_options(
     oauth2_log_t *log, oauth2_cfg_openidc_t *cfg, const char *type,
     const char *value, const char *options)
 {
+	char *rv = NULL;
+	oauth2_nv_list_t *params = NULL;
+
 	if (cfg->provider_resolver) {
 		oauth2_cfg_openidc_provider_resolver_free(
 		    log, cfg->provider_resolver);
 		cfg->provider_resolver = NULL;
 	}
 
-	if (cfg->session) {
-		oauth2_cfg_session_free(log, cfg->session);
-		cfg->session = NULL;
+	oauth2_parse_form_encoded_params(log, options, &params);
+	cfg->session = _oauth2_cfg_session_obtain(
+	    log, oauth2_nv_list_get(log, params, "session"));
+	if (cfg->session == NULL) {
+		rv = oauth2_strdup("could not configure session");
+		goto end;
 	}
 
-	// TODO: separate out into session
-	cfg->session = oauth2_cfg_session_init(log);
-	oauth2_cfg_session_set_options(log, cfg->session, "cookie", options);
+	rv = oauth2_cfg_set_options(log, cfg, type, value, options,
+				    _oauth2_cfg_resolver_options_set);
 
-	return oauth2_cfg_set_options(log, cfg, type, value, options,
-				      _oauth2_cfg_resolver_options_set);
+end:
+
+	if (params)
+		oauth2_nv_list_free(log, params);
+
+	return rv;
 }

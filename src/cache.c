@@ -227,8 +227,6 @@ static void _oauth2_cache_register(oauth2_log_t *log, const char *name,
 {
 	oauth2_cache_list_t *ptr = NULL, *prev = NULL;
 
-	oauth2_debug(log, " ### registering cache: %s %p ###", name, cache);
-
 	ptr = oauth2_mem_alloc(sizeof(oauth2_cache_list_t));
 	ptr->name = oauth2_strdup(name);
 	ptr->cache = cache;
@@ -254,7 +252,7 @@ oauth2_cache_t *_oauth2_cache_obtain(oauth2_log_t *log, const char *name)
 
 	ptr = _cache_list;
 	while (ptr) {
-		if (ptr->name) {
+		if ((name) && (ptr->name)) {
 			if (strcmp(ptr->name, name) == 0) {
 				result = ptr;
 				break;
@@ -265,17 +263,12 @@ oauth2_cache_t *_oauth2_cache_obtain(oauth2_log_t *log, const char *name)
 		ptr = ptr->next;
 	}
 
-	oauth2_debug(log, " ### returning cache: %s %p ###", name,
-		     result ? result->cache : NULL);
-
 	return result ? oauth2_cache_clone(log, result->cache) : NULL;
 }
 
 void oauth2_cache_release(oauth2_log_t *log, oauth2_cache_t *cache)
 {
 	oauth2_cache_list_t *ptr = NULL, *prev = NULL;
-
-	oauth2_debug(log, " ### releasing cache: %p ###", cache);
 
 	if (cache)
 		_oauth2_cache_free(log, cache);
