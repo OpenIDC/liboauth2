@@ -299,7 +299,11 @@ bool oauth2_session_load(oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
 		goto end;
 	if (now >= expiry) {
 		oauth2_warn(log, "session has expired");
-		rc = false;
+		// TODO: refactor and/or remove from cache?
+		oauth2_session_rec_free(log, *session);
+		*session = oauth2_session_rec_init(log);
+		(*session)->id = oauth2_rand_str(log, 10);
+		rc = true;
 		goto end;
 	}
 	(*session)->expiry = expiry;

@@ -596,40 +596,19 @@ START_TEST(test_openidc_resolver)
 }
 END_TEST
 
-START_TEST(test_openidc_handle)
+static void _test_openidc_handle(oauth2_cfg_openidc_t *c)
 {
 	bool rc = false;
-	oauth2_cfg_openidc_t *c = NULL;
 	oauth2_http_request_t *r = NULL;
 	oauth2_http_response_t *response = NULL;
 	const char *location = NULL;
 	char *state = NULL, *state_cookie_name = NULL, *state_cookie = NULL,
 	     *query_str = NULL, *session_cookie = NULL;
 	json_t *claims = NULL;
-	oauth2_cfg_session_t *session_cfg = NULL;
-	oauth2_cache_t *cache = NULL;
-	oauth2_nv_list_t *params = NULL;
-
-	rc = oauth2_parse_form_encoded_params(_log, "name=memory&max_entries=5",
-					      &params);
-	ck_assert_int_eq(rc, true);
-
-	cache = oauth2_cache_init(_log, "shm", params);
-	rc = oauth2_cache_post_config(_log, cache);
-	ck_assert_int_eq(rc, true);
-
-	c = oauth2_cfg_openidc_init(_log);
-	r = oauth2_http_request_init(_log);
 
 	oauth2_cfg_openidc_passphrase_set(_log, c, "mypassphrase1234");
 
-	session_cfg = oauth2_cfg_session_init(_log);
-	oauth2_cfg_session_set_options(
-	    _log, session_cfg, "cache",
-	    "name=short&cache=memory&inactivity_timeout=1");
-
-	oauth2_cfg_openidc_provider_resolver_set_options(
-	    _log, c, "string", test_openidc_metadata_get(), "session=short");
+	r = oauth2_http_request_init(_log);
 
 	rc = oauth2_http_request_path_set(_log, r, "/secure");
 	ck_assert_int_eq(rc, true);
@@ -755,18 +734,75 @@ START_TEST(test_openidc_handle)
 	response = NULL;
 	rc = oauth2_openidc_handle(_log, c, r, &response, &claims);
 	ck_assert_int_eq(rc, true);
+	ck_assert_ptr_ne(NULL, response);
+	ck_assert_uint_eq(oauth2_http_response_status_code_get(_log, response),
+			  302);
 
 	oauth2_http_request_free(_log, r);
-
-	oauth2_cfg_session_release(_log, session_cfg);
-	oauth2_nv_list_free(_log, params);
-	oauth2_cache_release(_log, cache);
 
 	oauth2_mem_free(state);
 	oauth2_mem_free(query_str);
 	oauth2_mem_free(state_cookie_name);
 	oauth2_mem_free(state_cookie);
 	oauth2_mem_free(session_cookie);
+}
+
+START_TEST(test_openidc_handle_cookie)
+{
+	oauth2_cfg_openidc_t *c = NULL;
+	oauth2_cfg_session_t *session_cfg = NULL;
+
+	c = oauth2_cfg_openidc_init(_log);
+
+	session_cfg = oauth2_cfg_session_init(_log);
+	oauth2_cfg_session_set_options(
+	    _log, session_cfg, "cookie",
+	    "name=short_cookie&inactivity_timeout=1");
+
+	oauth2_cfg_openidc_provider_resolver_set_options(
+	    _log, c, "string", test_openidc_metadata_get(),
+	    "session=short_cookie");
+
+	_test_openidc_handle(c);
+
+	oauth2_cfg_session_release(_log, session_cfg);
+	oauth2_cfg_openidc_free(_log, c);
+}
+END_TEST
+
+START_TEST(test_openidc_handle_cache)
+{
+	bool rc = false;
+	oauth2_cache_t *cache = NULL;
+	oauth2_nv_list_t *params = NULL;
+	oauth2_cfg_session_t *session_cfg = NULL;
+	oauth2_cfg_openidc_t *c = NULL;
+
+	c = oauth2_cfg_openidc_init(_log);
+
+	rc = oauth2_parse_form_encoded_params(_log, "name=memory&max_entries=5",
+					      &params);
+	ck_assert_int_eq(rc, true);
+
+	cache = oauth2_cache_init(_log, "shm", params);
+	rc = oauth2_cache_post_config(_log, cache);
+	ck_assert_int_eq(rc, true);
+
+	session_cfg = oauth2_cfg_session_init(_log);
+	oauth2_cfg_session_set_options(
+	    _log, session_cfg, "cache",
+	    "name=short_memory&cache=memory&inactivity_timeout=1");
+
+	oauth2_cfg_openidc_provider_resolver_set_options(
+	    _log, c, "string", test_openidc_metadata_get(),
+	    "session=short_memory");
+
+	_test_openidc_handle(c);
+
+	oauth2_cfg_session_release(_log, session_cfg);
+
+	oauth2_nv_list_free(_log, params);
+	oauth2_cache_release(_log, cache);
 
 	oauth2_cfg_openidc_free(_log, c);
 }
@@ -786,7 +822,8 @@ Suite *oauth2_check_openidc_suite()
 	tcase_add_test(c, test_openidc_cfg);
 	tcase_add_test(c, test_openidc_proto_state);
 	tcase_add_test(c, test_openidc_resolver);
-	tcase_add_test(c, test_openidc_handle);
+	tcase_add_test(c, test_openidc_handle_cookie);
+	tcase_add_test(c, test_openidc_handle_cache);
 
 	suite_add_tcase(s, c);
 
