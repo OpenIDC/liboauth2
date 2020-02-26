@@ -227,6 +227,8 @@ static void _oauth2_cache_register(oauth2_log_t *log, const char *name,
 {
 	oauth2_cache_list_t *ptr = NULL, *prev = NULL;
 
+	oauth2_debug(log, "enter: %s", name);
+
 	ptr = oauth2_mem_alloc(sizeof(oauth2_cache_list_t));
 	ptr->name = oauth2_strdup(name);
 	ptr->cache = cache;
@@ -239,15 +241,22 @@ static void _oauth2_cache_register(oauth2_log_t *log, const char *name,
 	} else {
 		_cache_list = ptr;
 	}
+
+	oauth2_debug(log, "leave");
 }
 
 oauth2_cache_t *_oauth2_cache_obtain(oauth2_log_t *log, const char *name)
 {
+	oauth2_cache_t *rv = NULL;
 	oauth2_cache_list_t *ptr = NULL, *result = NULL;
 
+	oauth2_debug(log, "enter: %s", name);
+
 	if (_cache_list == NULL) {
-		oauth2_cache_init(log, NULL, NULL);
-		oauth2_cache_post_config(log, _cache_list->cache);
+		if (oauth2_cache_init(log, NULL, NULL) == NULL)
+			goto end;
+		if (oauth2_cache_post_config(log, _cache_list->cache) == false)
+			goto end;
 	}
 
 	ptr = _cache_list;
@@ -263,16 +272,27 @@ oauth2_cache_t *_oauth2_cache_obtain(oauth2_log_t *log, const char *name)
 		ptr = ptr->next;
 	}
 
-	return result ? oauth2_cache_clone(log, result->cache) : NULL;
+	rv = result ? oauth2_cache_clone(log, result->cache) : NULL;
+
+end:
+
+	oauth2_debug(log, "leave: %p", rv);
+
+	return rv;
 }
 
 void oauth2_cache_release(oauth2_log_t *log, oauth2_cache_t *cache)
 {
 	oauth2_cache_list_t *ptr = NULL, *prev = NULL;
-	oauth2_uint_t refcount = cache->refcount;
+	oauth2_uint_t refcount = 0;
 
-	if (cache)
-		_oauth2_cache_free(log, cache);
+	oauth2_debug(log, "enter");
+
+	if (cache == NULL)
+		goto end;
+
+	refcount = cache->refcount;
+	_oauth2_cache_free(log, cache);
 
 	if (refcount > 1)
 		goto end;
@@ -296,12 +316,16 @@ void oauth2_cache_release(oauth2_log_t *log, oauth2_cache_t *cache)
 
 end:
 
+	oauth2_debug(log, "return");
+
 	return;
 }
 
 bool oauth2_cache_post_config(oauth2_log_t *log, oauth2_cache_t *cache)
 {
 	bool rc = false;
+
+	oauth2_debug(log, "enter");
 
 	if ((cache == NULL) || (cache->type == NULL))
 		goto end;
@@ -314,6 +338,8 @@ bool oauth2_cache_post_config(oauth2_log_t *log, oauth2_cache_t *cache)
 	rc = cache->type->post_config(log, cache);
 
 end:
+
+	oauth2_debug(log, "return: %d", rc);
 
 	return rc;
 }
@@ -420,7 +446,7 @@ bool oauth2_cache_set(oauth2_log_t *log, oauth2_cache_t *cache, const char *key,
 		     "enter: key=%s, len=%lu, ttl(s)=" OAUTH2_TIME_T_FORMAT
 		     ", type=%s, encrypt=%d",
 		     key, value ? (unsigned long)strlen(value) : 0, ttl_s,
-		     cache && cache->type ? cache->type->name : "<n/a>",
+		     (cache && cache->type) ? cache->type->name : "<n/a>",
 		     cache ? cache->encrypt : -1);
 
 	if ((cache == NULL) || (cache->type == NULL) ||
