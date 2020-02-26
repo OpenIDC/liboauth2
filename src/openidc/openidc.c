@@ -213,8 +213,6 @@ static bool _oauth2_openidc_id_token_verify(oauth2_log_t *log,
 	oauth2_cfg_token_verify_t *verify = NULL;
 	options = oauth2_stradd(NULL, "jwks_uri.ssl_verify", "=",
 				provider->ssl_verify ? "true" : "false");
-	options = oauth2_stradd(options, "&jwks_uri.cache.type", "=", "none");
-	options = oauth2_stradd(options, "&verify.cache.type", "=", "none");
 	rv = oauth2_cfg_token_verify_add_options(log, &verify, "jwks_uri",
 						 provider->jwks_uri, options);
 	if (rv != NULL) {

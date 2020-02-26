@@ -575,8 +575,6 @@ end:
 	return rv;
 }
 
-#define MY_CACHE_OPTIONS "options=max_entries%3D10"
-
 START_TEST(test_oauth2_verify_jwks_uri)
 {
 	bool rc = false;
@@ -600,9 +598,8 @@ START_TEST(test_oauth2_verify_jwks_uri)
 
 	url = oauth2_stradd(NULL, oauth2_check_http_base_url(),
 			    get_jwks_uri_path, NULL);
-	rv = oauth2_cfg_token_verify_add_options(
-	    _log, &verify, "jwks_uri", url,
-	    "verify.exp=skip&verify.cache." MY_CACHE_OPTIONS);
+	rv = oauth2_cfg_token_verify_add_options(_log, &verify, "jwks_uri", url,
+						 "verify.exp=skip");
 	ck_assert_ptr_eq(rv, NULL);
 
 	rc = oauth2_token_verify(_log, verify, jwt, &json_payload);
@@ -640,8 +637,8 @@ START_TEST(test_oauth2_verify_eckey_uri)
 
 	url = oauth2_stradd(NULL, oauth2_check_http_base_url(),
 			    get_eckey_url_path, NULL);
-	rv = oauth2_cfg_token_verify_add_options(
-	    _log, &verify, "eckey_uri", url, "verify.cache." MY_CACHE_OPTIONS);
+	rv = oauth2_cfg_token_verify_add_options(_log, &verify, "eckey_uri",
+						 url, NULL);
 	ck_assert_ptr_eq(rv, NULL);
 
 	rc = oauth2_token_verify(_log, verify, jwt, &json_payload);
@@ -665,8 +662,7 @@ START_TEST(test_oauth2_verify_token_introspection)
 			    post_introspection_path, NULL);
 
 	rv = oauth2_cfg_token_verify_add_options(
-	    _log, &verify, "introspect", url,
-	    "introspect.ssl_verify=false&verify.cache." MY_CACHE_OPTIONS);
+	    _log, &verify, "introspect", url, "introspect.ssl_verify=false");
 	ck_assert_ptr_eq(rv, NULL);
 
 	rc = oauth2_token_verify(_log, verify, "bogus", &json_payload);
@@ -699,9 +695,8 @@ START_TEST(test_oauth2_verify_token_plain)
 	json_t *json_payload = NULL;
 	const char *rv = NULL;
 
-	rv = oauth2_cfg_token_verify_add_options(
-	    _log, &verify, "plain", "mysecret",
-	    "kid=mykid&verify.cache." MY_CACHE_OPTIONS);
+	rv = oauth2_cfg_token_verify_add_options(_log, &verify, "plain",
+						 "mysecret", "kid=mykid");
 	ck_assert_ptr_eq(rv, NULL);
 
 	rc = oauth2_token_verify(_log, verify, jwt, &json_payload);
@@ -722,9 +717,8 @@ START_TEST(test_oauth2_verify_token_base64)
 	json_t *json_payload = NULL;
 	const char *rv = NULL;
 
-	rv = oauth2_cfg_token_verify_add_options(
-	    _log, &verify, "base64",
-	    "YW5vdGhlcnNlY3JldA==", "verify.cache." MY_CACHE_OPTIONS);
+	rv = oauth2_cfg_token_verify_add_options(_log, &verify, "base64",
+						 "YW5vdGhlcnNlY3JldA==", NULL);
 	ck_assert_ptr_eq(rv, NULL);
 
 	rc = oauth2_token_verify(_log, verify, jwt, &json_payload);
@@ -752,7 +746,7 @@ START_TEST(test_oauth2_verify_token_base64url)
 	    _log, &verify, "base64url",
 	    "AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T-"
 	    "1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow",
-	    "verify.exp=skip&verify.cache." MY_CACHE_OPTIONS);
+	    "verify.exp=skip");
 	ck_assert_ptr_eq(rv, NULL);
 
 	rc = oauth2_token_verify(_log, verify, jwt, &json_payload);
@@ -774,8 +768,7 @@ START_TEST(test_oauth2_verify_token_hex)
 	const char *rv = NULL;
 
 	rv = oauth2_cfg_token_verify_add_options(
-	    _log, &verify, "hex", "6d797468697264736563726574",
-	    "verify.cache." MY_CACHE_OPTIONS);
+	    _log, &verify, "hex", "6d797468697264736563726574", NULL);
 	ck_assert_ptr_eq(rv, NULL);
 
 	rc = oauth2_token_verify(_log, verify, jwt, &json_payload);
@@ -821,9 +814,8 @@ START_TEST(test_oauth2_verify_token_pem)
 	    "aItLpLaBsJJKaMxUVbt6pGopRRQnCHscUxKZZEJDm6Qjiuw66iUW\n"
 	    "-----END CERTIFICATE-----\n";
 
-	rv = oauth2_cfg_token_verify_add_options(
-	    _log, &verify, "pem", pem,
-	    "verify.exp=skip&verify.cache." MY_CACHE_OPTIONS);
+	rv = oauth2_cfg_token_verify_add_options(_log, &verify, "pem", pem,
+						 "verify.exp=skip");
 	ck_assert_ptr_eq(rv, NULL);
 
 	rc = oauth2_token_verify(_log, verify, jwt, &json_payload);
@@ -861,9 +853,8 @@ START_TEST(test_oauth2_verify_token_pubkey)
 	    "oQIDAQAB\n"
 	    "-----END PUBLIC KEY-----";
 
-	rv = oauth2_cfg_token_verify_add_options(
-	    _log, &verify, "pubkey", pubkey,
-	    "verify.exp=skip&verify.cache." MY_CACHE_OPTIONS);
+	rv = oauth2_cfg_token_verify_add_options(_log, &verify, "pubkey",
+						 pubkey, "verify.exp=skip");
 	ck_assert_ptr_eq(rv, NULL);
 
 	rc = oauth2_token_verify(_log, verify, jwt, &json_payload);
@@ -885,13 +876,8 @@ START_TEST(test_oauth2_verify_token_metadata)
 	url = oauth2_stradd(NULL, oauth2_check_http_base_url(), metadata_path,
 			    NULL);
 
-	// TODO: make max_entries=5 the default for the shm cache of metadata
-	// URIs
-	rv = oauth2_cfg_token_verify_add_options(
-	    _log, &verify, "metadata", url,
-	    "metadata.cache." MY_CACHE_OPTIONS
-	    "&introspect.cache." MY_CACHE_OPTIONS
-	    "&verify.exp=skip&verify.cache." MY_CACHE_OPTIONS);
+	rv = oauth2_cfg_token_verify_add_options(_log, &verify, "metadata", url,
+						 "&verify.exp=skip");
 	ck_assert_ptr_eq(rv, NULL);
 
 	// reference token
