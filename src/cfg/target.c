@@ -90,13 +90,13 @@ void oauth2_cfg_target_pass_merge(oauth2_log_t *log,
 	cfg->as_headers = add->as_headers != OAUTH2_CFG_FLAG_UNSET
 			      ? add->as_headers
 			      : base->as_headers;
-	// TODO: eeuhm, oauth2_strdup...??
-	cfg->authn_header =
-	    add->authn_header != NULL ? add->authn_header : base->authn_header;
-	cfg->prefix = add->prefix != NULL ? add->prefix : base->prefix;
-	cfg->remote_user_claim = add->remote_user_claim != NULL
-				     ? add->remote_user_claim
-				     : base->remote_user_claim;
+	cfg->authn_header = oauth2_strdup(
+	    add->authn_header != NULL ? add->authn_header : base->authn_header);
+	cfg->prefix =
+	    oauth2_strdup(add->prefix != NULL ? add->prefix : base->prefix);
+	cfg->remote_user_claim = oauth2_strdup(add->remote_user_claim != NULL
+						   ? add->remote_user_claim
+						   : base->remote_user_claim);
 
 end:
 

@@ -269,11 +269,12 @@ oauth2_cache_t *_oauth2_cache_obtain(oauth2_log_t *log, const char *name)
 void oauth2_cache_release(oauth2_log_t *log, oauth2_cache_t *cache)
 {
 	oauth2_cache_list_t *ptr = NULL, *prev = NULL;
+	oauth2_uint_t refcount = cache->refcount;
 
 	if (cache)
 		_oauth2_cache_free(log, cache);
 
-	if (cache->refcount > 0)
+	if (refcount > 1)
 		goto end;
 
 	ptr = _cache_list;

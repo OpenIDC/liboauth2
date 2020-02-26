@@ -209,7 +209,6 @@ static bool _oauth2_openidc_id_token_verify(oauth2_log_t *log,
 	char *rv = NULL;
 	char *options = NULL;
 
-	// TODO: need a global in-memory jwks_uri cache
 	oauth2_cfg_token_verify_t *verify = NULL;
 	options = oauth2_stradd(NULL, "jwks_uri.ssl_verify", "=",
 				provider->ssl_verify ? "true" : "false");

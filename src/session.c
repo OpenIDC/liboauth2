@@ -189,7 +189,7 @@ bool oauth2_session_load_cache(oauth2_log_t *log,
 	if (oauth2_json_decode_object(log, value, json) == false)
 		goto end;
 
-	oauth2_debug(log, " #### restored: %s ###", value);
+	oauth2_debug(log, "restored session from cache: %s##", value);
 
 	rc = true;
 
@@ -223,7 +223,8 @@ bool oauth2_session_save_cache(oauth2_log_t *log,
 	}
 
 	if (oauth2_cache_set(log, cfg->cache, key, value,
-			     cfg->inactivity_timeout_s) == false) {
+			     oauth2_cfg_session_inactivity_timeout_s_get(
+				 log, cfg)) == false) {
 		oauth2_error(log, "could not store session in cache");
 		goto end;
 	}

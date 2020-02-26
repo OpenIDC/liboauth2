@@ -185,6 +185,11 @@ bool oauth2_session_save_cache(oauth2_log_t *log,
 			       const oauth2_http_request_t *request,
 			       oauth2_http_response_t *response, json_t *json);
 
+typedef enum oauth2_cfg_session_type_t {
+	OAUTH2_SESSION_TYPE_COOKIE,
+	OAUTH2_SESSION_TYPE_CACHE
+} oauth2_cfg_session_type_t;
+
 typedef struct oauth2_cfg_session_t {
 	oauth2_cfg_session_type_t type;
 	char *cookie_name;

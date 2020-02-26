@@ -32,6 +32,9 @@ typedef struct oauth2_cfg_session_list_t {
 
 static oauth2_cfg_session_list_t *_session_list = NULL;
 
+#define OAUTH2_SESSION_TYPE_COOKIE_STR "cookie"
+#define OAUTH2_SESSION_TYPE_CACHE_STR "cache"
+
 static void _oauth2_cfg_session_register(oauth2_log_t *log, const char *name,
 					 oauth2_cfg_session_t *session)
 {
@@ -117,8 +120,8 @@ oauth2_cfg_session_t *_oauth2_cfg_session_obtain(oauth2_log_t *log,
 
 	if (_session_list == NULL) {
 		cfg = oauth2_cfg_session_init(log);
-		// TODO: "cookie" -> "shm"?
-		oauth2_cfg_session_set_options(log, cfg, "cookie", NULL);
+		oauth2_cfg_session_set_options(
+		    log, cfg, OAUTH2_SESSION_TYPE_CACHE_STR, NULL);
 	}
 
 	ptr = _session_list;
@@ -272,13 +275,10 @@ _OAUTH_CFG_CTX_CALLBACK(oauth2_cfg_session_set_options_cache)
 	return rv;
 }
 
-#define OAUTH2_SESSION_TYPE_COOKIE_STR "cookie"
-#define OAUTH2_SESSION_TYPE_COOKIE_CACHE "cache"
-
 // clang-format off
 static oauth2_cfg_set_options_ctx_t _oauth2_cfg_session_options_set[] = {
 	{ OAUTH2_SESSION_TYPE_COOKIE_STR, oauth2_cfg_session_set_options_cookie },
-	{ OAUTH2_SESSION_TYPE_COOKIE_CACHE, oauth2_cfg_session_set_options_cache },
+	{ OAUTH2_SESSION_TYPE_CACHE_STR, oauth2_cfg_session_set_options_cache },
 	{ NULL, NULL }
 };
 // clang-format on

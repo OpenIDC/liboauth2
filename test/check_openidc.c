@@ -739,6 +739,7 @@ static void _test_openidc_handle(oauth2_cfg_openidc_t *c)
 			  302);
 
 	oauth2_http_request_free(_log, r);
+	oauth2_http_response_free(_log, response);
 
 	oauth2_mem_free(state);
 	oauth2_mem_free(query_str);

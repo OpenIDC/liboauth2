@@ -26,12 +26,6 @@
 #include "oauth2/openidc.h"
 #include "oauth2/util.h"
 
-// TODO: this can/should be internal I guess
-typedef enum oauth2_cfg_session_type_t {
-	OAUTH2_SESSION_TYPE_COOKIE,
-	OAUTH2_SESSION_TYPE_CACHE
-} oauth2_cfg_session_type_t;
-
 OAUTH2_CFG_TYPE_DECLARE(cfg, session)
 void oauth2_cfg_session_release(oauth2_log_t *log,
 				oauth2_cfg_session_t *session);
