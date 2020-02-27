@@ -1,3 +1,6 @@
+02/27/2020
+- lock access to cache globals
+
 02/26/2020
 - resolve some TODOs; valgrind
 - bump to 1.3.0
