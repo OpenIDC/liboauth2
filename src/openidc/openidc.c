@@ -326,7 +326,7 @@ static bool _oauth2_openidc_token_request(oauth2_log_t *log,
 	if (oauth2_json_string_get(log, json, OAUTH2_OPENIDC_ACCESS_TOKEN,
 				   s_access_token, NULL) == false) {
 		oauth2_error(log, "no %s found in token response",
-			     OAUTH2_OPENIDC_ID_TOKEN);
+			     OAUTH2_OPENIDC_ACCESS_TOKEN);
 		goto end;
 	}
 
@@ -353,6 +353,12 @@ static bool _oauth2_openidc_userinfo_request(
 	oauth2_http_call_ctx_t *http_ctx = NULL;
 	char *s_response = NULL;
 	oauth2_uint_t status_code = 0;
+
+	if (oauth2_openidc_provider_userinfo_endpoint_get(log, provider) ==
+	    NULL) {
+		rc = true;
+		goto end;
+	}
 
 	http_ctx = oauth2_http_call_ctx_init(log);
 	if (http_ctx == NULL)
@@ -439,22 +445,19 @@ static bool _oauth2_openidc_redirect_uri_handler(
 					   &provider) == false)
 		goto end;
 
-	// TODO:
-	// validate response
-
 	if (_oauth2_openidc_token_request(log, cfg, request, provider, code,
 					  &s_id_token,
 					  &s_access_token) == false)
 		goto end;
+
 	if (_oauth2_openidc_id_token_verify(log, provider, s_id_token,
 					    &id_token) == false)
 		goto end;
-	if (oauth2_openidc_provider_token_endpoint_get(log, provider) != NULL) {
-		if (_oauth2_openidc_userinfo_request(log, cfg, request,
-						     provider, s_access_token,
-						     &userinfo_claims) == false)
-			goto end;
-	}
+
+	if (_oauth2_openidc_userinfo_request(log, cfg, request, provider,
+					     s_access_token,
+					     &userinfo_claims) == false)
+		goto end;
 
 	// TODO: evaluate and set configurable r->user claim
 	oauth2_session_rec_user_set(

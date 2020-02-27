@@ -1,5 +1,6 @@
 02/27/2020
 - lock access to cache globals
+- log corrections and improvements
 
 02/26/2020
 - resolve some TODOs; valgrind

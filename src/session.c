@@ -75,26 +75,48 @@ _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(session, rec, expiry, oauth2_time_t, time)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_GET(session, rec, id_token_claims, json_t *)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_GET(session, rec, userinfo_claims, json_t *)
 
+static bool _oauth2_session_rec_json_object_set(oauth2_log_t *log,
+						oauth2_session_rec_t *session,
+						const char *name, json_t *json,
+						json_t **session_ptr)
+{
+	bool rc = false;
+	char *s_json = NULL;
+
+	if (json == NULL) {
+		rc = true;
+		goto end;
+	}
+
+	s_json = oauth2_json_encode(log, json, 0);
+	oauth2_debug(log, "%s=%s", name, s_json);
+	*session_ptr = json_incref(json);
+
+	rc = true;
+
+end:
+
+	if (s_json)
+		oauth2_mem_free(s_json);
+
+	return rc;
+}
+
 bool oauth2_session_rec_id_token_claims_set(oauth2_log_t *log,
 					    oauth2_session_rec_t *session,
 					    json_t *id_token)
 {
-	char *s_id_token = oauth2_json_encode(log, id_token, 0);
-	oauth2_debug(log, "id_token=%s", s_id_token);
-	session->id_token_claims = json_incref(id_token);
-	oauth2_mem_free(s_id_token);
-	return true;
+	return _oauth2_session_rec_json_object_set(
+	    log, session, "id_token", id_token, &session->id_token_claims);
 }
 
 bool oauth2_session_rec_userinfo_claims_set(oauth2_log_t *log,
 					    oauth2_session_rec_t *session,
 					    json_t *userinfo_claims)
 {
-	char *s_userinfo = oauth2_json_encode(log, userinfo_claims, 0);
-	oauth2_debug(log, "userinfo=%s", s_userinfo);
-	session->userinfo_claims = json_incref(userinfo_claims);
-	oauth2_mem_free(s_userinfo);
-	return true;
+	return _oauth2_session_rec_json_object_set(log, session, "userinfo",
+						   userinfo_claims,
+						   &session->userinfo_claims);
 }
 
 #define OAUTH_SESSION_KEY_ID "id"
@@ -249,7 +271,7 @@ bool oauth2_session_load(oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
 			 oauth2_session_rec_t **session)
 {
 	bool rc = false;
-	json_t *json = NULL;
+	json_t *json = NULL, *json_ptr = NULL;
 	oauth2_session_load_callback_t *session_load_callback = NULL;
 	json_int_t expiry = 0, start = 0;
 	oauth2_time_t now = 0;
@@ -322,12 +344,18 @@ bool oauth2_session_load(oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
 		goto end;
 
 	if (oauth2_json_object_get(log, json, OAUTH_SESSION_KEY_ID_TOKEN_CLAIMS,
-				   &(*session)->id_token_claims) == false)
+				   &json_ptr) == false)
 		goto end;
+	oauth2_session_rec_id_token_claims_set(log, *session, json_ptr);
+	if (json_ptr)
+		json_decref(json_ptr);
 
 	if (oauth2_json_object_get(log, json, OAUTH_SESSION_KEY_USERINFO_CLAIMS,
-				   &(*session)->userinfo_claims) == false)
+				   &json_ptr) == false)
 		goto end;
+	oauth2_session_rec_userinfo_claims_set(log, *session, json_ptr);
+	if (json_ptr)
+		json_decref(json_ptr);
 
 end:
 
