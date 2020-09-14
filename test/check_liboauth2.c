@@ -195,7 +195,7 @@ static void http_server_process(oauth2_log_t *log, int fd, int hit)
 		if (response) {
 			sprintf(outbuf,
 				"HTTP/1.1 200\nContent-Length: "
-				"%lu\nConnection: close\n\n",
+				"%zu\nConnection: close\n\n",
 				strlen(response));
 			rc = write(fd, outbuf, strlen(outbuf));
 			rc = write(fd, response, strlen(response));
