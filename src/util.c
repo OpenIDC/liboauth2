@@ -532,7 +532,7 @@ char *oauth2_strndup(const char *src, size_t len)
 	if (dst == NULL)
 		goto end;
 
-	strncpy(dst, src, len);
+	memcpy(dst, src, len);
 	dst[len] = '\0';
 
 end:
