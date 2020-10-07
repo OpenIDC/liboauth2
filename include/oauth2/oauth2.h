@@ -53,6 +53,8 @@
 #define OAUTH2_ERROR_INVALID_REQUEST "invalid_request"
 #define OAUTH2_ERROR_INSUFFICIENT_SCOPE "insufficient_scope"
 
+#define OAUTH2_HTTP_HDR_DPOP "DPoP"
+
 typedef enum {
 	OAUTH2_UNAUTH_ACTION_UNDEFINED,
 	OAUTH2_UNAUTH_ACTION_AUTHENTICATE,
@@ -65,7 +67,8 @@ bool oauth2_http_ctx_auth_add(oauth2_log_t *log, oauth2_http_call_ctx_t *ctx,
 			      const oauth2_cfg_endpoint_auth_t *auth,
 			      oauth2_nv_list_t *params);
 
-bool oauth2_token_verify(oauth2_log_t *log, oauth2_cfg_token_verify_t *verify,
-			 const char *token, json_t **json_payload);
+bool oauth2_token_verify(oauth2_log_t *log, oauth2_http_request_t *request,
+			 oauth2_cfg_token_verify_t *verify, const char *token,
+			 json_t **json_payload);
 
 #endif /* _OAUTH2_H_ */

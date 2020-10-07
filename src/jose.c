@@ -642,7 +642,7 @@ end:
 	return;
 }
 
-static oauth2_jose_jwt_validate_claim_t _oauth2_parse_validate_claim_option(
+oauth2_jose_jwt_validate_claim_t oauth2_parse_validate_claim_option(
     oauth2_log_t *log, const char *value,
     oauth2_jose_jwt_validate_claim_t default_value)
 {
@@ -735,13 +735,13 @@ bool oauth2_jose_jwt_verify_set_options(
 {
 	jwt_verify->jwks_provider = _oauth2_jose_jwks_provider_init(log, type);
 
-	jwt_verify->iss_validate = _oauth2_parse_validate_claim_option(
+	jwt_verify->iss_validate = oauth2_parse_validate_claim_option(
 	    log, oauth2_nv_list_get(log, params, OAUTH2_JOSE_JWT_ISS_VALIDATE),
 	    OAUTH2_JOSE_JWT_VALIDATE_CLAIM_OPTIONAL);
-	jwt_verify->exp_validate = _oauth2_parse_validate_claim_option(
+	jwt_verify->exp_validate = oauth2_parse_validate_claim_option(
 	    log, oauth2_nv_list_get(log, params, OAUTH2_JOSE_JWT_EXP_VALIDATE),
 	    OAUTH2_JOSE_JWT_VALIDATE_CLAIM_OPTIONAL);
-	jwt_verify->iat_validate = _oauth2_parse_validate_claim_option(
+	jwt_verify->iat_validate = oauth2_parse_validate_claim_option(
 	    log, oauth2_nv_list_get(log, params, OAUTH2_JOSE_JWT_IAT_VALIDATE),
 	    OAUTH2_JOSE_JWT_VALIDATE_CLAIM_OPTIONAL);
 	;
@@ -983,11 +983,10 @@ end:
 	return rc;
 }
 
-static bool
-_oauth2_jose_jwt_validate_iat(oauth2_log_t *log, const json_t *json_payload,
-			      oauth2_jose_jwt_validate_claim_t validate,
-			      oauth2_uint_t slack_before,
-			      oauth2_uint_t slack_after)
+bool oauth2_jose_jwt_validate_iat(oauth2_log_t *log, const json_t *json_payload,
+				  oauth2_jose_jwt_validate_claim_t validate,
+				  oauth2_uint_t slack_before,
+				  oauth2_uint_t slack_after)
 {
 	bool rc = false;
 	json_int_t iat = -1;
@@ -1061,7 +1060,7 @@ _oauth2_jose_jwt_payload_validate(oauth2_log_t *log,
 		log, json_payload, jwt_verify_ctx->exp_validate) == false)
 		goto end;
 
-	if (_oauth2_jose_jwt_validate_iat(
+	if (oauth2_jose_jwt_validate_iat(
 		log, json_payload, jwt_verify_ctx->iat_validate,
 		jwt_verify_ctx->iat_slack_before,
 		jwt_verify_ctx->iat_slack_after) == false)
@@ -1970,3 +1969,82 @@ end:
 	return jwks;
 }
 */
+
+bool oauth2_jose_jwk_thumbprint(oauth2_log_t *log, const cjose_jwk_t *jwk,
+				unsigned char **hash_bytes,
+				unsigned int *hash_bytes_len)
+{
+	bool rc = false;
+	char *s_payload = NULL, *s_compact = NULL;
+	json_t *json_payload = NULL, *json_comp = NULL;
+	cjose_err err;
+
+	s_payload = cjose_jwk_to_json(jwk, false, &err);
+	if (s_payload == NULL) {
+		oauth2_error(log, "cjose_jwk_to_json failed: %s", err.message);
+		goto end;
+	}
+
+	if (oauth2_json_decode_object(log, s_payload, &json_payload) == false) {
+		oauth2_error(log, "decoding JWK JSON failed");
+		goto end;
+	}
+
+	json_comp = json_object();
+
+	switch (cjose_jwk_get_kty(jwk, &err)) {
+	case CJOSE_JWK_KTY_EC:
+		json_object_set(json_comp, "crv",
+				json_object_get(json_payload, "crv"));
+		json_object_set(json_comp, "kty",
+				json_object_get(json_payload, "kty"));
+		json_object_set(json_comp, "x",
+				json_object_get(json_payload, "x"));
+		json_object_set(json_comp, "y",
+				json_object_get(json_payload, "y"));
+		break;
+	case CJOSE_JWK_KTY_RSA:
+		json_object_set(json_comp, "e",
+				json_object_get(json_payload, "e"));
+		json_object_set(json_comp, "kty",
+				json_object_get(json_payload, "kty"));
+		json_object_set(json_comp, "n",
+				json_object_get(json_payload, "n"));
+		break;
+	case CJOSE_JWK_KTY_OCT:
+		json_object_set(json_comp, "k",
+				json_object_get(json_payload, "k"));
+		json_object_set(json_comp, "kty",
+				json_object_get(json_payload, "kty"));
+		break;
+	default:
+		oauth2_error(log, "unknown kty");
+		goto end;
+	}
+
+	s_compact = oauth2_json_encode(log, json_comp,
+				       JSON_PRESERVE_ORDER | JSON_COMPACT);
+
+	if (oauth2_jose_hash_bytes(log, OAUTH2_JOSE_OPENSSL_ALG_SHA256,
+				   (const unsigned char *)s_compact,
+				   strlen(s_compact), hash_bytes,
+				   hash_bytes_len) == false) {
+		oauth2_error(log, "oauth2_jose_hash_bytes failed");
+		goto end;
+	}
+
+	rc = true;
+
+end:
+
+	if (s_compact)
+		oauth2_mem_free(s_compact);
+	if (s_payload)
+		cjose_get_dealloc()(s_payload);
+	if (json_payload)
+		json_decref(json_payload);
+	if (json_comp)
+		json_decref(json_comp);
+
+	return rc;
+}

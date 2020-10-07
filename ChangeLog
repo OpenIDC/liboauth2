@@ -1,3 +1,7 @@
+10/07/2020
+- add support for DPOP bound access tokens
+- bump to 1.4.0-dev
+
 02/27/2020
 - lock access to cache globals
 - log corrections and improvements

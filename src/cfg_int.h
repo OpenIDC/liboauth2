@@ -30,6 +30,16 @@
 
 #include <cjose/cjose.h>
 
+typedef enum oauth2_jose_jwt_validate_claim_t {
+	OAUTH2_JOSE_JWT_VALIDATE_CLAIM_OPTIONAL,
+	OAUTH2_JOSE_JWT_VALIDATE_CLAIM_REQUIRED,
+	OAUTH2_JOSE_JWT_VALIDATE_CLAIM_SKIP
+} oauth2_jose_jwt_validate_claim_t;
+
+oauth2_jose_jwt_validate_claim_t oauth2_parse_validate_claim_option(
+    oauth2_log_t *log, const char *value,
+    oauth2_jose_jwt_validate_claim_t default_value);
+
 /*
  * auth
  */
@@ -140,11 +150,24 @@ oauth2_cfg_ctx_t *oauth2_cfg_ctx_clone(oauth2_log_t *log,
 				       oauth2_cfg_ctx_t *src);
 void oauth2_cfg_ctx_free(oauth2_log_t *log, oauth2_cfg_ctx_t *ctx);
 
+#define OAUTH2_TOKEN_VERIFY_BEARER_STR "bearer"
+#define OAUTH2_TOKEN_VERIFY_DPOP_STR "dpop"
+
+typedef struct oauth2_cfg_dpop_verify_t {
+	oauth2_cache_t *cache;
+	oauth2_time_t expiry_s;
+	oauth2_jose_jwt_validate_claim_t iat_validate;
+	oauth2_uint_t iat_slack_before;
+	oauth2_uint_t iat_slack_after;
+} oauth2_cfg_dpop_verify_t;
+
 typedef struct oauth2_cfg_token_verify_t {
 	oauth2_cfg_token_verify_cb_t *callback;
 	oauth2_cfg_ctx_t *ctx;
 	oauth2_cache_t *cache;
 	oauth2_time_t expiry_s;
+	oauth2_cfg_token_verify_type_t type;
+	oauth2_cfg_dpop_verify_t dpop;
 	struct oauth2_cfg_token_verify_t *next;
 } oauth2_cfg_token_verify_t;
 

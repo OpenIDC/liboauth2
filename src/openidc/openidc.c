@@ -219,7 +219,8 @@ static bool _oauth2_openidc_id_token_verify(oauth2_log_t *log,
 		    log, "oauth2_cfg_token_verify_add_options failed: %s", rv);
 		goto end;
 	}
-	if (oauth2_token_verify(log, verify, s_id_token, id_token) == false) {
+	if (oauth2_token_verify(log, NULL, verify, s_id_token, id_token) ==
+	    false) {
 		oauth2_error(log, "id_token verification failed");
 		goto end;
 	}

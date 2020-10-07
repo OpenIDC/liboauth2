@@ -66,12 +66,6 @@ typedef struct oauth2_jose_jwks_provider_t {
 	// struct oauth2_jose_jwks_provider_t *next;
 } oauth2_jose_jwks_provider_t;
 
-typedef enum oauth2_jose_jwt_validate_claim_t {
-	OAUTH2_JOSE_JWT_VALIDATE_CLAIM_OPTIONAL,
-	OAUTH2_JOSE_JWT_VALIDATE_CLAIM_REQUIRED,
-	OAUTH2_JOSE_JWT_VALIDATE_CLAIM_SKIP
-} oauth2_jose_jwt_validate_claim_t;
-
 _OAUTH2_CFG_CTX_TYPE_START(oauth2_jose_jwt_verify_ctx)
 oauth2_jose_jwks_provider_t *jwks_provider;
 oauth2_jose_jwt_validate_claim_t iss_validate;
@@ -113,5 +107,10 @@ bool oauth2_jose_jwt_verify_set_options(
 char *oauth2_jose_jwt_header_peek(oauth2_log_t *log,
 				  const char *compact_encoded_jwt,
 				  const char **alg);
+
+bool oauth2_jose_jwt_validate_iat(oauth2_log_t *log, const json_t *json_payload,
+				  oauth2_jose_jwt_validate_claim_t validate,
+				  oauth2_uint_t slack_before,
+				  oauth2_uint_t slack_after);
 
 #endif /* _OAUTH2_JOSE_INT_H_ */

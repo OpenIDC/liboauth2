@@ -71,4 +71,8 @@ bool oauth2_jose_jwt_verify(oauth2_log_t *log,
 			    const char *token, json_t **json_payload,
 			    char **s_payload);
 
+bool oauth2_jose_jwk_thumbprint(oauth2_log_t *log, const cjose_jwk_t *jwk,
+				unsigned char **hash_bytes,
+				unsigned int *hash_bytes_len);
+
 #endif /* _OAUTH2_JOSE_H_ */

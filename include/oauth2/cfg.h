@@ -122,6 +122,11 @@ oauth2_cfg_endpoint_get_http_timeout(const oauth2_cfg_endpoint_t *cfg);
  * token verify
  */
 
+typedef enum oauth2_cfg_token_verify_type_t {
+	OAUTH2_TOKEN_VERIFY_BEARER,
+	OAUTH2_TOKEN_VERIFY_DPOP
+} oauth2_cfg_token_verify_type_t;
+
 /*
  *   <type> <value> [<options>]
  *

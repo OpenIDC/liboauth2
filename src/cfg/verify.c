@@ -65,6 +65,12 @@ oauth2_cfg_token_verify_t *oauth2_cfg_token_verify_init(oauth2_log_t *log)
 	verify->ctx = NULL;
 	verify->callback = NULL;
 	verify->cache = NULL;
+	verify->type = OAUTH2_CFG_UINT_UNSET;
+	verify->dpop.cache = NULL;
+	verify->dpop.expiry_s = OAUTH2_CFG_UINT_UNSET;
+	verify->dpop.iat_validate = OAUTH2_CFG_UINT_UNSET;
+	verify->dpop.iat_slack_after = OAUTH2_CFG_UINT_UNSET;
+	verify->dpop.iat_slack_before = OAUTH2_CFG_UINT_UNSET;
 	verify->expiry_s = OAUTH2_CFG_UINT_UNSET;
 	verify->next = NULL;
 	return verify;
@@ -76,6 +82,8 @@ void oauth2_cfg_token_verify_free(oauth2_log_t *log,
 	oauth2_cfg_token_verify_t *ptr = verify;
 	while (ptr) {
 		verify = verify->next;
+		if (ptr->dpop.cache)
+			oauth2_cache_release(log, ptr->dpop.cache);
 		if (ptr->cache)
 			oauth2_cache_release(log, ptr->cache);
 		if (ptr->ctx)
@@ -98,6 +106,12 @@ oauth2_cfg_token_verify_clone(oauth2_log_t *log, oauth2_cfg_token_verify_t *src)
 	dst->cache = oauth2_cache_clone(log, src->cache);
 	dst->expiry_s = src->expiry_s;
 	dst->callback = src->callback;
+	dst->type = src->type;
+	dst->dpop.cache = oauth2_cache_clone(log, src->dpop.cache);
+	dst->dpop.expiry_s = src->dpop.expiry_s;
+	dst->dpop.iat_slack_after = src->dpop.iat_slack_after;
+	dst->dpop.iat_slack_before = src->dpop.iat_slack_before;
+	dst->dpop.iat_validate = src->dpop.iat_validate;
 	dst->ctx = oauth2_cfg_ctx_clone(log, src->ctx);
 	dst->next = oauth2_cfg_token_verify_clone(NULL, src->next);
 
@@ -139,6 +153,71 @@ end:
 	return v;
 }
 
+static char *
+_oauth2_cfg_token_verify_type_set(oauth2_log_t *log,
+				  oauth2_cfg_token_verify_t *verify,
+				  oauth2_nv_list_t *params)
+{
+	char *rv = NULL;
+	const char *v = NULL;
+
+	v = oauth2_nv_list_get(log, params, "type");
+
+	if (v == NULL)
+		goto end;
+
+	if (strcasecmp(v, OAUTH2_TOKEN_VERIFY_BEARER_STR) == 0) {
+		verify->type = OAUTH2_TOKEN_VERIFY_BEARER;
+		goto end;
+	}
+
+	if (strcasecmp(v, OAUTH2_TOKEN_VERIFY_DPOP_STR) == 0) {
+		verify->type = OAUTH2_TOKEN_VERIFY_DPOP;
+		goto end;
+	}
+
+	rv = oauth2_strdup("Invalid value, must be one of: \"");
+	rv =
+	    oauth2_stradd(rv, OAUTH2_TOKEN_VERIFY_BEARER_STR, "\" or \"", NULL);
+	rv = oauth2_stradd(rv, OAUTH2_TOKEN_VERIFY_DPOP_STR, "\".", NULL);
+
+end:
+
+	return rv;
+}
+
+#define OAUTH2_CFG_VERIFY_DPOP_CACHE_DEFAULT 10
+#define OAUTH2_VERIFY_DPOP_SLACK_DEFAULT (oauth2_uint_t)5
+
+static char *
+_oauth2_cfg_token_verify_options_dpop_set(oauth2_log_t *log,
+					  oauth2_cfg_token_verify_t *verify,
+					  oauth2_nv_list_t *params)
+{
+	char *rv = NULL;
+
+	verify->dpop.cache = _oauth2_cache_obtain(
+	    log, oauth2_nv_list_get(log, params, "dpop.cache"));
+
+	verify->dpop.expiry_s = oauth2_parse_uint(
+	    log, oauth2_nv_list_get(log, params, "dpop.expiry"),
+	    OAUTH2_CFG_VERIFY_DPOP_CACHE_DEFAULT);
+
+	verify->dpop.iat_validate = oauth2_parse_validate_claim_option(
+	    log, oauth2_nv_list_get(log, params, "dpop.iat.verify"),
+	    OAUTH2_JOSE_JWT_VALIDATE_CLAIM_REQUIRED);
+
+	verify->dpop.iat_slack_before = oauth2_parse_uint(
+	    log, oauth2_nv_list_get(log, params, "dpop.iat.slack.before"),
+	    OAUTH2_VERIFY_DPOP_SLACK_DEFAULT);
+
+	verify->dpop.iat_slack_after = oauth2_parse_uint(
+	    log, oauth2_nv_list_get(log, params, "dpop.iat.slack.after"),
+	    OAUTH2_VERIFY_DPOP_SLACK_DEFAULT);
+
+	return rv;
+}
+
 #define OAUTH2_CFG_VERIFY_RESULT_CACHE_DEFAULT 300
 
 char *oauth2_cfg_token_verify_add_options(oauth2_log_t *log,
@@ -164,6 +243,16 @@ char *oauth2_cfg_token_verify_add_options(oauth2_log_t *log,
 	v->expiry_s =
 	    oauth2_parse_uint(log, oauth2_nv_list_get(log, params, "expiry"),
 			      OAUTH2_CFG_VERIFY_RESULT_CACHE_DEFAULT);
+
+	rv = _oauth2_cfg_token_verify_type_set(log, v, params);
+	if (rv != NULL)
+		goto end;
+
+	if (v->type == OAUTH2_TOKEN_VERIFY_DPOP) {
+		rv = _oauth2_cfg_token_verify_options_dpop_set(log, v, params);
+		if (rv != NULL)
+			goto end;
+	}
 
 	rv = oauth2_cfg_set_options(log, v, type, value, options,
 				    _oauth2_cfg_verify_options_set);

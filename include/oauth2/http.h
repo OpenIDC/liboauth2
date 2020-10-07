@@ -97,6 +97,8 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(http, request, hostname, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(http, request, path, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(http, request, method, oauth2_http_method_t)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(http, request, query, char *)
+const char *oauth2_http_request_method_get_str(oauth2_log_t *,
+					       oauth2_http_request_t *);
 
 OAUTH2_TYPE_DECLARE(http, response)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(http, response, headers, oauth2_nv_list_t *)

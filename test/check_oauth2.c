@@ -575,6 +575,132 @@ end:
 	return rv;
 }
 
+START_TEST(test_oauth2_verify_jwk)
+{
+	bool rc = false;
+	oauth2_cfg_token_verify_t *verify = NULL;
+	char *jwt =
+	    "eyJhbGciOiJSUzI1NiIsImtpZCI6ImsxIn0."
+	    "eyJzY29wZSI6W10sImNsaWVudF9pZF9uYW1lIjoicm9fY2xpZW50IiwiYWdpZCI6Im"
+	    "4zak1UazdXSDVVSU9FTWNEZEZPSVR5eFZ2VW1XRHVyIiwiT3JnTmFtZSI6IlBpbmcg"
+	    "SWRlbnRpdHkgQ29ycG9yYXRpb24iLCJjbmYiOnsieDV0I1MyNTYiOiJsNnU5S1VDZ0"
+	    "I2UHpHdklpTS0tWEYwTHF3N1ZYejdvQWtoUkhhbEZqOGkwIn0sIlVzZXJuYW1lIjoi"
+	    "am9lIiwiZXhwIjoxNTQyMTI5NzgzfQ.MUghlaVxy5ij3HODBl6spAA-h6W7D-"
+	    "PoKyhDfR5DnODQqwb5zaqba2pWyJ0d6-4AQfQ6dIe0jfwQeUrPTu2DZLtk3H-"
+	    "noCSjtXrFV_RFNfz9kqdEXwkVZAX8H_ySrYFcAx3Ac9C8bZzjRUM6c4emql-"
+	    "I6T1fVGqO_"
+	    "bVUsWbPmPtNanq3UyqTrlDwQ6weO0ZbLH9tcDpZD4ojNCJjkHa3lvjwYzPNwlAI6a_"
+	    "DGng-7rgrobhOiaAgBAwLhq9fvTtM2MWNmWXmUCymq3nGqG_d_t5i_"
+	    "x7Zf28T3ejzEX-ETefpTENX7BJ57-vQbAeECRTIo_LhzKTaDkiZWpf6JgraQg";
+	char *jwk = "{\"kty\":\"RSA\",\"kid\":\"k1\",\"use\":\"sig\",\"n\":"
+		    "\"hKvkosOyK33gznaRCNgakMLE2GHS5_7K34oqZRsAWC-7aC420eJNL2z_"
+		    "8Z7ouWXpJNZ2YHQcqxPe4UZGtiDiFYLdDbQPrCDiTpuRYybe1UmZJ3Kk5f"
+		    "Bx9yXKU0zbdSKYPE"
+		    "eq1w5Fi7rt46YkZ6qwv3Yixo7eTxbglezJOx_YcS5sfXxcwBU1nYbGU_"
+		    "MgrBXAfy1Hea5tcUSPot-BTMcuj_doHLT_sEm4AZwaZiLhMiqfI-"
+		    "J6Gv5Hg6aBTXpYv50DEdcoZzkabMHxjHICS9w2FGWAzMt_"
+		    "AvW4ISlbAxlBroXhTEXC6GIJwoDTskuPlCO4CVa3axh0s1D49JFJoBYasw"
+		    "\",\"e\":"
+		    "\"AQAB\"}";
+	json_t *json_payload = NULL;
+	const char *rv = NULL;
+	rv = oauth2_cfg_token_verify_add_options(_log, &verify, "jwk", jwk,
+						 "verify.exp=skip");
+	ck_assert_ptr_eq(rv, NULL);
+
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
+	ck_assert_int_eq(rc, true);
+
+	oauth2_cfg_token_verify_free(_log, verify);
+	json_decref(json_payload);
+}
+END_TEST
+
+START_TEST(test_oauth2_verify_jwk_dpop)
+{
+	bool rc = false;
+	oauth2_cfg_token_verify_t *verify = NULL;
+	char *jwt = "eyJhbGciOiAiUlMyNTYifQ."
+		    "ewogICJzdWIiOiAic29tZW9uZUBleGFtcGxlLmNvbSIsCiAgImlzcyI6IC"
+		    "JodHRwczovL3NlcnZlci5leGFtcGxlLmNvbSIsCiAgImF1ZCI6ICJodHRw"
+		    "czovL3Jlc291cmNlLmV4YW1wbGUub3JnIiwKICAibmJmIjogMTU2MjI2Mj"
+		    "YxMSwKICAiZXhwIjogMTU2MjI2NjIxNiwKICAiY25mIjogewogICAgImpr"
+		    "dCI6ICIwWmNPQ09SWk5ZeS1EV3BxcTMwalp5SkdIVE4wZDJIZ2xCVjN1aW"
+		    "d1QTRJIgogIH0KfQ.o0j8O6PMQX4R-YPyiyNcdywMzHtUV3leeUn8X9w_"
+		    "CHq_M9UQndIbsNrzClKD8wTm3LuSO3v6wMsdxSC7Ypk3iTMKZCWK66fx9-"
+		    "BIo2d4fbJeC32YbL0FkSmZNzuqIPn1xfxoQ3Lx7_P9vS0k-"
+		    "frefuoWWR8NmVDGXuCxVg1INtoC1QUUB3rCe3PnY8cNNfijlSGSArODffQ"
+		    "XRR0CLULDGV87RgAeRZOHzfDc2lQr9ifLC8FfM6wRPBDCgljE5Ygyfc58x"
+		    "FAIEW_GnVJzRV-WN83PMJ-le-DMDHLnk_"
+		    "YvYbjKRG4Awr5OLm8jD8tc5YlwSZKRo7TOE_pGkctSTf1ang";
+	char *jwk = "{\"kty\":\"RSA\",\"kid\":\"k1\",\"use\":\"sig\",\"n\":"
+		    "\"ym7jipmB37CgdonwGFVRuZmRfCl3lVh91fmm5CXHcNlUFZNR3D6Q9r63"
+		    "PpGRnfSsX3dOweh8BXd2AJ3mxvcE4z9xH--tA5EaOGI7IVF0Ip_"
+		    "i3flGg85xOADlb8rX3ez1NqkqMVJeeJypKhCCDNfvu_"
+		    "MXSdPLglU969YQF5xKAK8VFRfI6EfxxrZ_3Dvt2CKDV4LTPPJe9KI2_"
+		    "LuLQFBJ3MzlCTVxY6gyaljrWaDq7q5Lt3GB1KYS0Yd8COEQwsclOLm0Tdd"
+		    "hg4cle-DfaTMi7xsTZsPKyac5x17Y4N4isHhZULuWHX7o1bs809xcj-_-"
+		    "YCRq6C61je_mzFhuF4pczw\",\"e\":\"AQAB\"}";
+	char *dpop =
+	    "eyJ0eXAiOiJkcG9wK2p3dCIsImFsZyI6IkVTMjU2IiwiandrIjp7Imt0eSI6Ik"
+	    "VDIiwieCI6Imw4dEZyaHgtMzR0VjNoUklDUkRZOXpDa0RscEJoRjQyVVFVZldWQVdC"
+	    "R"
+	    "nMiLCJ5IjoiOVZFNGpmX09rX282NHpiVFRsY3VOSmFqSG10NnY5VERWclUwQ2R2R1J"
+	    "E"
+	    "QSIsImNydiI6IlAtMjU2In19."
+	    "eyJqdGkiOiJlMWozVl9iS2ljOC1MQUVCIiwiaHRtIj"
+	    "oiR0VUIiwiaHR1IjoiaHR0cHM6Ly9yZXNvdXJjZS5leGFtcGxlLm9yZy9wcm90ZWN0"
+	    "Z"
+	    "WRyZXNvdXJjZSIsImlhdCI6MTU2MjI2MjYxOH0."
+	    "lNhmpAX1WwmpBvwhok4E74kWCiGB"
+	    "NdavjLAeevGy32H3dbF0Jbri69Nm2ukkwb-uyUI4AUg1JSskfWIyo4UCbQ";
+	json_t *json_payload = NULL;
+	oauth2_http_request_t *request = NULL;
+	const char *rv = NULL;
+	/*
+	oauth2_nv_list_t *params = NULL;
+	oauth2_cache_t *cache = NULL;
+
+	rc = oauth2_parse_form_encoded_params(
+	    _log, "name=dpop-cache&max_entries=5", &params);
+	ck_assert_int_eq(rc, true);
+
+	cache = oauth2_cache_init(_log, "shm", params);
+	rc = oauth2_cache_post_config(_log, cache);
+	ck_assert_int_eq(rc, true);
+	*/
+	rv = oauth2_cfg_token_verify_add_options(
+	    _log, &verify, "jwk", jwk,
+	    "verify.exp=skip&type=dpop&dpop.iat.verify=skip"); // &dpop.cache=dpop-cache
+	ck_assert_ptr_eq(rv, NULL);
+
+	request = oauth2_http_request_init(_log);
+	oauth2_http_request_scheme_set(_log, request, "https");
+	oauth2_http_request_hostname_set(_log, request, "resource.example.org");
+	// oauth2_http_request_port_set();
+	oauth2_http_request_path_set(_log, request, "/protectedresource");
+	oauth2_http_request_method_set(_log, request, OAUTH2_HTTP_METHOD_GET);
+
+	oauth2_http_request_header_set(_log, request, "DPoP", dpop);
+
+	rc = oauth2_token_verify(_log, request, verify, jwt, &json_payload);
+	ck_assert_int_eq(rc, true);
+
+	// now it should be in the cache
+	json_decref(json_payload);
+	rc = oauth2_token_verify(_log, request, verify, jwt, &json_payload);
+	ck_assert_int_eq(rc, false);
+
+	oauth2_http_request_free(_log, request);
+	oauth2_cfg_token_verify_free(_log, verify);
+	json_decref(json_payload);
+	/*
+	oauth2_nv_list_free(_log, params);
+	oauth2_cache_release(_log, cache);
+	*/
+}
+END_TEST
+
 START_TEST(test_oauth2_verify_jwks_uri)
 {
 	bool rc = false;
@@ -602,7 +728,7 @@ START_TEST(test_oauth2_verify_jwks_uri)
 						 "verify.exp=skip");
 	ck_assert_ptr_eq(rv, NULL);
 
-	rc = oauth2_token_verify(_log, verify, jwt, &json_payload);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
 	ck_assert_int_eq(rc, true);
 
 	oauth2_cfg_token_verify_free(_log, verify);
@@ -641,7 +767,7 @@ START_TEST(test_oauth2_verify_eckey_uri)
 						 url, NULL);
 	ck_assert_ptr_eq(rv, NULL);
 
-	rc = oauth2_token_verify(_log, verify, jwt, &json_payload);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
 	ck_assert_int_eq(rc, true);
 
 	oauth2_cfg_token_verify_free(_log, verify);
@@ -665,17 +791,17 @@ START_TEST(test_oauth2_verify_token_introspection)
 	    _log, &verify, "introspect", url, "introspect.ssl_verify=false");
 	ck_assert_ptr_eq(rv, NULL);
 
-	rc = oauth2_token_verify(_log, verify, "bogus", &json_payload);
+	rc = oauth2_token_verify(_log, NULL, verify, "bogus", &json_payload);
 	ck_assert_int_eq(rc, false);
 	json_decref(json_payload);
 
-	rc = oauth2_token_verify(_log, verify, valid_access_token,
+	rc = oauth2_token_verify(_log, NULL, verify, valid_access_token,
 				 &json_payload);
 	ck_assert_int_eq(rc, true);
 	json_decref(json_payload);
 
 	// get it from the cache
-	rc = oauth2_token_verify(_log, verify, valid_access_token,
+	rc = oauth2_token_verify(_log, NULL, verify, valid_access_token,
 				 &json_payload);
 	ck_assert_int_eq(rc, true);
 	json_decref(json_payload);
@@ -699,7 +825,7 @@ START_TEST(test_oauth2_verify_token_plain)
 						 "mysecret", "kid=mykid");
 	ck_assert_ptr_eq(rv, NULL);
 
-	rc = oauth2_token_verify(_log, verify, jwt, &json_payload);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
 	ck_assert_int_eq(rc, true);
 
 	oauth2_cfg_token_verify_free(_log, verify);
@@ -721,7 +847,7 @@ START_TEST(test_oauth2_verify_token_base64)
 						 "YW5vdGhlcnNlY3JldA==", NULL);
 	ck_assert_ptr_eq(rv, NULL);
 
-	rc = oauth2_token_verify(_log, verify, jwt, &json_payload);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
 	ck_assert_int_eq(rc, true);
 
 	oauth2_cfg_token_verify_free(_log, verify);
@@ -749,7 +875,7 @@ START_TEST(test_oauth2_verify_token_base64url)
 	    "verify.exp=skip");
 	ck_assert_ptr_eq(rv, NULL);
 
-	rc = oauth2_token_verify(_log, verify, jwt, &json_payload);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
 	ck_assert_int_eq(rc, true);
 
 	oauth2_cfg_token_verify_free(_log, verify);
@@ -771,7 +897,7 @@ START_TEST(test_oauth2_verify_token_hex)
 	    _log, &verify, "hex", "6d797468697264736563726574", NULL);
 	ck_assert_ptr_eq(rv, NULL);
 
-	rc = oauth2_token_verify(_log, verify, jwt, &json_payload);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
 	ck_assert_int_eq(rc, true);
 
 	oauth2_cfg_token_verify_free(_log, verify);
@@ -818,7 +944,7 @@ START_TEST(test_oauth2_verify_token_pem)
 						 "verify.exp=skip");
 	ck_assert_ptr_eq(rv, NULL);
 
-	rc = oauth2_token_verify(_log, verify, jwt, &json_payload);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
 	ck_assert_int_eq(rc, true);
 
 	oauth2_cfg_token_verify_free(_log, verify);
@@ -857,7 +983,7 @@ START_TEST(test_oauth2_verify_token_pubkey)
 						 pubkey, "verify.exp=skip");
 	ck_assert_ptr_eq(rv, NULL);
 
-	rc = oauth2_token_verify(_log, verify, jwt, &json_payload);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
 	ck_assert_int_eq(rc, true);
 
 	oauth2_cfg_token_verify_free(_log, verify);
@@ -882,16 +1008,16 @@ START_TEST(test_oauth2_verify_token_metadata)
 
 	// reference token
 
-	rc = oauth2_token_verify(_log, verify, "bogus", &json_payload);
+	rc = oauth2_token_verify(_log, NULL, verify, "bogus", &json_payload);
 	ck_assert_int_eq(rc, false);
 	json_decref(json_payload);
 
-	rc = oauth2_token_verify(_log, verify, valid_access_token,
+	rc = oauth2_token_verify(_log, NULL, verify, valid_access_token,
 				 &json_payload);
 	ck_assert_int_eq(rc, true);
 	json_decref(json_payload);
 	// get it from the cache
-	rc = oauth2_token_verify(_log, verify, valid_access_token,
+	rc = oauth2_token_verify(_log, NULL, verify, valid_access_token,
 				 &json_payload);
 	ck_assert_int_eq(rc, true);
 	json_decref(json_payload);
@@ -912,11 +1038,11 @@ START_TEST(test_oauth2_verify_token_metadata)
 	    "DGng-7rgrobhOiaAgBAwLhq9fvTtM2MWNmWXmUCymq3nGqG_d_t5i_"
 	    "x7Zf28T3ejzEX-ETefpTENX7BJ57-vQbAeECRTIo_LhzKTaDkiZWpf6JgraQg";
 
-	rc = oauth2_token_verify(_log, verify, jwt, &json_payload);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
 	ck_assert_int_eq(rc, true);
 	json_decref(json_payload);
 	// get it from the cache
-	rc = oauth2_token_verify(_log, verify, jwt, &json_payload);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
 	ck_assert_int_eq(rc, true);
 	json_decref(json_payload);
 
@@ -945,6 +1071,8 @@ Suite *oauth2_check_oauth2_suite()
 	tcase_add_test(c, test_oauth2_auth_none);
 	tcase_add_test(c, test_oauth2_verify_clone);
 	tcase_add_test(c, test_oauth2_verify_jwks_uri);
+	tcase_add_test(c, test_oauth2_verify_jwk);
+	tcase_add_test(c, test_oauth2_verify_jwk_dpop);
 	tcase_add_test(c, test_oauth2_verify_eckey_uri);
 	tcase_add_test(c, test_oauth2_verify_token_introspection);
 	tcase_add_test(c, test_oauth2_verify_token_plain);

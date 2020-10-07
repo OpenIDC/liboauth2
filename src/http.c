@@ -289,6 +289,37 @@ _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(http, request, method,
 				      oauth2_http_method_t, uint)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(http, request, query, char *, str)
 
+const char *oauth2_http_request_method_get_str(oauth2_log_t *log,
+					       oauth2_http_request_t *request)
+{
+	const char *rv = NULL;
+	switch (oauth2_http_request_method_get(log, request)) {
+	case OAUTH2_HTTP_METHOD_GET:
+		rv = "GET";
+		break;
+	case OAUTH2_HTTP_METHOD_PUT:
+		rv = "PUT";
+		break;
+	case OAUTH2_HTTP_METHOD_POST:
+		rv = "POST";
+		break;
+	case OAUTH2_HTTP_METHOD_DELETE:
+		rv = "DELETE";
+		break;
+	case OAUTH2_HTTP_METHOD_CONNECT:
+		rv = "CONNECT";
+		break;
+	case OAUTH2_HTTP_METHOD_OPTIONS:
+		rv = "OPTIONS";
+		break;
+	case OAUTH2_HTTP_METHOD_UNKNOWN:
+		break;
+	default:
+		break;
+	}
+	return rv;
+}
+
 /*
  * current request URI
  */
