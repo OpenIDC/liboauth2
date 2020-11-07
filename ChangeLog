@@ -1,3 +1,6 @@
+11/07/2020
+- don't use automake config.h; closes #10; thanks @babelouest
+
 10/07/2020
 - add support for DPOP bound access tokens
 - bump to 1.4.0-dev

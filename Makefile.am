@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS=-I m4
 
-EXTRA_DIST = autogen.sh ChangeLog README.md LICENSE include/oauth2/config.h.in
+EXTRA_DIST = autogen.sh ChangeLog README.md LICENSE
 
 #
 # generic
@@ -34,8 +34,7 @@ includesub_HEADERS = \
 	include/oauth2/util.h
 
 nodist_includesub_HEADERS = \
-	include/oauth2/version.h \
-	include/oauth2/config.h
+	include/oauth2/version.h
 
 #
 # liboauth

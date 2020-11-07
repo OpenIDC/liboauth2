@@ -19,7 +19,6 @@
  *
  **************************************************************************/
 
-#include "oauth2/config.h"
 #include "oauth2/mem.h"
 #include "oauth2/util.h"
 #include "oauth2/version.h"

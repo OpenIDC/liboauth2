@@ -1,5 +1,4 @@
 AC_INIT([liboauth2],[1.4.0-dev],[hans.zandbelt@zmartzone.eu])
-AC_CONFIG_HEADERS([include/oauth2/config.h])
 
 AM_INIT_AUTOMAKE([foreign no-define subdir-objects])
 AC_CONFIG_MACRO_DIR([m4])

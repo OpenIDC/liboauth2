@@ -31,21 +31,19 @@
 #include <oauth2/util.h>
 #include <oauth2/version.h>
 
-#include <httpd.h>
-
-#include <http_config.h>
-#include <http_log.h>
-
-#include <mod_auth.h>
-
-// override ap_config_auto "" but to allow that we first have to undefine
+// avoid errors about ap_auto_config overriding these, so undefine first
 #undef PACKAGE_BUGREPORT
 #undef PACKAGE_NAME
 #undef PACKAGE_STRING
 #undef PACKAGE_TARNAME
 #undef PACKAGE_VERSION
 
-#include <oauth2/config.h>
+#include <httpd.h>
+
+#include <http_config.h>
+#include <http_log.h>
+
+#include <mod_auth.h>
 
 extern oauth2_cfg_server_callback_funcs_t oauth2_apache_server_callback_funcs;
 
