@@ -88,24 +88,24 @@ START_TEST(test_oauth2_auth_client_secret_basic)
 	params = oauth2_nv_list_init(_log);
 
 	auth = oauth2_cfg_endpoint_auth_init(_log);
-	rv = oauth2_cfg_endpoint_auth_add_options(
-	    _log, auth, "client_secret_basic", params);
+	rv = oauth2_cfg_set_endpoint_auth(_log, auth, "client_secret_basic",
+					  params, NULL);
 	ck_assert_ptr_ne(rv, NULL);
 	oauth2_mem_free(rv);
 	oauth2_cfg_endpoint_auth_free(_log, auth);
 
 	auth = oauth2_cfg_endpoint_auth_init(_log);
 	oauth2_nv_list_add(_log, params, "client_id", "myclient");
-	rv = oauth2_cfg_endpoint_auth_add_options(
-	    _log, auth, "client_secret_basic", params);
+	rv = oauth2_cfg_set_endpoint_auth(_log, auth, "client_secret_basic",
+					  params, NULL);
 	ck_assert_ptr_ne(rv, NULL);
 	oauth2_mem_free(rv);
 	oauth2_cfg_endpoint_auth_free(_log, auth);
 
 	auth = oauth2_cfg_endpoint_auth_init(_log);
 	oauth2_nv_list_add(_log, params, "client_secret", "mysecret");
-	rv = oauth2_cfg_endpoint_auth_add_options(
-	    _log, auth, "client_secret_basic", params);
+	rv = oauth2_cfg_set_endpoint_auth(_log, auth, "client_secret_basic",
+					  params, NULL);
 	ck_assert_ptr_eq(rv, NULL);
 	ck_assert_int_eq(OAUTH2_ENDPOINT_AUTH_CLIENT_SECRET_BASIC,
 			 oauth2_cfg_endpoint_auth_type(auth));
@@ -139,24 +139,24 @@ START_TEST(test_oauth2_auth_client_secret_post)
 	params = oauth2_nv_list_init(_log);
 
 	auth = oauth2_cfg_endpoint_auth_init(_log);
-	rv = oauth2_cfg_endpoint_auth_add_options(_log, auth,
-						  "client_secret_post", params);
+	rv = oauth2_cfg_set_endpoint_auth(_log, auth, "client_secret_post",
+					  params, NULL);
 	ck_assert_ptr_ne(rv, NULL);
 	oauth2_mem_free(rv);
 	oauth2_cfg_endpoint_auth_free(_log, auth);
 
 	auth = oauth2_cfg_endpoint_auth_init(_log);
 	oauth2_nv_list_add(_log, params, "client_id", "myclient");
-	rv = oauth2_cfg_endpoint_auth_add_options(_log, auth,
-						  "client_secret_post", params);
+	rv = oauth2_cfg_set_endpoint_auth(_log, auth, "client_secret_post",
+					  params, NULL);
 	ck_assert_ptr_ne(rv, NULL);
 	oauth2_mem_free(rv);
 	oauth2_cfg_endpoint_auth_free(_log, auth);
 
 	auth = oauth2_cfg_endpoint_auth_init(_log);
 	oauth2_nv_list_add(_log, params, "client_secret", "mysecret");
-	rv = oauth2_cfg_endpoint_auth_add_options(_log, auth,
-						  "client_secret_post", params);
+	rv = oauth2_cfg_set_endpoint_auth(_log, auth, "client_secret_post",
+					  params, NULL);
 	ck_assert_ptr_eq(rv, NULL);
 
 	post = oauth2_nv_list_init(_log);
@@ -195,32 +195,32 @@ START_TEST(test_oauth2_auth_client_secret_jwt)
 	params = oauth2_nv_list_init(_log);
 
 	auth = oauth2_cfg_endpoint_auth_init(_log);
-	rv = oauth2_cfg_endpoint_auth_add_options(_log, auth,
-						  "client_secret_jwt", params);
+	rv = oauth2_cfg_set_endpoint_auth(_log, auth, "client_secret_jwt",
+					  params, NULL);
 	ck_assert_ptr_ne(rv, NULL);
 	oauth2_mem_free(rv);
 	oauth2_cfg_endpoint_auth_free(_log, auth);
 
 	auth = oauth2_cfg_endpoint_auth_init(_log);
 	oauth2_nv_list_add(_log, params, "client_id", "myclient");
-	rv = oauth2_cfg_endpoint_auth_add_options(_log, auth,
-						  "client_secret_jwt", params);
+	rv = oauth2_cfg_set_endpoint_auth(_log, auth, "client_secret_jwt",
+					  params, NULL);
 	ck_assert_ptr_ne(rv, NULL);
 	oauth2_mem_free(rv);
 	oauth2_cfg_endpoint_auth_free(_log, auth);
 
 	auth = oauth2_cfg_endpoint_auth_init(_log);
 	oauth2_nv_list_add(_log, params, "client_secret", "mysecret");
-	rv = oauth2_cfg_endpoint_auth_add_options(_log, auth,
-						  "client_secret_jwt", params);
+	rv = oauth2_cfg_set_endpoint_auth(_log, auth, "client_secret_jwt",
+					  params, NULL);
 	ck_assert_ptr_ne(rv, NULL);
 	oauth2_mem_free(rv);
 	oauth2_cfg_endpoint_auth_free(_log, auth);
 
 	auth = oauth2_cfg_endpoint_auth_init(_log);
 	oauth2_nv_list_add(_log, params, "aud", "myaud");
-	rv = oauth2_cfg_endpoint_auth_add_options(_log, auth,
-						  "client_secret_jwt", params);
+	rv = oauth2_cfg_set_endpoint_auth(_log, auth, "client_secret_jwt",
+					  params, NULL);
 	ck_assert_ptr_eq(rv, NULL);
 	ck_assert_int_eq(OAUTH2_ENDPOINT_AUTH_CLIENT_SECRET_JWT,
 			 oauth2_cfg_endpoint_auth_type(auth));
@@ -285,24 +285,24 @@ START_TEST(test_oauth2_auth_private_key_jwt)
 	params = oauth2_nv_list_init(_log);
 
 	auth = oauth2_cfg_endpoint_auth_init(_log);
-	rv = oauth2_cfg_endpoint_auth_add_options(_log, auth, "private_key_jwt",
-						  params);
+	rv = oauth2_cfg_set_endpoint_auth(_log, auth, "private_key_jwt", params,
+					  NULL);
 	ck_assert_ptr_ne(rv, NULL);
 	oauth2_mem_free(rv);
 	oauth2_cfg_endpoint_auth_free(_log, auth);
 
 	auth = oauth2_cfg_endpoint_auth_init(_log);
 	oauth2_nv_list_add(_log, params, "client_id", "myclient");
-	rv = oauth2_cfg_endpoint_auth_add_options(_log, auth, "private_key_jwt",
-						  params);
+	rv = oauth2_cfg_set_endpoint_auth(_log, auth, "private_key_jwt", params,
+					  NULL);
 	ck_assert_ptr_ne(rv, NULL);
 	oauth2_mem_free(rv);
 	oauth2_cfg_endpoint_auth_free(_log, auth);
 
 	auth = oauth2_cfg_endpoint_auth_init(_log);
 	oauth2_nv_list_add(_log, params, "jwk", s_jwk);
-	rv = oauth2_cfg_endpoint_auth_add_options(_log, auth, "private_key_jwt",
-						  params);
+	rv = oauth2_cfg_set_endpoint_auth(_log, auth, "private_key_jwt", params,
+					  NULL);
 	ck_assert_ptr_ne(rv, NULL);
 	oauth2_mem_free(rv);
 	oauth2_cfg_endpoint_auth_free(_log, auth);
@@ -310,8 +310,8 @@ START_TEST(test_oauth2_auth_private_key_jwt)
 	auth = oauth2_cfg_endpoint_auth_init(_log);
 	ck_assert_ptr_ne(auth, NULL);
 	oauth2_nv_list_add(_log, params, "aud", "myaud");
-	rv = oauth2_cfg_endpoint_auth_add_options(_log, auth, "private_key_jwt",
-						  params);
+	rv = oauth2_cfg_set_endpoint_auth(_log, auth, "private_key_jwt", params,
+					  NULL);
 	ck_assert_ptr_eq(rv, NULL);
 	ck_assert_int_eq(OAUTH2_ENDPOINT_AUTH_PRIVATE_KEY_JWT,
 			 oauth2_cfg_endpoint_auth_type(auth));
@@ -351,24 +351,24 @@ START_TEST(test_oauth2_auth_client_cert)
 	params = oauth2_nv_list_init(_log);
 
 	auth = oauth2_cfg_endpoint_auth_init(_log);
-	rv = oauth2_cfg_endpoint_auth_add_options(_log, auth, "client_cert",
-						  params);
+	rv = oauth2_cfg_set_endpoint_auth(_log, auth, "client_cert", params,
+					  NULL);
 	ck_assert_ptr_ne(rv, NULL);
 	oauth2_mem_free(rv);
 	oauth2_cfg_endpoint_auth_free(_log, auth);
 
 	auth = oauth2_cfg_endpoint_auth_init(_log);
 	oauth2_nv_list_add(_log, params, "cert", "mycert.pem");
-	rv = oauth2_cfg_endpoint_auth_add_options(_log, auth, "client_cert",
-						  params);
+	rv = oauth2_cfg_set_endpoint_auth(_log, auth, "client_cert", params,
+					  NULL);
 	ck_assert_ptr_ne(rv, NULL);
 	oauth2_mem_free(rv);
 	oauth2_cfg_endpoint_auth_free(_log, auth);
 
 	auth = oauth2_cfg_endpoint_auth_init(_log);
 	oauth2_nv_list_add(_log, params, "key", "mykey.pem");
-	rv = oauth2_cfg_endpoint_auth_add_options(_log, auth, "client_cert",
-						  params);
+	rv = oauth2_cfg_set_endpoint_auth(_log, auth, "client_cert", params,
+					  NULL);
 	ck_assert_ptr_eq(rv, NULL);
 	ck_assert_int_eq(OAUTH2_ENDPOINT_AUTH_CLIENT_CERT,
 			 oauth2_cfg_endpoint_auth_type(auth));
@@ -398,7 +398,7 @@ START_TEST(test_oauth2_auth_http_basic)
 	auth = oauth2_cfg_endpoint_auth_init(_log);
 	oauth2_nv_list_add(_log, params, "username", "myuser");
 	oauth2_nv_list_add(_log, params, "password", "mysecret");
-	rv = oauth2_cfg_endpoint_auth_add_options(_log, auth, "basic", params);
+	rv = oauth2_cfg_set_endpoint_auth(_log, auth, "basic", params, NULL);
 	ck_assert_ptr_eq(rv, NULL);
 	ck_assert_int_eq(OAUTH2_ENDPOINT_AUTH_BASIC,
 			 oauth2_cfg_endpoint_auth_type(auth));
@@ -421,7 +421,7 @@ START_TEST(test_oauth2_auth_none)
 	oauth2_nv_list_t *params = NULL;
 	char *rv = NULL;
 
-	rv = oauth2_cfg_endpoint_auth_add_options(_log, NULL, "none", NULL);
+	rv = oauth2_cfg_set_endpoint_auth(_log, NULL, "none", NULL, NULL);
 	ck_assert_ptr_ne(rv, NULL);
 	oauth2_mem_free(rv);
 
@@ -429,11 +429,11 @@ START_TEST(test_oauth2_auth_none)
 	auth = oauth2_cfg_endpoint_auth_init(_log);
 	ck_assert_ptr_ne(auth, NULL);
 
-	rv = oauth2_cfg_endpoint_auth_add_options(_log, auth, "bogus", NULL);
+	rv = oauth2_cfg_set_endpoint_auth(_log, auth, "bogus", NULL, NULL);
 	ck_assert_ptr_ne(rv, NULL);
 	oauth2_mem_free(rv);
 
-	rv = oauth2_cfg_endpoint_auth_add_options(_log, auth, "none", NULL);
+	rv = oauth2_cfg_set_endpoint_auth(_log, auth, "none", NULL, NULL);
 	ck_assert_ptr_eq(rv, NULL);
 	ck_assert_int_eq(OAUTH2_ENDPOINT_AUTH_NONE,
 			 oauth2_cfg_endpoint_auth_type(auth));

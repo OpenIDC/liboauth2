@@ -21,7 +21,8 @@
 
 #include "oauth2/cfg.h"
 #include "oauth2/mem.h"
-#include <cfg_int.h>
+
+#include "cfg_int.h"
 
 #define OAUTH2_CFG_SOURCE_TOKEN_STRIP_DEFAULT (oauth2_flag_t) true
 

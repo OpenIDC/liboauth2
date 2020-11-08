@@ -30,6 +30,7 @@
 #define OAUTH2_CFG_FLAG_ON "on"
 #define OAUTH2_CFG_FLAG_OFF "off"
 
+// TODO: I think we should get rid of this in favor of oauth2_parse_bool now
 const char *oauth2_cfg_set_flag_slot(void *cfg, size_t offset,
 				     const char *value)
 {

@@ -402,10 +402,11 @@ static oauth2_cfg_endpoint_auth_set_options_ctx_t _oauth2_cfg_endpoint_auth_opti
 };
 // clang-format on
 
-char *oauth2_cfg_endpoint_auth_add_options(oauth2_log_t *log,
-					   oauth2_cfg_endpoint_auth_t *auth,
-					   const char *type,
-					   const oauth2_nv_list_t *params)
+char *oauth2_cfg_set_endpoint_auth(oauth2_log_t *log,
+				   oauth2_cfg_endpoint_auth_t *auth,
+				   const char *type,
+				   const oauth2_nv_list_t *params,
+				   const char *prefix)
 {
 	char *rv = NULL;
 	int i = 0;
@@ -452,5 +453,5 @@ end:
 oauth2_cfg_endpoint_auth_type_t
 oauth2_cfg_endpoint_auth_type(const oauth2_cfg_endpoint_auth_t *auth)
 {
-	return auth->type;
+	return auth ? auth->type : OAUTH2_ENDPOINT_AUTH_NONE;
 }

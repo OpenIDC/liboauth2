@@ -104,8 +104,8 @@ _oauth2_openidc_provider_metadata_parse(oauth2_log_t *log, const char *s_json,
 	oauth2_nv_list_set(log, params, "client_id", p->client_id);
 	oauth2_nv_list_set(log, params, "client_secret", p->client_secret);
 	p->token_endpoint_auth = oauth2_cfg_endpoint_auth_init(log);
-	rv = oauth2_cfg_endpoint_auth_add_options(log, p->token_endpoint_auth,
-						  token_endpoint_auth, params);
+	rv = oauth2_cfg_set_endpoint_auth(log, p->token_endpoint_auth,
+					  token_endpoint_auth, params, NULL);
 	oauth2_nv_list_free(log, params);
 	if (rv != NULL) {
 		oauth2_mem_free(rv);

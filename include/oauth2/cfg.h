@@ -96,10 +96,11 @@ typedef enum oauth2_cfg_endpoint_auth_type_t {
 
 OAUTH2_CFG_TYPE_DECLARE(cfg, endpoint_auth)
 
-char *oauth2_cfg_endpoint_auth_add_options(oauth2_log_t *log,
-					   oauth2_cfg_endpoint_auth_t *auth,
-					   const char *type,
-					   const oauth2_nv_list_t *params);
+char *oauth2_cfg_set_endpoint_auth(oauth2_log_t *log,
+				   oauth2_cfg_endpoint_auth_t *auth,
+				   const char *type,
+				   const oauth2_nv_list_t *params,
+				   const char *prefix);
 
 oauth2_cfg_endpoint_auth_type_t
 oauth2_cfg_endpoint_auth_type(const oauth2_cfg_endpoint_auth_t *auth);
@@ -110,7 +111,12 @@ oauth2_cfg_endpoint_auth_type(const oauth2_cfg_endpoint_auth_t *auth);
 
 OAUTH2_CFG_TYPE_DECLARE(cfg, endpoint)
 
+char *oauth2_cfg_set_endpoint(oauth2_log_t *log, oauth2_cfg_endpoint_t *cfg,
+			      const char *url, const oauth2_nv_list_t *params,
+			      const char *prefix);
+
 const char *oauth2_cfg_endpoint_get_url(const oauth2_cfg_endpoint_t *cfg);
+void oauth2_cfg_endpoint_set_url(oauth2_cfg_endpoint_t *cfg, const char *url);
 const oauth2_cfg_endpoint_auth_t *
 oauth2_cfg_endpoint_get_auth(const oauth2_cfg_endpoint_t *cfg);
 oauth2_flag_t
@@ -249,8 +255,8 @@ oauth2_cfg_target_get_remote_user_claim(oauth2_cfg_target_pass_t *cfg);
 
 OAUTH2_CFG_TYPE_DECLARE(cfg, ropc)
 
-char *oauth2_cfg_set_ropc_options(oauth2_log_t *log, oauth2_cfg_ropc_t *cfg,
-				  const char *options);
+char *oauth2_cfg_set_ropc(oauth2_log_t *log, oauth2_cfg_ropc_t *cfg,
+			  const char *url, const char *options);
 
 // TODO: just ropc_exec, no member get functions?
 

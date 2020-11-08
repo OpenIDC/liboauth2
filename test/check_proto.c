@@ -273,13 +273,13 @@ START_TEST(test_proto_ropc)
 	char *token = NULL;
 	oauth2_uint_t status_code = 0;
 	char *rv = NULL;
-	char *options = NULL;
+	char *url = NULL;
 
-	options = oauth2_stradd(NULL, "url=", oauth2_check_http_base_url(),
-				token_endpoint_path);
+	url = oauth2_stradd(NULL, NULL, oauth2_check_http_base_url(),
+			    token_endpoint_path);
 
 	cfg = oauth2_cfg_ropc_init(_log);
-	rv = oauth2_cfg_set_ropc_options(_log, cfg, options);
+	rv = oauth2_cfg_set_ropc(_log, cfg, url, NULL);
 	ck_assert_ptr_eq(rv, NULL);
 
 	rc = oauth2_ropc_exec(_log, cfg, "joe", "2Federate", &token,
@@ -289,7 +289,7 @@ START_TEST(test_proto_ropc)
 
 	oauth2_mem_free(token);
 	oauth2_cfg_ropc_free(_log, cfg);
-	oauth2_mem_free(options);
+	oauth2_mem_free(url);
 }
 END_TEST
 

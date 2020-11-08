@@ -22,12 +22,7 @@
 #include "oauth2/cfg.h"
 #include "oauth2/mem.h"
 
-typedef struct oauth2_cfg_endpoint_t {
-	char *url;
-	oauth2_cfg_endpoint_auth_t *auth;
-	oauth2_flag_t ssl_verify;
-	oauth2_uint_t http_timeout;
-} oauth2_cfg_endpoint_t;
+#include "cfg_int.h"
 
 oauth2_cfg_endpoint_t *oauth2_cfg_endpoint_init(oauth2_log_t *log)
 {
@@ -87,41 +82,53 @@ end:
 #define OAUTH2_CFG_ENDPOINT_SSL_VERIFY_DEFAULT 1
 #define OAUTH2_CFG_ENDPOINT_HTTP_TIMEOUT_DEFAULT 20
 
-char *oauth2_cfg_set_endpoint_options(oauth2_log_t *log,
-				      oauth2_cfg_endpoint_t *cfg,
-				      const oauth2_nv_list_t *params)
+char *oauth2_cfg_set_endpoint(oauth2_log_t *log, oauth2_cfg_endpoint_t *cfg,
+			      const char *url, const oauth2_nv_list_t *params,
+			      const char *prefix)
 {
 	char *rv = NULL;
 	const char *value = NULL;
+	char *key = NULL;
 
 	if (cfg == NULL) {
 		rv = oauth2_strdup("struct is null");
 		goto end;
 	}
 
-	value = oauth2_nv_list_get(log, params, "url");
-	if (value) {
-		rv = oauth2_strdup(oauth2_cfg_set_str_slot(
-		    cfg, offsetof(oauth2_cfg_endpoint_t, url), value));
-		if (rv)
-			goto end;
+	if (url == NULL) {
+		key = oauth2_stradd(NULL, prefix ? prefix : NULL,
+				    prefix ? "." : NULL, "url");
+		value = oauth2_nv_list_get(log, params, key);
+		if (value) {
+			rv = oauth2_strdup(oauth2_cfg_set_str_slot(
+			    cfg, offsetof(oauth2_cfg_endpoint_t, url), value));
+			if (rv)
+				goto end;
+		}
+		oauth2_mem_free(key);
+	} else {
+		cfg->url = oauth2_strdup(url);
 	}
 
+	key = oauth2_stradd(NULL, prefix ? prefix : NULL, prefix ? "." : NULL,
+			    "auth");
+	value = oauth2_nv_list_get(log, params, key);
 	cfg->auth = oauth2_cfg_endpoint_auth_init(log);
-	rv = oauth2_cfg_endpoint_auth_add_options(
-	    log, cfg->auth, oauth2_nv_list_get(log, params, "auth"), params);
+	rv = oauth2_cfg_set_endpoint_auth(log, cfg->auth, value, params, key);
 	if (rv != NULL)
 		goto end;
+	oauth2_mem_free(key);
 
-	value = oauth2_nv_list_get(log, params, "ssl_verify");
-	if (value) {
-		rv = oauth2_strdup(oauth2_cfg_set_flag_slot(
-		    cfg, offsetof(oauth2_cfg_endpoint_t, ssl_verify), value));
-		if (rv)
-			goto end;
-	}
+	// TODO: if ssl_verify == true and url is not a https URL then fail
+	key = oauth2_stradd(NULL, prefix ? prefix : NULL, prefix ? "." : NULL,
+			    "ssl_verify");
+	value = oauth2_nv_list_get(log, params, key);
+	cfg->ssl_verify = oauth2_parse_bool(log, value, true);
+	oauth2_mem_free(key);
 
-	value = oauth2_nv_list_get(log, params, "http_timeout");
+	key = oauth2_stradd(NULL, prefix ? prefix : NULL, prefix ? "." : NULL,
+			    "http_timeout");
+	value = oauth2_nv_list_get(log, params, key);
 	if (value) {
 		rv = oauth2_strdup(oauth2_cfg_set_uint_slot(
 		    cfg, offsetof(oauth2_cfg_endpoint_t, http_timeout), value));
@@ -129,11 +136,24 @@ char *oauth2_cfg_set_endpoint_options(oauth2_log_t *log,
 			goto end;
 	}
 
+	oauth2_mem_free(key);
+	key = NULL;
+
 end:
+
+	if (key)
+		oauth2_mem_free(key);
 
 	oauth2_debug(log, "leave: %s", rv);
 
 	return rv;
+}
+
+void oauth2_cfg_endpoint_set_url(oauth2_cfg_endpoint_t *cfg, const char *url)
+{
+	if (cfg->url)
+		oauth2_mem_free(cfg->url);
+	cfg->url = oauth2_strdup(url);
 }
 
 const char *oauth2_cfg_endpoint_get_url(const oauth2_cfg_endpoint_t *cfg)
@@ -254,8 +274,8 @@ end:
 	return dst;
 }
 
-char *oauth2_cfg_set_ropc_options(oauth2_log_t *log, oauth2_cfg_ropc_t *cfg,
-				  const char *options)
+char *oauth2_cfg_set_ropc(oauth2_log_t *log, oauth2_cfg_ropc_t *cfg,
+			  const char *url, const char *options)
 {
 	char *rv = NULL;
 	oauth2_nv_list_t *params = NULL;
@@ -270,7 +290,8 @@ char *oauth2_cfg_set_ropc_options(oauth2_log_t *log, oauth2_cfg_ropc_t *cfg,
 		goto end;
 
 	cfg->token_endpoint = oauth2_cfg_endpoint_init(log);
-	rv = oauth2_cfg_set_endpoint_options(log, cfg->token_endpoint, params);
+	rv = oauth2_cfg_set_endpoint(log, cfg->token_endpoint, url, params,
+				     NULL);
 	if (rv)
 		goto end;
 

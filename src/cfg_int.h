@@ -41,6 +41,17 @@ oauth2_jose_jwt_validate_claim_t oauth2_parse_validate_claim_option(
     oauth2_jose_jwt_validate_claim_t default_value);
 
 /*
+ * endpoint
+ */
+
+typedef struct oauth2_cfg_endpoint_t {
+	char *url;
+	oauth2_cfg_endpoint_auth_t *auth;
+	oauth2_flag_t ssl_verify;
+	oauth2_uint_t http_timeout;
+} oauth2_cfg_endpoint_t;
+
+/*
  * auth
  */
 

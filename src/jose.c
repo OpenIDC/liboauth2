@@ -469,15 +469,13 @@ end:
 }
 
 _OAUTH2_CFG_CTX_INIT_START(oauth2_uri_ctx)
-ctx->uri = NULL;
-ctx->ssl_verify = true;
+ctx->endpoint = NULL;
 ctx->cache = NULL;
 ctx->expiry_s = OAUTH2_CFG_UINT_UNSET;
 _OAUTH2_CFG_CTX_INIT_END
 
 _OAUTH2_CFG_CTX_CLONE_START(oauth2_uri_ctx)
-dst->uri = oauth2_strdup(src->uri);
-dst->ssl_verify = src->ssl_verify;
+dst->endpoint = oauth2_cfg_endpoint_clone(log, src->endpoint);
 dst->cache = oauth2_cache_clone(log, src->cache);
 dst->expiry_s = src->expiry_s;
 _OAUTH2_CFG_CTX_CLONE_END
@@ -485,8 +483,8 @@ _OAUTH2_CFG_CTX_CLONE_END
 _OAUTH2_CFG_CTX_FREE_START(oauth2_uri_ctx)
 if (ctx->cache)
 	oauth2_cache_release(log, ctx->cache);
-if (ctx->uri)
-	oauth2_mem_free(ctx->uri);
+if (ctx->endpoint)
+	oauth2_cfg_endpoint_free(log, ctx->endpoint);
 _OAUTH2_CFG_CTX_FREE_END
 
 static oauth2_jose_jwk_list_t *oauth2_jose_jwk_list_init(oauth2_log_t *log)
@@ -1592,14 +1590,8 @@ char *oauth2_jose_options_uri_ctx(oauth2_log_t *log, const char *value,
 	char *rv = NULL;
 	char *key = NULL;
 
-	ctx->uri = oauth2_strdup(value);
-
-	key = oauth2_stradd(NULL, prefix, ".", "ssl_verify");
-	ctx->ssl_verify =
-	    oauth2_parse_bool(log, oauth2_nv_list_get(log, params, key), true);
-	oauth2_mem_free(key);
-
-	// TODO: if ssl_verify == true and url is not a https URL then fail
+	ctx->endpoint = oauth2_cfg_endpoint_init(log);
+	rv = oauth2_cfg_set_endpoint(log, ctx->endpoint, value, params, prefix);
 
 	key = oauth2_stradd(NULL, prefix, ".", "cache");
 	ctx->cache =
@@ -1871,7 +1863,9 @@ char *oauth2_jose_resolve_from_uri(oauth2_log_t *log, oauth2_uri_ctx_t *uri_ctx,
 
 	if (*refresh == false) {
 
-		oauth2_cache_get(log, uri_ctx->cache, uri_ctx->uri, &response);
+		oauth2_cache_get(log, uri_ctx->cache,
+				 oauth2_cfg_endpoint_get_url(uri_ctx->endpoint),
+				 &response);
 	}
 
 	if (response == NULL) {
@@ -1879,11 +1873,13 @@ char *oauth2_jose_resolve_from_uri(oauth2_log_t *log, oauth2_uri_ctx_t *uri_ctx,
 		*refresh = false;
 
 		ctx = oauth2_http_call_ctx_init(log);
-		oauth2_http_call_ctx_ssl_verify_set(log, ctx,
-						    uri_ctx->ssl_verify);
+		oauth2_http_call_ctx_ssl_verify_set(
+		    log, ctx,
+		    oauth2_cfg_endpoint_get_ssl_verify(uri_ctx->endpoint));
 
-		rc = oauth2_http_get(log, uri_ctx->uri, NULL, ctx, &response,
-				     &status_code);
+		rc = oauth2_http_get(
+		    log, oauth2_cfg_endpoint_get_url(uri_ctx->endpoint), NULL,
+		    ctx, &response, &status_code);
 		if (rc == false)
 			goto end;
 
@@ -1892,8 +1888,9 @@ char *oauth2_jose_resolve_from_uri(oauth2_log_t *log, oauth2_uri_ctx_t *uri_ctx,
 			goto end;
 		}
 
-		oauth2_cache_set(log, uri_ctx->cache, uri_ctx->uri, response,
-				 uri_ctx->expiry_s);
+		oauth2_cache_set(log, uri_ctx->cache,
+				 oauth2_cfg_endpoint_get_url(uri_ctx->endpoint),
+				 response, uri_ctx->expiry_s);
 	}
 
 end:

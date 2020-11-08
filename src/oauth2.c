@@ -20,12 +20,12 @@
  **************************************************************************/
 
 #include "oauth2/oauth2.h"
+#include "cfg_int.h"
 #include "oauth2/cfg.h"
 #include "oauth2/http.h"
 #include "oauth2/jose.h"
 #include "oauth2/mem.h"
 #include "oauth2/util.h"
-#include <cfg_int.h>
 
 #include "jose_int.h"
 #include "util_int.h"
@@ -329,28 +329,20 @@ end:
  */
 
 _OAUTH2_CFG_CTX_TYPE_START(oauth2_introspect_ctx)
-char *url;
-bool ssl_verify;
-oauth2_cfg_endpoint_auth_t *auth;
+oauth2_cfg_endpoint_t *endpoint;
 _OAUTH2_CFG_CTX_TYPE_END(oauth2_introspect_ctx)
 
 _OAUTH2_CFG_CTX_INIT_START(oauth2_introspect_ctx)
-ctx->url = NULL;
-ctx->ssl_verify = true;
-ctx->auth = oauth2_cfg_endpoint_auth_init(log);
+ctx->endpoint = NULL;
 _OAUTH2_CFG_CTX_INIT_END
 
 _OAUTH2_CFG_CTX_CLONE_START(oauth2_introspect_ctx)
-dst->url = oauth2_strdup(src->url);
-dst->ssl_verify = src->ssl_verify;
-dst->auth = oauth2_cfg_endpoint_auth_clone(log, src->auth);
+dst->endpoint = oauth2_cfg_endpoint_clone(log, src->endpoint);
 _OAUTH2_CFG_CTX_CLONE_END
 
 _OAUTH2_CFG_CTX_FREE_START(oauth2_introspect_ctx)
-if (ctx->url)
-	oauth2_mem_free(ctx->url);
-if (ctx->auth)
-	oauth2_cfg_endpoint_auth_free(log, ctx->auth);
+if (ctx->endpoint)
+	oauth2_cfg_endpoint_free(log, ctx->endpoint);
 _OAUTH2_CFG_CTX_FREE_END
 
 _OAUTH2_CFG_CTX_FUNCS(oauth2_introspect_ctx)
@@ -379,8 +371,9 @@ static bool _oauth2_introspect_verify(oauth2_log_t *log,
 	if (http_ctx == NULL)
 		goto end;
 
-	if (oauth2_http_call_ctx_ssl_verify_set(log, http_ctx,
-						ctx->ssl_verify) == false)
+	if (oauth2_http_call_ctx_ssl_verify_set(
+		log, http_ctx,
+		oauth2_cfg_endpoint_get_ssl_verify(ctx->endpoint)) == false)
 		goto end;
 
 	params = oauth2_nv_list_init(log);
@@ -393,11 +386,14 @@ static bool _oauth2_introspect_verify(oauth2_log_t *log,
 
 	// TODO: add configurable extra POST params
 
-	if (oauth2_http_ctx_auth_add(log, http_ctx, ctx->auth, params) == false)
+	if (oauth2_http_ctx_auth_add(
+		log, http_ctx, oauth2_cfg_endpoint_get_auth(ctx->endpoint),
+		params) == false)
 		goto end;
 
-	if (oauth2_http_post_form(log, ctx->url, params, http_ctx, s_payload,
-				  &status_code) == false)
+	if (oauth2_http_post_form(
+		log, oauth2_cfg_endpoint_get_url(ctx->endpoint), params,
+		http_ctx, s_payload, &status_code) == false)
 		goto end;
 
 	if ((status_code < 200) || (status_code >= 300)) {
@@ -482,14 +478,9 @@ static char *_oauth2_verify_options_set_introspect_url_ctx(
 
 	oauth2_debug(log, "enter");
 
-	ctx->url = oauth2_strdup(url);
-	ctx->ssl_verify = oauth2_parse_bool(
-	    log, oauth2_nv_list_get(log, params, "introspect.ssl_verify"),
-	    true);
-
-	rv = oauth2_cfg_endpoint_auth_add_options(
-	    log, ctx->auth, oauth2_nv_list_get(log, params, "introspect.auth"),
-	    params);
+	ctx->endpoint = oauth2_cfg_endpoint_init(log);
+	rv = oauth2_cfg_set_endpoint(log, ctx->endpoint, url, params,
+				     "introspect");
 
 	oauth2_debug(log, "leave: %s", rv);
 
@@ -596,12 +587,9 @@ jwks_uri:
 	}
 
 	if (jwks_uri) {
-
-		if (ptr->jwks_uri_verify->jwks_provider->jwks_uri->uri)
-			oauth2_mem_free(
-			    ptr->jwks_uri_verify->jwks_provider->jwks_uri->uri);
-		ptr->jwks_uri_verify->jwks_provider->jwks_uri->uri =
-		    oauth2_strdup(jwks_uri);
+		oauth2_cfg_endpoint_set_url(
+		    ptr->jwks_uri_verify->jwks_provider->jwks_uri->endpoint,
+		    jwks_uri);
 		rc = oauth2_jose_jwt_verify(log, ptr->jwks_uri_verify, token,
 					    json_payload, s_payload);
 		if (rc == true)
@@ -624,9 +612,8 @@ introspect:
 	}
 
 	if (introspection_endpoint) {
-		if (ptr->introspect->url)
-			oauth2_mem_free(ptr->introspect->url);
-		ptr->introspect->url = oauth2_strdup(introspection_endpoint);
+		oauth2_cfg_endpoint_set_url(ptr->introspect->endpoint,
+					    introspection_endpoint);
 		rc = _oauth2_introspect_verify(log, ptr->introspect, token,
 					       json_payload, s_payload);
 		if (rc == true)
