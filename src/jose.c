@@ -476,13 +476,11 @@ _OAUTH2_CFG_CTX_INIT_END
 
 _OAUTH2_CFG_CTX_CLONE_START(oauth2_uri_ctx)
 dst->endpoint = oauth2_cfg_endpoint_clone(log, src->endpoint);
-dst->cache = oauth2_cache_clone(log, src->cache);
+dst->cache = src->cache;
 dst->expiry_s = src->expiry_s;
 _OAUTH2_CFG_CTX_CLONE_END
 
 _OAUTH2_CFG_CTX_FREE_START(oauth2_uri_ctx)
-if (ctx->cache)
-	oauth2_cache_release(log, ctx->cache);
 if (ctx->endpoint)
 	oauth2_cfg_endpoint_free(log, ctx->endpoint);
 _OAUTH2_CFG_CTX_FREE_END
@@ -1595,7 +1593,7 @@ char *oauth2_jose_options_uri_ctx(oauth2_log_t *log, const char *value,
 
 	key = oauth2_stradd(NULL, prefix, ".", "cache");
 	ctx->cache =
-	    _oauth2_cache_obtain(log, oauth2_nv_list_get(log, params, key));
+	    oauth2_cache_obtain(log, oauth2_nv_list_get(log, params, key));
 	oauth2_mem_free(key);
 	if (ctx->cache == NULL)
 		rv = oauth2_strdup("cache could not be found");

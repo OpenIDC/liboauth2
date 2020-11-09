@@ -27,6 +27,13 @@
 
 static oauth2_log_t *_log = NULL;
 
+OAUTH2_CHECK_HTTP_PATHS
+
+void oauth2_check_http_cleanup()
+{
+	oauth2_check_http_base_free();
+}
+
 static void setup(void)
 {
 	_log = oauth2_init(OAUTH2_LOG_TRACE1, 0);
@@ -604,8 +611,6 @@ static char *oauth2_check_http_serve_post(const char *request)
 	}
 	return oauth2_strdup("problem");
 }
-
-OAUTH2_CHECK_HTTP_PATHS
 
 START_TEST(test_http_get)
 {

@@ -36,6 +36,9 @@
 #include <cjose/base64.h>
 #include <curl/curl.h>
 
+#include "cache_int.h"
+#include "cfg_int.h"
+
 static CURL *_s_curl = NULL;
 static oauth2_uint_t _curl_refcount = 0;
 
@@ -51,6 +54,9 @@ oauth2_log_t *oauth2_init(oauth2_log_level_t level, oauth2_log_sink_t *sink)
 
 void oauth2_shutdown(oauth2_log_t *log)
 {
+	_oauth2_cfg_session_release_global_cleanup(log);
+	_oauth2_cache_global_cleanup(log);
+
 	if (_s_curl) {
 		curl_easy_cleanup(_s_curl);
 		_s_curl = NULL;

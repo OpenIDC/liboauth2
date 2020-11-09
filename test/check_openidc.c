@@ -38,14 +38,25 @@ static oauth2_log_t *_log = 0;
 
 static char *_openidc_metadata = NULL;
 
+OAUTH2_CHECK_HTTP_PATHS
+
 static void setup(void)
 {
 	_log = oauth2_init(OAUTH2_LOG_TRACE1, 0);
 }
 
+void oauth2_check_openidc_cleanup()
+{
+	oauth2_check_http_base_free();
+}
+
 static void teardown(void)
 {
 	oauth2_shutdown(_log);
+	if (_openidc_metadata != NULL) {
+		oauth2_mem_free(_openidc_metadata);
+		_openidc_metadata = NULL;
+	}
 }
 
 static char *jwk_rsa_str =
@@ -309,8 +320,6 @@ START_TEST(test_openidc_cfg)
 	oauth2_cfg_openidc_free(_log, c);
 }
 END_TEST
-
-OAUTH2_CHECK_HTTP_PATHS
 
 static char *test_openidc_metadata_get()
 {
@@ -773,21 +782,18 @@ END_TEST
 
 START_TEST(test_openidc_handle_cache)
 {
-	bool rc = false;
 	oauth2_cache_t *cache = NULL;
 	oauth2_nv_list_t *params = NULL;
 	oauth2_cfg_session_t *session_cfg = NULL;
 	oauth2_cfg_openidc_t *c = NULL;
+	char *rv = NULL;
 
 	c = oauth2_cfg_openidc_init(_log);
 
-	rc = oauth2_parse_form_encoded_params(_log, "name=memory&max_entries=5",
-					      &params);
-	ck_assert_int_eq(rc, true);
-
-	cache = oauth2_cache_init(_log, "shm", params);
-	rc = oauth2_cache_post_config(_log, cache);
-	ck_assert_int_eq(rc, true);
+	rv = oauth2_cfg_set_cache(_log, "shm", "name=memory&max_entries=5");
+	ck_assert_ptr_eq(rv, NULL);
+	cache = oauth2_cache_obtain(_log, NULL);
+	ck_assert_ptr_ne(cache, NULL);
 
 	session_cfg = oauth2_cfg_session_init(_log);
 	oauth2_cfg_session_set_options(
@@ -803,7 +809,6 @@ START_TEST(test_openidc_handle_cache)
 	oauth2_cfg_session_release(_log, session_cfg);
 
 	oauth2_nv_list_free(_log, params);
-	oauth2_cache_release(_log, cache);
 
 	oauth2_cfg_openidc_free(_log, c);
 }

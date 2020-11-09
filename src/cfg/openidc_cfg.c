@@ -280,7 +280,7 @@ oauth2_cfg_openidc_provider_resolver_clone(
 	if (dst == NULL)
 		goto end;
 
-	dst->cache = oauth2_cache_clone(log, src->cache);
+	dst->cache = src->cache;
 	dst->callback = src->callback;
 	dst->ctx = oauth2_cfg_ctx_clone(log, src->ctx);
 
@@ -298,8 +298,7 @@ void oauth2_cfg_openidc_provider_resolver_merge(
 	if ((cfg == NULL) || (base == NULL) || (add == NULL))
 		goto end;
 
-	cfg->cache = add->cache ? oauth2_cache_clone(log, add->cache)
-				: oauth2_cache_clone(log, base->cache);
+	cfg->cache = add->cache ? add->cache : base->cache;
 	cfg->callback = add->callback ? add->callback : base->callback;
 	cfg->ctx = add->ctx ? oauth2_cfg_ctx_clone(log, add->ctx)
 			    : oauth2_cfg_ctx_clone(log, base->ctx);
@@ -315,8 +314,6 @@ void oauth2_cfg_openidc_provider_resolver_free(
 	if (c == NULL)
 		goto end;
 
-	if (c->cache)
-		oauth2_cache_release(log, c->cache);
 	if (c->ctx)
 		oauth2_cfg_ctx_free(log, c->ctx);
 

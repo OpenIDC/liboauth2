@@ -82,10 +82,6 @@ void oauth2_cfg_token_verify_free(oauth2_log_t *log,
 	oauth2_cfg_token_verify_t *ptr = verify;
 	while (ptr) {
 		verify = verify->next;
-		if (ptr->dpop.cache)
-			oauth2_cache_release(log, ptr->dpop.cache);
-		if (ptr->cache)
-			oauth2_cache_release(log, ptr->cache);
 		if (ptr->ctx)
 			oauth2_cfg_ctx_free(log, ptr->ctx);
 		oauth2_mem_free(ptr);
@@ -103,11 +99,11 @@ oauth2_cfg_token_verify_clone(oauth2_log_t *log, oauth2_cfg_token_verify_t *src)
 		goto end;
 
 	dst = oauth2_cfg_token_verify_init(NULL);
-	dst->cache = oauth2_cache_clone(log, src->cache);
+	dst->cache = src->cache;
 	dst->expiry_s = src->expiry_s;
 	dst->callback = src->callback;
 	dst->type = src->type;
-	dst->dpop.cache = oauth2_cache_clone(log, src->dpop.cache);
+	dst->dpop.cache = src->dpop.cache;
 	dst->dpop.expiry_s = src->dpop.expiry_s;
 	dst->dpop.iat_slack_after = src->dpop.iat_slack_after;
 	dst->dpop.iat_slack_before = src->dpop.iat_slack_before;
@@ -196,7 +192,7 @@ _oauth2_cfg_token_verify_options_dpop_set(oauth2_log_t *log,
 {
 	char *rv = NULL;
 
-	verify->dpop.cache = _oauth2_cache_obtain(
+	verify->dpop.cache = oauth2_cache_obtain(
 	    log, oauth2_nv_list_get(log, params, "dpop.cache"));
 
 	verify->dpop.expiry_s = oauth2_parse_uint(
@@ -238,7 +234,7 @@ char *oauth2_cfg_token_verify_add_options(oauth2_log_t *log,
 
 	v = _oauth2_cfg_token_verify_add(log, verify);
 
-	v->cache = _oauth2_cache_obtain(
+	v->cache = oauth2_cache_obtain(
 	    log, oauth2_nv_list_get(log, params, "verify.cache"));
 	v->expiry_s =
 	    oauth2_parse_uint(log, oauth2_nv_list_get(log, params, "expiry"),

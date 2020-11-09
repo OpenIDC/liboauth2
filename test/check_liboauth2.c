@@ -111,6 +111,16 @@ void liboauth2_check_register_http_callbacks(
 	ptr->next = NULL;
 }
 
+static void liboauth2_check_cleanup_http_callbacks()
+{
+	http_serve_routing_t *ptr = NULL;
+	while ((ptr = http_serve_routing_table)) {
+		http_serve_routing_table = http_serve_routing_table->next;
+		oauth2_mem_free(ptr->path);
+		oauth2_mem_free(ptr);
+	}
+}
+
 static void http_server_process(oauth2_log_t *log, int fd, int hit)
 {
 	int j, file_fd, buflen;
@@ -346,6 +356,13 @@ int main(void)
 	//	}
 
 	// sem_unlink("sema");
+
+	oauth2_check_jose_cleanup();
+	oauth2_check_http_cleanup();
+	oauth2_check_proto_cleanup();
+	oauth2_check_oauth2_cleanup();
+	oauth2_check_openidc_cleanup();
+	liboauth2_check_cleanup_http_callbacks();
 
 	return (n_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }

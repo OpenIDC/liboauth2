@@ -252,7 +252,7 @@ static char *_oauth2_cfg_openidc_provider_resolver_file_set_options(
 	ctx->filename = oauth2_strdup(value);
 
 	cfg->provider_resolver->cache =
-	    _oauth2_cache_obtain(log, oauth2_nv_list_get(log, params, "cache"));
+	    oauth2_cache_obtain(log, oauth2_nv_list_get(log, params, "cache"));
 
 	return NULL;
 }

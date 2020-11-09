@@ -21,29 +21,38 @@
 
 #include "oauth2/mem.h"
 
+#include "cache_int.h"
 #include "cfg_int.h"
 
-char *oauth2_cfg_cache_set_options(oauth2_log_t *log, const char *type,
-				   const oauth2_nv_list_t *params)
+char *oauth2_cfg_set_cache(oauth2_log_t *log, const char *type,
+			   const char *options)
 {
 	char *rv = NULL;
+	oauth2_nv_list_t *params = NULL;
 	oauth2_cache_t *cache = NULL;
 
-	cache = oauth2_cache_init(log, type, params);
+	if (oauth2_parse_form_encoded_params(log, options, &params) == false) {
+		rv = "parsing cache parameters failed";
+		goto end;
+	}
+
+	cache = _oauth2_cache_init(log, type, params);
 	if (cache == NULL) {
 		rv = oauth2_strdup(
 		    "internal error: oauth2_cache_init returned null");
 		goto end;
 	}
 
-	// TODO: have a separate verify_post_config function?
-	if (oauth2_cache_post_config(log, cache) == false) {
+	if (_oauth2_cache_post_config(log, cache) == false) {
 		rv = oauth2_strdup(
 		    "internal error: oauth2_cache_post_config returned false");
 		goto end;
 	}
 
 end:
+
+	if (params)
+		oauth2_nv_list_free(log, params);
 
 	return rv;
 }

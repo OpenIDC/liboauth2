@@ -21,6 +21,7 @@
 
 #include "check_liboauth2.h"
 #include "oauth2/cache.h"
+#include "oauth2/cfg.h"
 #include "oauth2/mem.h"
 #include <check.h>
 #include <stdlib.h>
@@ -39,11 +40,14 @@ static void teardown(void)
 	oauth2_shutdown(_log);
 }
 
+// oauth2_cfg_set_cache
+
 START_TEST(test_cache_bogus)
 {
-	oauth2_cache_t *c = NULL;
-	c = oauth2_cache_init(_log, "bogus", NULL);
-	ck_assert_ptr_eq(c, NULL);
+	char *rv = NULL;
+	rv = oauth2_cfg_set_cache(_log, "bogus", NULL);
+	ck_assert_ptr_ne(rv, NULL);
+	oauth2_mem_free(rv);
 }
 END_TEST
 
@@ -98,16 +102,12 @@ START_TEST(test_cache_shm)
 	bool rc = false;
 	char *value = NULL;
 	oauth2_cache_t *c = NULL;
-	oauth2_nv_list_t *params = NULL;
+	char *rv = NULL;
 
-	rc = oauth2_parse_form_encoded_params(
-	    _log, "max_val_size=16&max_entries=2", &params);
-	ck_assert_int_eq(rc, true);
-
-	c = oauth2_cache_init(_log, "shm", params);
+	rv = oauth2_cfg_set_cache(_log, "shm", "max_val_size=16&max_entries=2");
+	ck_assert_ptr_eq(rv, NULL);
+	c = oauth2_cache_obtain(_log, NULL);
 	ck_assert_ptr_ne(c, NULL);
-	rc = oauth2_cache_post_config(_log, c);
-	ck_assert_int_eq(rc, true);
 
 	_test_basic_cache(c);
 
@@ -128,17 +128,12 @@ START_TEST(test_cache_shm)
 			      1);
 	ck_assert_int_eq(rc, false);
 
-	oauth2_cache_release(_log, c);
-	oauth2_nv_list_free(_log, params);
-
-	rc = oauth2_parse_form_encoded_params(
-	    _log, "key_hash_algo=none&max_key_size=8", &params);
-	ck_assert_int_eq(rc, true);
-
-	c = oauth2_cache_init(_log, NULL, params);
+	rv = oauth2_cfg_set_cache(
+	    _log, "shm",
+	    "name=short_key_size&key_hash_algo=none&max_key_size=8");
+	ck_assert_ptr_eq(rv, NULL);
+	c = oauth2_cache_obtain(_log, "short_key_size");
 	ck_assert_ptr_ne(c, NULL);
-	rc = oauth2_cache_post_config(_log, c);
-	ck_assert_int_eq(rc, true);
 
 	rc = oauth2_cache_set(_log, c, "hans", "zandbelt", 1);
 	ck_assert_int_eq(rc, true);
@@ -146,9 +141,6 @@ START_TEST(test_cache_shm)
 	rc = oauth2_cache_set(_log, c, "key_too_long", "12345678901234567890",
 			      1);
 	ck_assert_int_eq(rc, false);
-
-	oauth2_nv_list_free(_log, params);
-	oauth2_cache_release(_log, c);
 }
 END_TEST
 
@@ -156,42 +148,34 @@ START_TEST(test_cache_file)
 {
 	bool rc = false;
 	oauth2_cache_t *c = NULL;
-	oauth2_nv_list_t *params = NULL;
+	char *rv = NULL;
 
-	rc = oauth2_parse_form_encoded_params(
-	    _log, "key_hash_algo=none&max_key_size=8", &params);
-	ck_assert_int_eq(rc, true);
-
-	c = oauth2_cache_init(_log, "file", params);
+	rv = oauth2_cfg_set_cache(
+	    _log, "file", "name=file&key_hash_algo=none&max_key_size=8");
+	ck_assert_ptr_eq(rv, NULL);
+	c = oauth2_cache_obtain(_log, "file");
 	ck_assert_ptr_ne(c, NULL);
-	rc = oauth2_cache_post_config(_log, c);
-	ck_assert_int_eq(rc, true);
 
 	_test_basic_cache(c);
 
 	rc = oauth2_cache_set(_log, c, "hans", "zandbelt", 10);
 	ck_assert_int_eq(rc, true);
 	// TODO: test file /tmp/mod-auth-openidc-hans exists?
-
-	oauth2_nv_list_free(_log, params);
-	oauth2_cache_release(_log, c);
 }
 END_TEST
 
 #ifdef HAVE_LIBMEMCACHE
 START_TEST(test_cache_memcache)
 {
-	bool rc = false;
 	oauth2_cache_t *c = NULL;
+	char *rv = NULL;
 
-	c = oauth2_cache_init(_log, "memcache", NULL);
+	rv = oauth2_cfg_set_cache(_log, "memcache", "name=memcache");
+	ck_assert_ptr_eq(rv, NULL);
+	c = oauth2_cache_obtain(_log, "memcache");
 	ck_assert_ptr_ne(c, NULL);
-	rc = oauth2_cache_post_config(_log, c);
-	ck_assert_int_eq(rc, true);
 
 	_test_basic_cache(c);
-
-	oauth2_cache_release(_log, c);
 }
 END_TEST
 #endif
@@ -199,17 +183,15 @@ END_TEST
 #ifdef HAVE_LIBHIREDIS
 START_TEST(test_cache_redis)
 {
-	bool rc = false;
 	oauth2_cache_t *c = NULL;
+	char *rv = NULL;
 
-	c = oauth2_cache_init(_log, "redis", NULL);
+	rv = oauth2_cfg_set_cache(_log, "redis", "name=redis");
+	ck_assert_ptr_eq(rv, NULL);
+	c = oauth2_cache_obtain(_log, "redis");
 	ck_assert_ptr_ne(c, NULL);
-	rc = oauth2_cache_post_config(_log, c);
-	ck_assert_int_eq(rc, true);
 
 	_test_basic_cache(c);
-
-	oauth2_cache_release(_log, c);
 }
 END_TEST
 #endif

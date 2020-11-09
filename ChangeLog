@@ -1,3 +1,6 @@
+11/09/2020
+- refactored caching; use named caches consistently
+
 11/08/2020
 - use endpoint more consistently
 - harmonize naming of endpoint, endpoint auth and ropc

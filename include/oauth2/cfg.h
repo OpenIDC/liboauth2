@@ -53,6 +53,13 @@ const char *oauth2_cfg_set_str_slot(void *cfg, size_t offset,
 	    oauth2_##module##_##object##_t *);
 
 /*
+ * cache
+ */
+
+char *oauth2_cfg_set_cache(oauth2_log_t *log, const char *type,
+			   const char *options);
+
+/*
  * webserver callbacks
  */
 

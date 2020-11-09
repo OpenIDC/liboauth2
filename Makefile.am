@@ -219,10 +219,10 @@ docker-coverage: clean
 	docker run -it --rm $(TAG):latest /bin/bash -c "./start.sh && make check-code-coverage"
 
 docker-valgrind: docker
-	docker run -it --rm -e CK_FORK=no $(TAG):latest /bin/bash -c "./start.sh && /usr/bin/valgrind --leak-check=full .libs/check_liboauth2"
+	docker run -it --rm -e CK_FORK=no $(TAG):latest /bin/bash -c "./start.sh && /usr/bin/valgrind --leak-check=full --show-leak-kinds=all .libs/check_liboauth2"
 	
 docker-valgrind-%: docker
-	docker run -it --rm -e CK_FORK=no -e CK_RUN_SUITE=${subst docker-valgrind-,,$@} $(TAG):latest /bin/bash -c "./start.sh && /usr/bin/valgrind --leak-check=full .libs/check_liboauth2"
+	docker run -it --rm -e CK_FORK=no -e CK_RUN_SUITE=${subst docker-valgrind-,,$@} $(TAG):latest /bin/bash -c "./start.sh && /usr/bin/valgrind --leak-check=full --show-leak-kinds=all .libs/check_liboauth2"
 
 docker-gdb: docker
 	docker run --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -it --rm -e CK_FORK=no $(TAG):latest /bin/bash -c "./start.sh && /usr/bin/gdb .libs/check_liboauth2"

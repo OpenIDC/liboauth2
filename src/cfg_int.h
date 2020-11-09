@@ -239,6 +239,8 @@ typedef struct oauth2_cfg_session_t {
 	// TODO: free callback (init is done through set options)
 } oauth2_cfg_session_t;
 
+void _oauth2_cfg_session_release_global_cleanup(oauth2_log_t *log);
+
 /*
  * openidc
  */

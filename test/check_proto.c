@@ -27,6 +27,13 @@
 
 static oauth2_log_t *_log = 0;
 
+OAUTH2_CHECK_HTTP_PATHS
+
+void oauth2_check_proto_cleanup()
+{
+	oauth2_check_http_base_free();
+}
+
 static void setup(void)
 {
 	_log = oauth2_log_init(OAUTH2_LOG_TRACE1, 0);
@@ -218,8 +225,6 @@ START_TEST(test_proto_get_source_token_basic)
 	oauth2_http_request_free(_log, request);
 }
 END_TEST
-
-OAUTH2_CHECK_HTTP_PATHS
 
 static char *token_endpoint_path = "/token";
 

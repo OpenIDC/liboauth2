@@ -28,6 +28,13 @@
 
 static oauth2_log_t *_log = 0;
 
+OAUTH2_CHECK_HTTP_PATHS
+
+void oauth2_check_oauth2_cleanup()
+{
+	oauth2_check_http_base_free();
+}
+
 static void setup(void)
 {
 	_log = oauth2_log_init(OAUTH2_LOG_TRACE1, 0);
@@ -449,8 +456,6 @@ START_TEST(test_oauth2_auth_none)
 }
 END_TEST
 
-OAUTH2_CHECK_HTTP_PATHS
-
 static char *get_jwks_uri_json =
     "{\"keys\":[{\"kty\":\"RSA\",\"kid\":\"k1\",\"use\":\"sig\",\"n\":"
     "\"hKvkosOyK33gznaRCNgakMLE2GHS5_7K34oqZRsAWC-7aC420eJNL2z_"
@@ -696,7 +701,6 @@ START_TEST(test_oauth2_verify_jwk_dpop)
 	json_decref(json_payload);
 	/*
 	oauth2_nv_list_free(_log, params);
-	oauth2_cache_release(_log, cache);
 	*/
 }
 END_TEST

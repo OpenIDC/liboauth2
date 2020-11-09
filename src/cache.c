@@ -107,8 +107,8 @@ end:
 static void _oauth2_cache_register(oauth2_log_t *log, const char *name,
 				   oauth2_cache_t *cache);
 
-oauth2_cache_t *oauth2_cache_init(oauth2_log_t *log, const char *type,
-				  const oauth2_nv_list_t *params)
+oauth2_cache_t *_oauth2_cache_init(oauth2_log_t *log, const char *type,
+				   const oauth2_nv_list_t *params)
 {
 	oauth2_cache_t *cache = NULL;
 	oauth2_cache_type_list_t *list_ptr = NULL;
@@ -143,7 +143,6 @@ oauth2_cache_t *oauth2_cache_init(oauth2_log_t *log, const char *type,
 	if (list_ptr->type->init(log, cache, params) == false)
 		goto end;
 
-	cache->refcount = 1;
 	cache->key_hash_algo =
 	    oauth2_strdup(oauth2_nv_list_get(log, params, "key_hash_algo"));
 	cache->encrypt =
@@ -196,37 +195,25 @@ end:
 
 static void _oauth2_cache_free(oauth2_log_t *log, oauth2_cache_t *cache)
 {
+	oauth2_debug(log, "enter");
+
 	if ((cache == NULL) || (cache->type == NULL))
 		goto end;
 
-	cache->refcount--;
-	if (cache->refcount == 0) {
+	if (cache->key_hash_algo)
+		oauth2_mem_free(cache->key_hash_algo);
+	if (cache->enc_key)
+		oauth2_mem_free(cache->enc_key);
 
-		if (cache->key_hash_algo)
-			oauth2_mem_free(cache->key_hash_algo);
-		if (cache->enc_key)
-			oauth2_mem_free(cache->enc_key);
-
-		if (cache->type->free)
-			cache->type->free(log, cache);
-		oauth2_mem_free(cache);
-	}
+	if (cache->type->free)
+		cache->type->free(log, cache);
+	oauth2_mem_free(cache);
 
 end:
+
+	oauth2_debug(log, "leave");
 
 	return;
-}
-
-oauth2_cache_t *oauth2_cache_clone(oauth2_log_t *log, oauth2_cache_t *cache)
-{
-	if ((cache == NULL) || (cache->type == NULL))
-		goto end;
-
-	cache->refcount++;
-
-end:
-
-	return cache;
 }
 
 void _oauth2_cache_type_register(oauth2_log_t *log, oauth2_cache_type_t *type)
@@ -273,7 +260,7 @@ static void _oauth2_cache_register(oauth2_log_t *log, const char *name,
 	oauth2_debug(log, "leave");
 }
 
-oauth2_cache_t *_oauth2_cache_obtain(oauth2_log_t *log, const char *name)
+oauth2_cache_t *oauth2_cache_obtain(oauth2_log_t *log, const char *name)
 {
 	oauth2_cache_t *rv = NULL;
 	oauth2_cache_list_t *ptr = NULL, *result = NULL;
@@ -282,9 +269,9 @@ oauth2_cache_t *_oauth2_cache_obtain(oauth2_log_t *log, const char *name)
 
 	// TODO: lock...
 	if (_cache_list == NULL) {
-		if (oauth2_cache_init(log, NULL, NULL) == NULL)
+		if (_oauth2_cache_init(log, NULL, NULL) == NULL)
 			goto end;
-		if (oauth2_cache_post_config(log, _cache_list->cache) == false)
+		if (_oauth2_cache_post_config(log, _cache_list->cache) == false)
 			goto end;
 	}
 
@@ -305,7 +292,7 @@ oauth2_cache_t *_oauth2_cache_obtain(oauth2_log_t *log, const char *name)
 
 	_oauth2_cache_global_unlock(log);
 
-	rv = result ? oauth2_cache_clone(log, result->cache) : NULL;
+	rv = result ? result->cache : NULL;
 
 end:
 
@@ -314,20 +301,13 @@ end:
 	return rv;
 }
 
-void oauth2_cache_release(oauth2_log_t *log, oauth2_cache_t *cache)
+static void _oauth2_cache_release(oauth2_log_t *log, oauth2_cache_t *cache)
 {
 	oauth2_cache_list_t *ptr = NULL, *prev = NULL;
-	oauth2_uint_t refcount = 0;
 
 	oauth2_debug(log, "enter");
 
 	if (cache == NULL)
-		goto end;
-
-	refcount = cache->refcount;
-	_oauth2_cache_free(log, cache);
-
-	if (refcount > 1)
 		goto end;
 
 	_oauth2_cache_global_lock(log);
@@ -343,6 +323,7 @@ void oauth2_cache_release(oauth2_log_t *log, oauth2_cache_t *cache)
 			if (ptr->name)
 				oauth2_mem_free(ptr->name);
 			oauth2_mem_free(ptr);
+			_oauth2_cache_free(log, cache);
 			break;
 		}
 		prev = ptr;
@@ -358,7 +339,27 @@ end:
 	return;
 }
 
-bool oauth2_cache_post_config(oauth2_log_t *log, oauth2_cache_t *cache)
+void _oauth2_cache_global_cleanup(oauth2_log_t *log)
+{
+	oauth2_cache_type_list_t *ptr = NULL;
+	oauth2_debug(log, "enter");
+	while (_cache_list != NULL)
+		_oauth2_cache_release(log, _cache_list->cache);
+	_oauth2_cache_global_lock(log);
+	while ((ptr = _cache_types)) {
+		_cache_types = _cache_types->next;
+		oauth2_mem_free(ptr);
+	}
+	_oauth2_cache_global_unlock(log);
+	if (_oauth2_cache_global_mutex != NULL) {
+		oauth2_ipc_mutex_free(log, _oauth2_cache_global_mutex);
+		_oauth2_cache_global_mutex = NULL;
+	}
+	_oauth2_cache_global_initialized = false;
+	oauth2_debug(log, "leave");
+}
+
+bool _oauth2_cache_post_config(oauth2_log_t *log, oauth2_cache_t *cache)
 {
 	bool rc = false;
 

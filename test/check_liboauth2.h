@@ -36,10 +36,15 @@ Suite *oauth2_check_util_suite();
 Suite *oauth2_check_ipc_suite();
 Suite *oauth2_check_cache_suite();
 Suite *oauth2_check_jose_suite();
+void oauth2_check_jose_cleanup();
 Suite *oauth2_check_http_suite();
+void oauth2_check_http_cleanup();
 Suite *oauth2_check_proto_suite();
+void oauth2_check_proto_cleanup();
 Suite *oauth2_check_oauth2_suite();
+void oauth2_check_oauth2_cleanup();
 Suite *oauth2_check_openidc_suite();
+void oauth2_check_openidc_cleanup();
 Suite *oauth2_check_apache_suite();
 
 typedef char *(http_serve_callback_get_t)(const char *request);
@@ -101,6 +106,18 @@ void liboauth2_check_register_http_callbacks(
 			    NULL, "http://127.0.0.1:8888",                     \
 			    oauth2_check_http_base_path(), NULL);              \
 		return _http_base_url;                                         \
+	}                                                                      \
+                                                                               \
+	static void oauth2_check_http_base_free()                              \
+	{                                                                      \
+		if (_http_base_url != NULL) {                                  \
+			oauth2_mem_free(_http_base_url);                       \
+			_http_base_url = NULL;                                 \
+		}                                                              \
+		if (_http_base_path != NULL) {                                 \
+			oauth2_mem_free(_http_base_path);                      \
+			_http_base_path = NULL;                                \
+		}                                                              \
 	}
 
 #endif /* _OAUTH2_CHECK_LIBOAUTH2_H_ */

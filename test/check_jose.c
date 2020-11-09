@@ -48,6 +48,13 @@ static const char *encrypted1_signed2_corrupt_sig = NULL;
 static const char *encrypted1_signed2_corrupt_hdr = NULL;
 static const char *encrypted1_signed2_corrupt_payload = NULL;
 
+OAUTH2_CHECK_HTTP_PATHS
+
+void oauth2_check_jose_cleanup()
+{
+	oauth2_check_http_base_free();
+}
+
 static void setup(void)
 {
 	_log = oauth2_init(OAUTH2_LOG_TRACE1, 0);
@@ -344,8 +351,6 @@ static char *oauth2_check_jose_serve_get(const char *request)
 	}
 	return oauth2_strdup("problem");
 }
-
-OAUTH2_CHECK_HTTP_PATHS
 
 START_TEST(test_jwks_resolve_uri)
 {

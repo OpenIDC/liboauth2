@@ -51,12 +51,7 @@ typedef struct oauth2_cache_type_t {
 	oauth2_cache_free_function free;
 } oauth2_cache_type_t;
 
-oauth2_cache_t *oauth2_cache_init(oauth2_log_t *log, const char *type,
-				  const oauth2_nv_list_t *params);
-void oauth2_cache_release(oauth2_log_t *log, oauth2_cache_t *cache);
-bool oauth2_cache_post_config(oauth2_log_t *log, oauth2_cache_t *cache);
-bool oauth2_cache_child_init(oauth2_log_t *log, oauth2_cache_t *cache);
-oauth2_cache_t *oauth2_cache_clone(oauth2_log_t *log, oauth2_cache_t *cache);
+oauth2_cache_t *oauth2_cache_obtain(oauth2_log_t *log, const char *name);
 
 bool oauth2_cache_get(oauth2_log_t *log, oauth2_cache_t *ctx, const char *key,
 		      char **value);

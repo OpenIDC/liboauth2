@@ -89,7 +89,7 @@ oauth2_cfg_session_t *oauth2_cfg_session_clone(oauth2_log_t *log,
 	dst->max_duration_s = src->max_duration_s;
 
 	dst->passphrase = oauth2_strdup(src->passphrase);
-	dst->cache = oauth2_cache_clone(log, src->cache);
+	dst->cache = src->cache;
 
 end:
 	return dst;
@@ -107,8 +107,6 @@ void oauth2_cfg_session_free(oauth2_log_t *log, oauth2_cfg_session_t *session)
 		oauth2_mem_free(session->cookie_name);
 	if (session->passphrase)
 		oauth2_mem_free(session->passphrase);
-	if (session->cache)
-		oauth2_cache_release(log, session->cache);
 	oauth2_mem_free(session);
 }
 
@@ -165,6 +163,14 @@ void oauth2_cfg_session_release(oauth2_log_t *log,
 		prev = ptr;
 		ptr = ptr->next;
 	}
+}
+
+void _oauth2_cfg_session_release_global_cleanup(oauth2_log_t *log)
+{
+	oauth2_debug(log, "enter");
+	while (_session_list != NULL)
+		oauth2_cfg_session_release(log, _session_list->session);
+	oauth2_debug(log, "leave");
 }
 
 #define OAUTH2_INACTIVITY_TIMEOUT_S_DEFAULT 60 * 5
@@ -268,7 +274,7 @@ _OAUTH_CFG_CTX_CALLBACK(oauth2_cfg_session_set_options_cache)
 	cfg->save_callback = oauth2_session_save_cache;
 
 	cfg->cache =
-	    _oauth2_cache_obtain(log, oauth2_nv_list_get(log, params, "cache"));
+	    oauth2_cache_obtain(log, oauth2_nv_list_get(log, params, "cache"));
 
 	oauth2_debug(log, "leave: %s", rv);
 
