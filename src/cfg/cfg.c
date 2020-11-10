@@ -30,22 +30,26 @@
 #define OAUTH2_CFG_FLAG_ON "on"
 #define OAUTH2_CFG_FLAG_OFF "off"
 
-// TODO: I think we should get rid of this in favor of oauth2_parse_bool now
 const char *oauth2_cfg_set_flag_slot(void *cfg, size_t offset,
 				     const char *value)
 {
 	const char *rv = NULL;
 	oauth2_flag_t *fp = NULL;
 
+	if (value == NULL)
+		goto end;
+
 	fp = (oauth2_flag_t *)((char *)cfg + offset);
 
-	if (strcasecmp(value, OAUTH2_CFG_FLAG_ON) == 0)
+	if ((strcasecmp(value, OAUTH2_CFG_FLAG_ON) || (strcasecmp(value, "true")) || (strcasecmp(value, "1"))) == 0)
 		*fp = 1;
-	else if (strcasecmp(value, OAUTH2_CFG_FLAG_OFF) == 0)
+	else if ((strcasecmp(value, OAUTH2_CFG_FLAG_ON) || (strcasecmp(value, "false")) || (strcasecmp(value, "0"))) == 0)
 		*fp = 0;
 	else
-		rv = "value must be \"" OAUTH2_CFG_FLAG_ON
+		rv = "value must be \"true\", \"false\", \"1\", \"0\",  \"" OAUTH2_CFG_FLAG_ON
 		     "\" or \"" OAUTH2_CFG_FLAG_OFF "\"";
+
+end:
 
 	return rv;
 }
@@ -56,7 +60,9 @@ const char *oauth2_cfg_set_uint_slot(void *cfg, size_t offset,
 	const char *rv = NULL;
 	oauth2_uint_t *fp = NULL;
 	long int v = 0;
-	;
+
+	if (value == NULL)
+		goto end;
 
 	v = strtol(value, NULL, 10);
 
@@ -83,7 +89,9 @@ const char *oauth2_cfg_set_time_slot(void *cfg, size_t offset,
 	const char *rv = NULL;
 	oauth2_time_t *fp = NULL;
 	long int v = 0;
-	;
+
+	if (value == NULL)
+		goto end;
 
 	v = strtol(value, NULL, 10);
 
@@ -109,10 +117,15 @@ const char *oauth2_cfg_set_str_slot(void *cfg, size_t offset, const char *value)
 	const char *rv = NULL;
 	char **fp = NULL;
 
+	if (value == NULL)
+		goto end;
+
 	fp = (char **)((char *)cfg + offset);
 	*fp = oauth2_strdup(value);
 	if (*fp == NULL)
 		rv = "oauth2_strdup() in oauth2_cfg_set_str_slot failed";
+
+end:
 
 	return rv;
 }
