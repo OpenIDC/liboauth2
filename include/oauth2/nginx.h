@@ -102,7 +102,7 @@
 		       ? oauth2_strndup((const char *)value[3].data,           \
 					(size_t)value[3].len)                  \
 		       : NULL;                                                 \
-	rv = module##_set_##primitive(cfg->cfg, v1, v2, v3);                       \
+	rv = module##_set_##primitive(cfg->cfg, v1, v2, v3);                   \
 	oauth2_mem_free(v3);                                                   \
 	oauth2_mem_free(v2);                                                   \
 	oauth2_mem_free(v1);                                                   \
