@@ -1,5 +1,6 @@
 11/11/2020
 - fix session cache handler cloning
+- support configurable cookie path for session cookie
 
 11/09/2020
 - refactored caching; use named caches consistently

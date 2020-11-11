@@ -161,7 +161,8 @@ bool oauth2_session_save_cookie(oauth2_log_t *log,
 				oauth2_http_response_t *response, json_t *json)
 {
 	bool rc = false;
-	const char *name = NULL;
+	const char *name = NULL, *path = NULL;
+	;
 	char *value = NULL;
 
 	if (oauth2_jose_jwt_encrypt(log,
@@ -170,9 +171,9 @@ bool oauth2_session_save_cookie(oauth2_log_t *log,
 		goto end;
 
 	name = oauth2_cfg_session_cookie_name_get(log, cfg);
+	path = oauth2_cfg_session_cookie_path_get(log, cfg);
 
-	// TODO: get cookie path from config
-	rc = oauth2_http_response_cookie_set(log, response, name, value, "/");
+	rc = oauth2_http_response_cookie_set(log, response, name, value, path);
 
 end:
 
@@ -231,7 +232,7 @@ bool oauth2_session_save_cache(oauth2_log_t *log,
 			       oauth2_http_response_t *response, json_t *json)
 {
 	bool rc = false;
-	const char *name = NULL;
+	const char *name = NULL, *path = NULL;
 	char *key = NULL, *value = NULL;
 
 	value = oauth2_json_encode(log, json, 0);
@@ -252,9 +253,9 @@ bool oauth2_session_save_cache(oauth2_log_t *log,
 	}
 
 	name = oauth2_cfg_session_cookie_name_get(log, cfg);
+	path = oauth2_cfg_session_cookie_path_get(log, cfg);
 
-	// TODO: get cookie path from config
-	rc = oauth2_http_response_cookie_set(log, response, name, key, "/");
+	rc = oauth2_http_response_cookie_set(log, response, name, key, path);
 
 end:
 

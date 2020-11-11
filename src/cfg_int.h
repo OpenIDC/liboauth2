@@ -227,6 +227,7 @@ typedef enum oauth2_cfg_session_type_t {
 typedef struct oauth2_cfg_session_t {
 	oauth2_cfg_session_type_t type;
 	char *cookie_name;
+	char *cookie_path;
 	oauth2_time_t inactivity_timeout_s;
 	oauth2_time_t max_duration_s;
 

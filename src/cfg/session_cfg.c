@@ -37,6 +37,7 @@ oauth2_cfg_session_t *oauth2_cfg_session_init(oauth2_log_t *log)
 	    sizeof(oauth2_cfg_session_t));
 	session->type = OAUTH2_CFG_UINT_UNSET;
 	session->cookie_name = NULL;
+	session->cookie_path = NULL;
 	session->inactivity_timeout_s = OAUTH2_CFG_TIME_UNSET;
 	session->max_duration_s = OAUTH2_CFG_TIME_UNSET;
 
@@ -61,6 +62,7 @@ oauth2_cfg_session_t *oauth2_cfg_session_clone(oauth2_log_t *log,
 	dst = oauth2_cfg_session_init(log);
 	dst->type = src->type;
 	dst->cookie_name = oauth2_strdup(src->cookie_name);
+	dst->cookie_path = oauth2_strdup(src->cookie_path);
 	dst->inactivity_timeout_s = src->inactivity_timeout_s;
 	dst->max_duration_s = src->max_duration_s;
 
@@ -84,6 +86,8 @@ void oauth2_cfg_session_free(oauth2_log_t *log, oauth2_cfg_session_t *session)
 {
 	if (session->cookie_name)
 		oauth2_mem_free(session->cookie_name);
+	if (session->cookie_path)
+		oauth2_mem_free(session->cookie_path);
 	if (session->passphrase)
 		oauth2_mem_free(session->passphrase);
 	oauth2_mem_free(session);
@@ -155,6 +159,16 @@ char *oauth2_cfg_session_cookie_name_get(oauth2_log_t *log,
 	if ((cfg == NULL) || (cfg->cookie_name == NULL))
 		return OAUTH2_SESSION_COOKIE_NAME_DEFAULT;
 	return cfg->cookie_name;
+}
+
+#define OAUTH2_SESSION_COOKIE_PATH_DEFAULT "/"
+
+char *oauth2_cfg_session_cookie_path_get(oauth2_log_t *log,
+					 const oauth2_cfg_session_t *cfg)
+{
+	if ((cfg == NULL) || (cfg->cookie_path == NULL))
+		return OAUTH2_SESSION_COOKIE_PATH_DEFAULT;
+	return cfg->cookie_path;
 }
 
 // TODO: there most probably should NOT be a default for this setting
@@ -261,9 +275,13 @@ char *oauth2_cfg_session_set_options(oauth2_log_t *log,
 	if (oauth2_parse_form_encoded_params(log, options, &params) == false)
 		goto end;
 
-	value = oauth2_nv_list_get(log, params, "cookie_name");
+	value = oauth2_nv_list_get(log, params, "cookie.name");
 	if (value)
 		cfg->cookie_name = oauth2_strdup(value);
+
+	value = oauth2_nv_list_get(log, params, "cookie.path");
+	if (value)
+		cfg->cookie_path = oauth2_strdup(value);
 
 	value = oauth2_nv_list_get(log, params, "max_duration");
 	if (value)
