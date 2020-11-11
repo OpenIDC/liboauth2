@@ -27,6 +27,9 @@
 #include "cfg_int.h"
 #include "openidc_int.h"
 
+#define OAUTH2_STATE_LENGTH 16
+#define OAUTH2_NONCE_LENGTH 16
+
 static bool _oauth2_openidc_authenticate(oauth2_log_t *log,
 					 const oauth2_cfg_openidc_t *cfg,
 					 const oauth2_http_request_t *request,
@@ -64,10 +67,10 @@ static bool _oauth2_openidc_authenticate(oauth2_log_t *log,
 	if (provider->scope)
 		oauth2_nv_list_add(log, params, OAUTH2_SCOPE, provider->scope);
 
-	nonce = oauth2_rand_str(log, 10);
+	nonce = oauth2_rand_str(log, OAUTH2_NONCE_LENGTH);
 	oauth2_nv_list_add(log, params, OAUTH2_NONCE, nonce);
 
-	state = oauth2_rand_str(log, 10);
+	state = oauth2_rand_str(log, OAUTH2_STATE_LENGTH);
 	oauth2_nv_list_add(log, params, OAUTH2_STATE, state);
 
 	// TODO: handle POST binding as well

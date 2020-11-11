@@ -48,6 +48,8 @@
 #define OAUTH2_CLIENT_ASSERTION_TYPE_JWT_BEARER                                \
 	"urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
 
+#define OAUTH2_JTI_LENGTH 16
+
 static bool _oauth2_add_signed_jwt(oauth2_log_t *log, cjose_jwk_t *jwk,
 				   const char *alg, const char *client_id,
 				   const char *aud, oauth2_nv_list_t *params)
@@ -65,7 +67,7 @@ static bool _oauth2_add_signed_jwt(oauth2_log_t *log, cjose_jwk_t *jwk,
 	oauth2_debug(log, "enter");
 
 	assertion = json_object();
-	jti = oauth2_rand_str(log, 16);
+	jti = oauth2_rand_str(log, OAUTH2_JTI_LENGTH);
 	json_object_set_new(assertion, OAUTH2_CLAIM_JTI, json_string(jti));
 	json_object_set_new(assertion, OAUTH2_CLAIM_ISS,
 			    json_string(client_id));

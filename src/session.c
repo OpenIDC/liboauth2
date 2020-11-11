@@ -266,6 +266,13 @@ end:
 	return rc;
 }
 
+#define OAUTH2_SESSION_ID_LENGTH 16
+
+static char *oauth2_session_id_generate(oauth2_log_t *log)
+{
+	return oauth2_rand_str(log, OAUTH2_SESSION_ID_LENGTH);
+}
+
 bool oauth2_session_load(oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
 			 oauth2_http_request_t *request,
 			 oauth2_session_rec_t **session)
@@ -294,7 +301,7 @@ bool oauth2_session_load(oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
 
 	if ((rc == false) || (json == NULL)) {
 		if ((rc) && ((*session)->id == NULL))
-			(*session)->id = oauth2_rand_str(log, 10);
+			(*session)->id = oauth2_session_id_generate(log);
 		goto end;
 	}
 
@@ -325,7 +332,7 @@ bool oauth2_session_load(oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
 		// TODO: refactor and/or remove from cache?
 		oauth2_session_rec_free(log, *session);
 		*session = oauth2_session_rec_init(log);
-		(*session)->id = oauth2_rand_str(log, 10);
+		(*session)->id = oauth2_session_id_generate(log);
 		rc = true;
 		goto end;
 	}

@@ -40,6 +40,8 @@ static void _oauth2_cfg_session_register(oauth2_log_t *log, const char *name,
 {
 	oauth2_cfg_session_list_t *ptr = NULL, *prev = NULL;
 
+	oauth2_debug(log, "registering: %s", name);
+
 	ptr = oauth2_mem_alloc(sizeof(oauth2_cfg_session_list_t));
 	ptr->name = oauth2_strdup(name);
 	ptr->session = session;
@@ -91,6 +93,9 @@ oauth2_cfg_session_t *oauth2_cfg_session_clone(oauth2_log_t *log,
 	dst->passphrase = oauth2_strdup(src->passphrase);
 	dst->cache = src->cache;
 
+	dst->load_callback = src->load_callback;
+	dst->save_callback = src->save_callback;
+
 end:
 	return dst;
 }
@@ -134,6 +139,8 @@ oauth2_cfg_session_t *_oauth2_cfg_session_obtain(oauth2_log_t *log,
 		}
 		ptr = ptr->next;
 	}
+
+	oauth2_debug(log, "returning: %s", result ? result->name : "<null>");
 
 	return result ? result->session : NULL;
 }

@@ -1,3 +1,6 @@
+11/11/2020
+- fix session cache handler cloning
+
 11/09/2020
 - refactored caching; use named caches consistently
 
