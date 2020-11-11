@@ -38,7 +38,6 @@ oauth2_cache_t *_oauth2_cache_init(oauth2_log_t *log, const char *type,
 bool _oauth2_cache_post_config(oauth2_log_t *log, oauth2_cache_t *cache);
 bool _oauth2_cache_child_init(oauth2_log_t *log, oauth2_cache_t *cache);
 
-void _oauth2_cache_type_register(oauth2_log_t *log, oauth2_cache_type_t *type);
 void _oauth2_cache_global_cleanup(oauth2_log_t *log);
 
 // clang-format off

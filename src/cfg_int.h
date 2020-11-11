@@ -341,4 +341,128 @@ char *oauth2_openidc_cfg_state_cookie_name_prefix_get(
 oauth2_cfg_session_t *_oauth2_cfg_session_obtain(oauth2_log_t *log,
 						 const char *name);
 
+#define _OAUTH2_CFG_GLOBAL_LIST(name, type)                                    \
+	typedef void (*_oauth2_##name##_free_fn)(oauth2_log_t * log,           \
+						 type * mtype);                \
+                                                                               \
+	typedef struct oauth2_##name##_list_t {                                \
+		char *mname;                                                   \
+		type *mtype;                                                   \
+		_oauth2_##name##_free_fn free_fn;                              \
+		struct oauth2_##name##_list_t *next;                           \
+	} oauth2_##name##_list_t;                                              \
+                                                                               \
+	static oauth2_##name##_list_t *_oauth2_##name##_list = NULL;           \
+	static oauth2_ipc_mutex_t *_oauth2_##name##_list_mutex = NULL;         \
+                                                                               \
+	static bool _oauth2_##name##_list_lock(oauth2_log_t *log)              \
+	{                                                                      \
+		bool rc = false;                                               \
+		if (_oauth2_##name##_list_mutex == NULL) {                     \
+			_oauth2_##name##_list_mutex =                          \
+			    oauth2_ipc_mutex_init(log);                        \
+			oauth2_ipc_mutex_post_config(                          \
+			    log, _oauth2_##name##_list_mutex);                 \
+		}                                                              \
+		rc = oauth2_ipc_mutex_lock(log, _oauth2_##name##_list_mutex);  \
+		return rc;                                                     \
+	}                                                                      \
+                                                                               \
+	static bool _oauth2_##name##_list_unlock(oauth2_log_t *log)            \
+	{                                                                      \
+		bool rc = false;                                               \
+		rc =                                                           \
+		    oauth2_ipc_mutex_unlock(log, _oauth2_##name##_list_mutex); \
+		return rc;                                                     \
+	}                                                                      \
+                                                                               \
+	void _oauth2_##name##_list_register(oauth2_log_t *log,                 \
+					    const char *name, type *mtype,     \
+					    _oauth2_##name##_free_fn mfree_fn) \
+	{                                                                      \
+		oauth2_##name##_list_t *ptr = NULL, *prev = NULL;              \
+                                                                               \
+		/*		oauth2_debug(log, "registering: %s", name); */             \
+                                                                               \
+		ptr = oauth2_mem_alloc(sizeof(oauth2_##name##_list_t));        \
+		ptr->mname = oauth2_strdup(name);                              \
+		ptr->mtype = mtype;                                            \
+		ptr->next = NULL;                                              \
+		ptr->free_fn = mfree_fn;                                       \
+                                                                               \
+		_oauth2_##name##_list_lock(log);                               \
+                                                                               \
+		if (_oauth2_##name##_list) {                                   \
+			prev = _oauth2_##name##_list;                          \
+			while (prev->next)                                     \
+				prev = prev->next;                             \
+			prev->next = ptr;                                      \
+		} else {                                                       \
+			_oauth2_##name##_list = ptr;                           \
+		}                                                              \
+                                                                               \
+		_oauth2_##name##_list_unlock(log);                             \
+	}                                                                      \
+                                                                               \
+	bool _oauth2_##name##_list_empty(oauth2_log_t *log)                    \
+	{                                                                      \
+		return (_oauth2_##name##_list == NULL);                        \
+	}                                                                      \
+                                                                               \
+	type *_oauth2_##name##_list_get(oauth2_log_t *log, const char *mname)  \
+	{                                                                      \
+		oauth2_##name##_list_t *ptr = NULL, *match = NULL;             \
+                                                                               \
+		_oauth2_##name##_list_lock(log);                               \
+                                                                               \
+		ptr = _oauth2_##name##_list;                                   \
+		while (ptr) {                                                  \
+                                                                               \
+			/*			oauth2_debug(log, "comparing:                     \
+			 * \"%s\" with \%s\"", ptr->mname, mname); */          \
+                                                                               \
+			if ((mname) && (ptr->mname)) {                         \
+				if (strcmp(ptr->mname, mname) == 0) {          \
+					match = ptr;                           \
+					break;                                 \
+				}                                              \
+			} else if ((mname == NULL) ||                          \
+				   (strcmp("default", mname) == 0)) {          \
+				match = ptr;                                   \
+			}                                                      \
+			ptr = ptr->next;                                       \
+		}                                                              \
+                                                                               \
+		_oauth2_##name##_list_unlock(log);                             \
+                                                                               \
+		oauth2_debug(log, "returning: %p, %p, %s", match,              \
+			     match ? match->mtype : NULL,                      \
+			     match ? match->mname : NULL);                     \
+                                                                               \
+		return match ? match->mtype : NULL;                            \
+	}                                                                      \
+                                                                               \
+	void _oauth2_##name##_list_release(oauth2_log_t *log)                  \
+	{                                                                      \
+		oauth2_##name##_list_t *ptr = NULL;                            \
+                                                                               \
+		_oauth2_##name##_list_lock(log);                               \
+                                                                               \
+		while ((ptr = _oauth2_##name##_list)) {                        \
+			_oauth2_##name##_list = _oauth2_##name##_list->next;   \
+			if (ptr->free_fn)                                      \
+				ptr->free_fn(log, ptr->mtype);                 \
+			oauth2_mem_free(ptr->mname);                           \
+			oauth2_mem_free(ptr);                                  \
+		}                                                              \
+                                                                               \
+		_oauth2_##name##_list_unlock(log);                             \
+                                                                               \
+		if (_oauth2_##name##_list_mutex != NULL) {                     \
+			oauth2_ipc_mutex_free(log,                             \
+					      _oauth2_##name##_list_mutex);    \
+			_oauth2_##name##_list_mutex = NULL;                    \
+		}                                                              \
+	}
+
 #endif /* _OAUTH2_CFG_INT_H_ */
