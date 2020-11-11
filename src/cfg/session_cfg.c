@@ -19,42 +19,16 @@
  *
  **************************************************************************/
 
+#include "oauth2/ipc.h"
 #include "oauth2/mem.h"
 
 #include "cache_int.h"
 #include "cfg_int.h"
 
-typedef struct oauth2_cfg_session_list_t {
-	char *name;
-	oauth2_cfg_session_t *session;
-	struct oauth2_cfg_session_list_t *next;
-} oauth2_cfg_session_list_t;
-
-static oauth2_cfg_session_list_t *_session_list = NULL;
+_OAUTH2_CFG_GLOBAL_LIST(session, oauth2_cfg_session_t)
 
 #define OAUTH2_SESSION_TYPE_COOKIE_STR "cookie"
 #define OAUTH2_SESSION_TYPE_CACHE_STR "cache"
-
-static void _oauth2_cfg_session_register(oauth2_log_t *log, const char *name,
-					 oauth2_cfg_session_t *session)
-{
-	oauth2_cfg_session_list_t *ptr = NULL, *prev = NULL;
-
-	oauth2_debug(log, "registering: %s", name);
-
-	ptr = oauth2_mem_alloc(sizeof(oauth2_cfg_session_list_t));
-	ptr->name = oauth2_strdup(name);
-	ptr->session = session;
-	ptr->next = NULL;
-	if (_session_list) {
-		prev = _session_list;
-		while (prev->next)
-			prev = prev->next;
-		prev->next = ptr;
-	} else {
-		_session_list = ptr;
-	}
-}
 
 oauth2_cfg_session_t *oauth2_cfg_session_init(oauth2_log_t *log)
 {
@@ -118,65 +92,35 @@ void oauth2_cfg_session_free(oauth2_log_t *log, oauth2_cfg_session_t *session)
 oauth2_cfg_session_t *_oauth2_cfg_session_obtain(oauth2_log_t *log,
 						 const char *name)
 {
-	oauth2_cfg_session_list_t *ptr = NULL, *result = NULL;
 	oauth2_cfg_session_t *cfg = NULL;
 
-	if (_session_list == NULL) {
+	oauth2_debug(log, "enter: %s", name);
+
+	if (_M_session_list_empty(log)) {
 		cfg = oauth2_cfg_session_init(log);
-		oauth2_cfg_session_set_options(
-		    log, cfg, OAUTH2_SESSION_TYPE_CACHE_STR, NULL);
-	}
-
-	ptr = _session_list;
-	while (ptr) {
-		if (ptr->name) {
-			if (strcmp(ptr->name, name) == 0) {
-				result = ptr;
-				break;
-			}
-		} else if ((name == NULL) || (strcmp("default", name) == 0)) {
-			result = ptr;
+		if (cfg == NULL)
+			goto end;
+		if (oauth2_cfg_session_set_options(
+			log, cfg, OAUTH2_SESSION_TYPE_CACHE_STR, NULL) !=
+		    NULL) {
+			cfg = NULL;
+			goto end;
 		}
-		ptr = ptr->next;
 	}
 
-	oauth2_debug(log, "returning: %s", result ? result->name : "<null>");
+	cfg = _M_session_list_get(log, name);
 
-	return result ? result->session : NULL;
+end:
+
+	oauth2_debug(log, "leave: %p", cfg);
+
+	return cfg;
 }
 
-void oauth2_cfg_session_release(oauth2_log_t *log,
-				oauth2_cfg_session_t *session)
-{
-
-	oauth2_cfg_session_list_t *ptr = NULL, *prev = NULL;
-
-	if (session)
-		oauth2_cfg_session_free(log, session);
-
-	ptr = _session_list;
-	prev = NULL;
-	while (ptr) {
-		if (ptr->session == session) {
-			if (prev)
-				prev->next = ptr->next;
-			else
-				_session_list = ptr->next;
-			if (ptr->name)
-				oauth2_mem_free(ptr->name);
-			oauth2_mem_free(ptr);
-			break;
-		}
-		prev = ptr;
-		ptr = ptr->next;
-	}
-}
-
-void _oauth2_cfg_session_release_global_cleanup(oauth2_log_t *log)
+void _oauth2_session_global_cleanup(oauth2_log_t *log)
 {
 	oauth2_debug(log, "enter");
-	while (_session_list != NULL)
-		oauth2_cfg_session_release(log, _session_list->session);
+	_M_session_list_release(log);
 	oauth2_debug(log, "leave");
 }
 
@@ -331,8 +275,8 @@ char *oauth2_cfg_session_set_options(oauth2_log_t *log,
 		cfg->inactivity_timeout_s =
 		    oauth2_parse_time_sec(log, value, OAUTH2_CFG_TIME_UNSET);
 
-	_oauth2_cfg_session_register(
-	    log, oauth2_nv_list_get(log, params, "name"), cfg);
+	_M_session_list_register(log, oauth2_nv_list_get(log, params, "name"),
+				 cfg, oauth2_cfg_session_free);
 
 end:
 

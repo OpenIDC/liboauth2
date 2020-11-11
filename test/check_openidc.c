@@ -775,7 +775,6 @@ START_TEST(test_openidc_handle_cookie)
 
 	_test_openidc_handle(c);
 
-	oauth2_cfg_session_release(_log, session_cfg);
 	oauth2_cfg_openidc_free(_log, c);
 }
 END_TEST
@@ -806,10 +805,7 @@ START_TEST(test_openidc_handle_cache)
 
 	_test_openidc_handle(c);
 
-	oauth2_cfg_session_release(_log, session_cfg);
-
 	oauth2_nv_list_free(_log, params);
-
 	oauth2_cfg_openidc_free(_log, c);
 }
 END_TEST

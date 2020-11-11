@@ -56,17 +56,17 @@ static void _oauth2_cache_global_init(oauth2_log_t *log)
 	if (_oauth2_cache_global_initialized == true)
 		goto end;
 
-	_oauth2_cache_type_list_register(log, oauth2_cache_shm.name,
-					 &oauth2_cache_shm, NULL);
-	_oauth2_cache_type_list_register(log, oauth2_cache_file.name,
-					 &oauth2_cache_file, NULL);
+	_M_cache_type_list_register(log, oauth2_cache_shm.name,
+				    &oauth2_cache_shm, NULL);
+	_M_cache_type_list_register(log, oauth2_cache_file.name,
+				    &oauth2_cache_file, NULL);
 #ifdef HAVE_LIBMEMCACHE
-	_oauth2_cache_type_list_register(log, oauth2_cache_memcache.name,
-					 &oauth2_cache_memcache, NULL);
+	_M_cache_type_list_register(log, oauth2_cache_memcache.name,
+				    &oauth2_cache_memcache, NULL);
 #endif
 #ifdef HAVE_LIBHIREDIS
-	_oauth2_cache_type_list_register(log, oauth2_cache_redis.name,
-					 &oauth2_cache_redis, NULL);
+	_M_cache_type_list_register(log, oauth2_cache_redis.name,
+				    &oauth2_cache_redis, NULL);
 #endif
 
 	_oauth2_cache_global_initialized = true;
@@ -113,7 +113,7 @@ oauth2_cache_t *_oauth2_cache_init(oauth2_log_t *log, const char *type,
 	if (type == NULL)
 		type = "shm";
 
-	cache_type = _oauth2_cache_type_list_get(log, type);
+	cache_type = _M_cache_type_list_get(log, type);
 	if (cache_type == NULL) {
 		oauth2_error(log, "cache type %s is not registered", type);
 		goto end;
@@ -168,9 +168,9 @@ oauth2_cache_t *_oauth2_cache_init(oauth2_log_t *log, const char *type,
 end:
 
 	if (cache)
-		_oauth2_cache_list_register(
-		    log, oauth2_nv_list_get(log, params, "name"), cache,
-		    _oauth2_cache_free);
+		_M_cache_list_register(log,
+				       oauth2_nv_list_get(log, params, "name"),
+				       cache, _oauth2_cache_free);
 
 	if (passphrase)
 		oauth2_mem_free(passphrase);
@@ -184,7 +184,7 @@ oauth2_cache_t *oauth2_cache_obtain(oauth2_log_t *log, const char *name)
 
 	oauth2_debug(log, "enter: %s", name);
 
-	if (_oauth2_cache_list_empty(log)) {
+	if (_M_cache_list_empty(log)) {
 		rv = _oauth2_cache_init(log, NULL, NULL);
 		if (rv == NULL)
 			goto end;
@@ -194,7 +194,7 @@ oauth2_cache_t *oauth2_cache_obtain(oauth2_log_t *log, const char *name)
 		}
 	}
 
-	rv = _oauth2_cache_list_get(log, name);
+	rv = _M_cache_list_get(log, name);
 
 end:
 
@@ -206,8 +206,8 @@ end:
 void _oauth2_cache_global_cleanup(oauth2_log_t *log)
 {
 	oauth2_debug(log, "enter");
-	_oauth2_cache_list_release(log);
-	_oauth2_cache_type_list_release(log);
+	_M_cache_list_release(log);
+	_M_cache_type_list_release(log);
 	_oauth2_cache_global_initialized = false;
 	oauth2_debug(log, "leave");
 }

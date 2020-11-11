@@ -236,10 +236,9 @@ typedef struct oauth2_cfg_session_t {
 
 	oauth2_session_load_callback_t *load_callback;
 	oauth2_session_save_callback_t *save_callback;
-	// TODO: free callback (init is done through set options)
 } oauth2_cfg_session_t;
 
-void _oauth2_cfg_session_release_global_cleanup(oauth2_log_t *log);
+void _oauth2_session_global_cleanup(oauth2_log_t *log);
 
 /*
  * openidc
@@ -355,7 +354,7 @@ oauth2_cfg_session_t *_oauth2_cfg_session_obtain(oauth2_log_t *log,
 	static oauth2_##name##_list_t *_oauth2_##name##_list = NULL;           \
 	static oauth2_ipc_mutex_t *_oauth2_##name##_list_mutex = NULL;         \
                                                                                \
-	static bool _oauth2_##name##_list_lock(oauth2_log_t *log)              \
+	static bool _M_##name##_list_lock(oauth2_log_t *log)                   \
 	{                                                                      \
 		bool rc = false;                                               \
 		if (_oauth2_##name##_list_mutex == NULL) {                     \
@@ -368,7 +367,7 @@ oauth2_cfg_session_t *_oauth2_cfg_session_obtain(oauth2_log_t *log,
 		return rc;                                                     \
 	}                                                                      \
                                                                                \
-	static bool _oauth2_##name##_list_unlock(oauth2_log_t *log)            \
+	static bool _M_##name##_list_unlock(oauth2_log_t *log)                 \
 	{                                                                      \
 		bool rc = false;                                               \
 		rc =                                                           \
@@ -376,9 +375,9 @@ oauth2_cfg_session_t *_oauth2_cfg_session_obtain(oauth2_log_t *log,
 		return rc;                                                     \
 	}                                                                      \
                                                                                \
-	void _oauth2_##name##_list_register(oauth2_log_t *log,                 \
-					    const char *name, type *mtype,     \
-					    _oauth2_##name##_free_fn mfree_fn) \
+	static void _M_##name##_list_register(                                 \
+	    oauth2_log_t *log, const char *name, type *mtype,                  \
+	    _oauth2_##name##_free_fn mfree_fn)                                 \
 	{                                                                      \
 		oauth2_##name##_list_t *ptr = NULL, *prev = NULL;              \
                                                                                \
@@ -390,7 +389,7 @@ oauth2_cfg_session_t *_oauth2_cfg_session_obtain(oauth2_log_t *log,
 		ptr->next = NULL;                                              \
 		ptr->free_fn = mfree_fn;                                       \
                                                                                \
-		_oauth2_##name##_list_lock(log);                               \
+		_M_##name##_list_lock(log);                                    \
                                                                                \
 		if (_oauth2_##name##_list) {                                   \
 			prev = _oauth2_##name##_list;                          \
@@ -401,19 +400,20 @@ oauth2_cfg_session_t *_oauth2_cfg_session_obtain(oauth2_log_t *log,
 			_oauth2_##name##_list = ptr;                           \
 		}                                                              \
                                                                                \
-		_oauth2_##name##_list_unlock(log);                             \
+		_M_##name##_list_unlock(log);                                  \
 	}                                                                      \
                                                                                \
-	bool _oauth2_##name##_list_empty(oauth2_log_t *log)                    \
+	bool _M_##name##_list_empty(oauth2_log_t *log)                         \
 	{                                                                      \
 		return (_oauth2_##name##_list == NULL);                        \
 	}                                                                      \
                                                                                \
-	type *_oauth2_##name##_list_get(oauth2_log_t *log, const char *mname)  \
+	static type *_M_##name##_list_get(oauth2_log_t *log,                   \
+					  const char *mname)                   \
 	{                                                                      \
 		oauth2_##name##_list_t *ptr = NULL, *match = NULL;             \
                                                                                \
-		_oauth2_##name##_list_lock(log);                               \
+		_M_##name##_list_lock(log);                                    \
                                                                                \
 		ptr = _oauth2_##name##_list;                                   \
 		while (ptr) {                                                  \
@@ -433,7 +433,7 @@ oauth2_cfg_session_t *_oauth2_cfg_session_obtain(oauth2_log_t *log,
 			ptr = ptr->next;                                       \
 		}                                                              \
                                                                                \
-		_oauth2_##name##_list_unlock(log);                             \
+		_M_##name##_list_unlock(log);                                  \
                                                                                \
 		oauth2_debug(log, "returning: %p, %p, %s", match,              \
 			     match ? match->mtype : NULL,                      \
@@ -442,11 +442,11 @@ oauth2_cfg_session_t *_oauth2_cfg_session_obtain(oauth2_log_t *log,
 		return match ? match->mtype : NULL;                            \
 	}                                                                      \
                                                                                \
-	void _oauth2_##name##_list_release(oauth2_log_t *log)                  \
+	static void _M_##name##_list_release(oauth2_log_t *log)                \
 	{                                                                      \
 		oauth2_##name##_list_t *ptr = NULL;                            \
                                                                                \
-		_oauth2_##name##_list_lock(log);                               \
+		_M_##name##_list_lock(log);                                    \
                                                                                \
 		while ((ptr = _oauth2_##name##_list)) {                        \
 			_oauth2_##name##_list = _oauth2_##name##_list->next;   \
@@ -456,7 +456,7 @@ oauth2_cfg_session_t *_oauth2_cfg_session_obtain(oauth2_log_t *log,
 			oauth2_mem_free(ptr);                                  \
 		}                                                              \
                                                                                \
-		_oauth2_##name##_list_unlock(log);                             \
+		_M_##name##_list_unlock(log);                                  \
                                                                                \
 		if (_oauth2_##name##_list_mutex != NULL) {                     \
 			oauth2_ipc_mutex_free(log,                             \
