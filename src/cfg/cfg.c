@@ -43,12 +43,12 @@ const char *oauth2_cfg_set_flag_slot(void *cfg, size_t offset,
 
 	if ((strcasecmp(value, OAUTH2_CFG_FLAG_ON) == 0) ||
 	    (strcasecmp(value, "true") == 0) || (strcasecmp(value, "1") == 0))
-		*fp = 1;
+		*fp = (oauth2_flag_t) true;
 	else if ((strcasecmp(value, OAUTH2_CFG_FLAG_OFF) == 0) ||
 		 (strcasecmp(value, "false") == 0) ||
-		 (strcasecmp(value, "0") == 0))
-		*fp = 0;
-	else
+		 (strcasecmp(value, "0") == 0)) {
+		*fp = (oauth2_flag_t) false;
+	} else
 		rv =
 		    "value must be \"true\", \"false\", \"1\", \"0\",  "
 		    "\"" OAUTH2_CFG_FLAG_ON "\" or \"" OAUTH2_CFG_FLAG_OFF "\"";

@@ -84,6 +84,8 @@ oauth2_openidc_client_clone(oauth2_log_t *log, oauth2_openidc_client_t *src)
 	dst->scope = oauth2_strdup(src->scope);
 	dst->token_endpoint_auth =
 	    oauth2_cfg_endpoint_auth_clone(log, src->token_endpoint_auth);
+	dst->ssl_verify = src->ssl_verify;
+	dst->http_timeout = src->http_timeout;
 
 end:
 
@@ -117,7 +119,7 @@ char *oauth2_openidc_client_set_options(oauth2_log_t *log,
 	    log, cfg->client, oauth2_nv_list_get(log, params, "scope"));
 
 	rv = oauth2_strdup(oauth2_cfg_set_flag_slot(
-	    cfg, offsetof(oauth2_openidc_client_t, ssl_verify),
+	    cfg->client, offsetof(oauth2_openidc_client_t, ssl_verify),
 	    oauth2_nv_list_get(log, params, "ssl_verify")));
 	if (rv != NULL)
 		goto end;

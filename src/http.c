@@ -706,6 +706,9 @@ static char *_oauth2_http_call_ctx2s(oauth2_log_t *log,
 		oauth2_mem_free(ctx->to_str);
 
 	ctx->to_str = oauth2_strdup("[");
+	ctx->to_str =
+	    oauth2_stradd(ctx->to_str, " ssl_verify", _OAUTH2_STR_EQUAL,
+			  ctx->ssl_verify ? "true" : "false");
 	if (ctx->basic_auth_username)
 		ctx->to_str =
 		    oauth2_stradd(ctx->to_str, " basic_auth_username",
