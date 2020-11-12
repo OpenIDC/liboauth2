@@ -78,6 +78,7 @@ liboauth2_la_SOURCES = \
 	src/openidc_int.h \
 	src/openidc/provider.c \
 	src/openidc/resolver.c \
+	src/openidc/client.c \
 	src/openidc/state.c \
 	src/openidc/openidc.c
 

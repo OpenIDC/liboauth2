@@ -40,6 +40,7 @@ oauth2_cfg_openidc_t *oauth2_cfg_openidc_init(oauth2_log_t *log)
 	c->state_cookie_name_prefix = NULL;
 	c->passphrase = NULL;
 	c->session = NULL;
+	c->client = NULL;
 
 end:
 
@@ -67,7 +68,7 @@ oauth2_cfg_openidc_t *oauth2_cfg_openidc_clone(oauth2_log_t *log,
 	    oauth2_strdup(src->state_cookie_name_prefix);
 	dst->passphrase = oauth2_strdup(src->passphrase);
 	dst->session = oauth2_cfg_session_clone(log, src->session);
-
+	dst->client = oauth2_openidc_client_clone(log, src->client);
 end:
 
 	return dst;
@@ -102,6 +103,9 @@ void oauth2_cfg_openidc_merge(oauth2_log_t *log, oauth2_cfg_openidc_t *cfg,
 	cfg->session = add->session
 			   ? oauth2_cfg_session_clone(log, add->session)
 			   : oauth2_cfg_session_clone(log, base->session);
+	cfg->client = add->client
+			  ? oauth2_openidc_client_clone(log, add->client)
+			  : oauth2_openidc_client_clone(log, base->client);
 
 end:
 
@@ -124,6 +128,8 @@ void oauth2_cfg_openidc_free(oauth2_log_t *log, oauth2_cfg_openidc_t *c)
 	if (c->provider_resolver)
 		oauth2_cfg_openidc_provider_resolver_free(log,
 							  c->provider_resolver);
+	if (c->client)
+		oauth2_openidc_client_free(log, c->client);
 	oauth2_mem_free(c);
 
 end:

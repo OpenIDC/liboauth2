@@ -134,6 +134,7 @@ bool _oauth2_openidc_state_cookie_set(oauth2_log_t *log,
 	bool rc = false;
 	char *name = NULL, *value = NULL, *target_link_uri = NULL;
 	oauth2_openidc_proto_state_t *proto_state = NULL;
+	const char *path = NULL;
 
 	name = oauth2_stradd(
 	    name, oauth2_openidc_cfg_state_cookie_name_prefix_get(log, cfg),
@@ -158,8 +159,10 @@ bool _oauth2_openidc_state_cookie_set(oauth2_log_t *log,
 		&value) == false)
 		goto end;
 
-	// TODO: get cookie path from config
-	rc = oauth2_http_response_cookie_set(log, response, name, value, "/");
+	path = oauth2_cfg_session_cookie_path_get(
+	    log, oauth2_cfg_openidc_session_get(log, cfg));
+
+	rc = oauth2_http_response_cookie_set(log, response, name, value, path);
 
 end:
 
@@ -183,6 +186,7 @@ bool _oauth2_openidc_state_cookie_get(
 	bool rc = false;
 	char *name = NULL, *value = NULL;
 	json_t *json = NULL;
+	const char *path = NULL;
 
 	name = oauth2_stradd(
 	    name, oauth2_openidc_cfg_state_cookie_name_prefix_get(log, cfg),
@@ -196,8 +200,10 @@ bool _oauth2_openidc_state_cookie_get(
 		goto end;
 	}
 
-	// TODO: get state cookie path from config
-	rc = oauth2_http_response_cookie_set(log, response, name, NULL, "/");
+	path = oauth2_cfg_session_cookie_path_get(
+	    log, oauth2_cfg_openidc_session_get(log, cfg));
+
+	rc = oauth2_http_response_cookie_set(log, response, name, NULL, path);
 
 	if (oauth2_jose_jwt_decrypt(log,
 				    oauth2_cfg_openidc_passphrase_get(log, cfg),

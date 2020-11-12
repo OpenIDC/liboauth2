@@ -6,10 +6,6 @@
   "revocation_endpoint": "https://pingfed:9031/as/revoke_token.oauth2",
   "userinfo_endpoint": "https://pingfed:9031/idp/userinfo.openid",
   "introspection_endpoint": "https://pingfed:9031/as/introspect.oauth2",
-  "jwks_uri": "https://pingfed:9031/pf/JWKS",
-
-   "client_id": "openidc0",
-   "client_secret": "secret",
-   "scope": "openid profile"
+  "jwks_uri": "https://pingfed:9031/pf/JWKS"
  }
  

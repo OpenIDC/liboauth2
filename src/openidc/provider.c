@@ -35,13 +35,8 @@ oauth2_openidc_provider_t *oauth2_openidc_provider_init(oauth2_log_t *log)
 	p->issuer = NULL;
 	p->authorization_endpoint = NULL;
 	p->token_endpoint = NULL;
-	p->token_endpoint_auth = NULL;
 	p->userinfo_endpoint = NULL;
 	p->jwks_uri = NULL;
-	p->scope = NULL;
-	p->client_id = NULL;
-	p->client_secret = NULL;
-	p->ssl_verify = true;
 
 end:
 
@@ -60,18 +55,10 @@ void oauth2_openidc_provider_free(oauth2_log_t *log,
 		oauth2_mem_free(p->authorization_endpoint);
 	if (p->token_endpoint)
 		oauth2_mem_free(p->token_endpoint);
-	if (p->token_endpoint_auth)
-		oauth2_cfg_endpoint_auth_free(log, p->token_endpoint_auth);
 	if (p->jwks_uri)
 		oauth2_mem_free(p->jwks_uri);
 	if (p->userinfo_endpoint)
 		oauth2_mem_free(p->userinfo_endpoint);
-	if (p->scope)
-		oauth2_mem_free(p->scope);
-	if (p->client_id)
-		oauth2_mem_free(p->client_id);
-	if (p->client_secret)
-		oauth2_mem_free(p->client_secret);
 
 	oauth2_mem_free(p);
 
@@ -87,11 +74,4 @@ _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, token_endpoint, char *,
 				      str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, userinfo_endpoint,
 				      char *, str)
-_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, token_endpoint_auth,
-				      oauth2_cfg_endpoint_auth_t *, ptr)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, jwks_uri, char *, str)
-_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, scope, char *, str)
-_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, client_id, char *, str)
-_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, client_secret, char *,
-				      str)
-_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, provider, ssl_verify, bool, bln)

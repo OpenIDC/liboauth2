@@ -344,16 +344,7 @@ static char *test_openidc_metadata_get()
 	    oauth2_stradd(_openidc_metadata, "\"userinfo_endpoint\": \"",
 			  userinfo_endpoint, "\",");
 	_openidc_metadata = oauth2_stradd(_openidc_metadata, "\"jwks_uri\": \"",
-					  jwks_uri, "\",");
-	_openidc_metadata =
-	    oauth2_stradd(_openidc_metadata,
-			  "\"token_endpoint_auth\": \"client_secret_post\","
-			  "\"client_id\": \"myclient\","
-			  "\"client_secret\": \"secret1234\","
-			  "\"scope\": \"openid profile\","
-			  "\"ssl_verify\": false"
-			  "}",
-			  NULL, NULL);
+					  jwks_uri, "\" }");
 
 	oauth2_mem_free(token_endpoint);
 	oauth2_mem_free(jwks_uri);
@@ -513,12 +504,16 @@ START_TEST(test_openidc_resolver)
 	    oauth2_openidc_provider_authorization_endpoint_get(_log, provider));
 	ck_assert_ptr_ne(
 	    NULL, oauth2_openidc_provider_token_endpoint_get(_log, provider));
+
+	/*
 	ck_assert_ptr_ne(NULL, oauth2_openidc_provider_token_endpoint_auth_get(
 				   _log, provider));
 	ck_assert_int_eq(
 	    false, oauth2_openidc_provider_ssl_verify_get(_log, provider));
+	    */
 	ck_assert_ptr_ne(NULL,
 			 oauth2_openidc_provider_jwks_uri_get(_log, provider));
+	/*
 	ck_assert_ptr_ne(NULL,
 			 oauth2_openidc_provider_scope_get(_log, provider));
 	ck_assert_ptr_ne(NULL,
@@ -528,6 +523,7 @@ START_TEST(test_openidc_resolver)
 
 	ck_assert_int_eq(
 	    true, oauth2_openidc_provider_ssl_verify_set(_log, provider, true));
+	    */
 	ck_assert_int_eq(true,
 			 oauth2_openidc_provider_authorization_endpoint_set(
 			     _log, provider, "https://other.org/authorize"));
@@ -536,13 +532,14 @@ START_TEST(test_openidc_resolver)
 	ck_assert_int_eq(true,
 			 oauth2_openidc_provider_jwks_uri_set(
 			     _log, provider, "https://other.org/jwks_uri"));
+	/*
 	ck_assert_int_eq(true, oauth2_openidc_provider_scope_set(
 				   _log, provider, "openid profile other"));
 	ck_assert_int_eq(true, oauth2_openidc_provider_client_id_set(
 				   _log, provider, "someclientid"));
 	ck_assert_int_eq(true, oauth2_openidc_provider_client_secret_set(
 				   _log, provider, "someclientsecret"));
-
+	*/
 	oauth2_openidc_provider_free(_log, provider);
 	provider = NULL;
 
@@ -562,34 +559,6 @@ START_TEST(test_openidc_resolver)
 	_test_openidc_resolve_to_false(
 	    c, r,
 	    "{ \"jwks_uri\": 0, \"token_endpoint\": "
-	    "\"https://example.org/authorize\", \"authorization_endpoint\": "
-	    "\"https://example.org/authorize\", \"issuer\": "
-	    "\"https://example.org\" }");
-	_test_openidc_resolve_to_false(
-	    c, r,
-	    "{ \"token_endpoint_auth\": 0, \"jwks_uri\": "
-	    "\"https://example.org/jwks_uri\", \"token_endpoint\": "
-	    "\"https://example.org/authorize\", \"authorization_endpoint\": "
-	    "\"https://example.org/authorize\", \"issuer\": "
-	    "\"https://example.org\" }");
-	_test_openidc_resolve_to_false(
-	    c, r,
-	    "{ \"scope\": 1, \"jwks_uri\": "
-	    "\"https://example.org/jwks_uri\", \"token_endpoint\": "
-	    "\"https://example.org/authorize\", \"authorization_endpoint\": "
-	    "\"https://example.org/authorize\", \"issuer\": "
-	    "\"https://example.org\" }");
-	_test_openidc_resolve_to_false(
-	    c, r,
-	    "{ \"client_id\": 1, \"jwks_uri\": "
-	    "\"https://example.org/jwks_uri\", \"token_endpoint\": "
-	    "\"https://example.org/authorize\", \"authorization_endpoint\": "
-	    "\"https://example.org/authorize\", \"issuer\": "
-	    "\"https://example.org\" }");
-	_test_openidc_resolve_to_false(
-	    c, r,
-	    "{  \"client_secret\": 1, \"client_id\": \"id\" , \"jwks_uri\": "
-	    "\"https://example.org/jwks_uri\", \"token_endpoint\": "
 	    "\"https://example.org/authorize\", \"authorization_endpoint\": "
 	    "\"https://example.org/authorize\", \"issuer\": "
 	    "\"https://example.org\" }");
@@ -773,6 +742,12 @@ START_TEST(test_openidc_handle_cookie)
 	    _log, c, "string", test_openidc_metadata_get(),
 	    "session=short_cookie");
 
+	oauth2_openidc_client_set_options(
+	    _log, c, "myclient",
+	    "token_endpoint_auth_method=client_secret_post&client_id=myclient&"
+	    "client_secret="
+	    "mysecret&scope=openid%20profile&ssl_verify=false");
+
 	_test_openidc_handle(c);
 
 	oauth2_cfg_openidc_free(_log, c);
@@ -802,6 +777,12 @@ START_TEST(test_openidc_handle_cache)
 	oauth2_cfg_openidc_provider_resolver_set_options(
 	    _log, c, "string", test_openidc_metadata_get(),
 	    "session=short_memory");
+
+	oauth2_openidc_client_set_options(
+	    _log, c, "myclient",
+	    "token_endpoint_auth_method=client_secret_post&client_id=myclient&"
+	    "client_secret="
+	    "mysecret&scope=openid%20profile&ssl_verify=false");
 
 	_test_openidc_handle(c);
 

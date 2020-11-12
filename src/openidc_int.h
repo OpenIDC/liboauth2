@@ -28,14 +28,19 @@ typedef struct oauth2_openidc_provider_t {
 	char *issuer;
 	char *authorization_endpoint;
 	char *token_endpoint;
-	oauth2_cfg_endpoint_auth_t *token_endpoint_auth;
 	char *jwks_uri;
 	char *userinfo_endpoint;
-	char *scope;
+} oauth2_openidc_provider_t;
+
+typedef struct oauth2_openidc_client_t {
 	char *client_id;
 	char *client_secret;
-	bool ssl_verify;
-} oauth2_openidc_provider_t;
+	char *scope;
+	oauth2_cfg_endpoint_auth_t *token_endpoint_auth;
+	oauth2_flag_t ssl_verify;
+	oauth2_uint_t http_timeout;
+	oauth2_openidc_provider_t *provider;
+} oauth2_openidc_client_t;
 
 #define _OAUTH2_OPENIDC_PROTO_STATE_KEY_ISSUER "i"
 #define _OAUTH2_OPENIDC_PROTO_STATE_KEY_TARGET_LINK_URI "l"

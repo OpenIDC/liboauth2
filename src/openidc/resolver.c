@@ -32,7 +32,6 @@ _oauth2_openidc_provider_metadata_parse(oauth2_log_t *log, const char *s_json,
 	bool rc = false;
 	json_t *json = NULL;
 	oauth2_openidc_provider_t *p = NULL;
-	char *rv = NULL, *token_endpoint_auth = NULL;
 
 	oauth2_debug(log, "enter");
 
@@ -46,8 +45,9 @@ _oauth2_openidc_provider_metadata_parse(oauth2_log_t *log, const char *s_json,
 	if (p == NULL)
 		goto end;
 
-	if (oauth2_json_string_get(log, json, "issuer", &p->issuer, NULL) ==
-	    false) {
+	if ((oauth2_json_string_get(log, json, "issuer", &p->issuer, NULL) ==
+	     false) ||
+	    (p->issuer == NULL)) {
 		oauth2_error(log, "could not parse issuer");
 		goto end;
 	}
@@ -72,46 +72,6 @@ _oauth2_openidc_provider_metadata_parse(oauth2_log_t *log, const char *s_json,
 		goto end;
 	}
 
-	p->ssl_verify = json_is_true(json_object_get(json, "ssl_verify"));
-
-	if (oauth2_json_string_get(log, json, "token_endpoint_auth",
-				   &token_endpoint_auth,
-				   "client_secret_basic") == false) {
-		oauth2_error(log, "could not parse token_endpoint_auth");
-		goto end;
-	}
-
-	// TODO: client file?
-
-	if (oauth2_json_string_get(log, json, "client_id", &p->client_id,
-				   NULL) == false) {
-		oauth2_error(log, "could not parse client_id");
-		goto end;
-	}
-	if (oauth2_json_string_get(log, json, "client_secret",
-				   &p->client_secret, NULL) == false) {
-		oauth2_error(log, "could not parse client_secret");
-		goto end;
-	}
-	if (oauth2_json_string_get(log, json, "scope", &p->scope, "openid") ==
-	    false) {
-		oauth2_error(log, "could not parse scope");
-		goto end;
-	}
-
-	// TODO:
-	oauth2_nv_list_t *params = oauth2_nv_list_init(log);
-	oauth2_nv_list_set(log, params, "client_id", p->client_id);
-	oauth2_nv_list_set(log, params, "client_secret", p->client_secret);
-	p->token_endpoint_auth = oauth2_cfg_endpoint_auth_init(log);
-	rv = oauth2_cfg_set_endpoint_auth(log, p->token_endpoint_auth,
-					  token_endpoint_auth, params, NULL);
-	oauth2_nv_list_free(log, params);
-	if (rv != NULL) {
-		oauth2_mem_free(rv);
-		goto end;
-	}
-
 	rc = true;
 
 end:
@@ -120,8 +80,6 @@ end:
 		oauth2_openidc_provider_free(log, *provider);
 		*provider = NULL;
 	}
-	if (token_endpoint_auth)
-		oauth2_mem_free(token_endpoint_auth);
 	if (json)
 		json_decref(json);
 

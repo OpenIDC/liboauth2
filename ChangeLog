@@ -1,3 +1,8 @@
+11/12/2020
+- separate OpenID client configs and named providers
+- fix parsing in oauth2_cfg_set_flag_slot
+- add configurable state and session cookie paths
+
 11/11/2020
 - fix session cache handler cloning
 - support configurable cookie path for session cookie

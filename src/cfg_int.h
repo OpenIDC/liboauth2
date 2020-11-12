@@ -260,6 +260,7 @@ typedef struct oauth2_cfg_openidc_t {
 	char *handler_path;
 	char *redirect_uri;
 	oauth2_cfg_openidc_provider_resolver_t *provider_resolver;
+	oauth2_openidc_client_t *client;
 	oauth2_unauth_action_t unauth_action;
 	char *state_cookie_name_prefix;
 	char *passphrase;

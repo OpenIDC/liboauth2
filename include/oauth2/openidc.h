@@ -86,14 +86,8 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, issuer, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, authorization_endpoint,
 				   char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, token_endpoint, char *)
-OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, token_endpoint_auth,
-				   oauth2_cfg_endpoint_auth_t *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, userinfo_endpoint, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, jwks_uri, char *)
-OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, scope, char *)
-OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, client_id, char *)
-OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, client_secret, char *)
-OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, ssl_verify, bool)
 
 bool oauth2_cfg_openidc_provider_resolver_set(
     oauth2_log_t *log, oauth2_cfg_openidc_t *cfg,
@@ -105,6 +99,31 @@ oauth2_cfg_openidc_provider_resolver_get(oauth2_log_t *log,
 char *oauth2_cfg_openidc_provider_resolver_set_options(
     oauth2_log_t *log, oauth2_cfg_openidc_t *cfg, const char *type,
     const char *value, const char *options);
+
+/*
+ * OpenID Connect client configuration
+ */
+
+OAUTH2_TYPE_DECLARE(openidc, client)
+
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, scope, char *)
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, client_id, char *)
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, client_secret, char *)
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, provider,
+				   oauth2_openidc_provider_t *)
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, token_endpoint_auth,
+				   oauth2_cfg_endpoint_auth_t *)
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, ssl_verify, oauth2_flag_t)
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, http_timeout, oauth2_uint_t)
+
+char *oauth2_openidc_client_set_options(oauth2_log_t *log,
+					oauth2_cfg_openidc_t *cfg,
+					const char *client_id,
+					const char *options);
+
+/*
+ * OpenID Connect configuration
+ */
 
 char *oauth2_cfg_openidc_redirect_uri_get_iss(
     oauth2_log_t *, const oauth2_cfg_openidc_t *, const oauth2_http_request_t *,
