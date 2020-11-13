@@ -48,6 +48,7 @@ typedef struct oauth2_openidc_client_t {
 #define _OAUTH2_OPENIDC_PROTO_STATE_KEY_RESPONSE_MODE "r"
 #define _OAUTH2_OPENIDC_PROTO_STATE_KEY_RESPONSE_TYPE "y"
 #define _OAUTH2_OPENIDC_PROTO_STATE_KEY_TIMESTAMP "t"
+#define _OAUTH2_OPENIDC_PROTO_STATE_KEY_PKCE "p"
 
 bool _oauth2_openidc_state_cookie_get(
     oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg,
@@ -58,7 +59,7 @@ bool _oauth2_openidc_state_cookie_set(oauth2_log_t *log,
 				      oauth2_openidc_provider_t *provider,
 				      const oauth2_http_request_t *request,
 				      oauth2_http_response_t *response,
-				      const char *state);
+				      const char *state, const char *pkce);
 bool _oauth2_openidc_state_validate(oauth2_log_t *log,
 				    const oauth2_cfg_openidc_t *cfg,
 				    oauth2_http_request_t *request,
@@ -66,6 +67,9 @@ bool _oauth2_openidc_state_validate(oauth2_log_t *log,
 				    oauth2_openidc_provider_t **provider);
 bool oauth2_openidc_proto_state_target_link_uri_get(
     oauth2_log_t *log, oauth2_openidc_proto_state_t *p, char **value);
+bool oauth2_openidc_proto_state_pkce_get(oauth2_log_t *log,
+					 oauth2_openidc_proto_state_t *p,
+					 char **value);
 
 bool _oauth2_openidc_provider_resolve(oauth2_log_t *log,
 				      const oauth2_cfg_openidc_t *cfg,

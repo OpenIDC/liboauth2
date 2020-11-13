@@ -423,7 +423,7 @@ START_TEST(test_openidc_proto_state)
 
 	response = oauth2_http_response_init(_log);
 	rc = _oauth2_openidc_state_cookie_set(_log, c, provider, r, response,
-					      "1234");
+					      "1234", "4321");
 	ck_assert_int_eq(rc, true);
 	cookie = oauth2_http_response_header_get(_log, response, "Set-Cookie");
 	ck_assert_ptr_ne(strstr(cookie, "openidc_state_1234="), NULL);
@@ -438,6 +438,12 @@ START_TEST(test_openidc_proto_state)
 	ck_assert_int_eq(rc, true);
 	ck_assert_ptr_ne(value, NULL);
 	ck_assert_str_eq(value, "https://example.org/secure");
+	oauth2_mem_free(value);
+	value = NULL;
+	rc = oauth2_openidc_proto_state_pkce_get(_log, p3, &value);
+	ck_assert_int_eq(rc, true);
+	ck_assert_ptr_ne(value, NULL);
+	ck_assert_str_eq(value, "4321");
 	oauth2_mem_free(value);
 	value = NULL;
 	oauth2_openidc_proto_state_free(_log, p3);

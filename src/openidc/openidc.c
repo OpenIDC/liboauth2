@@ -20,6 +20,7 @@
  **************************************************************************/
 
 #include "oauth2/openidc.h"
+#include "oauth2/jose.h"
 #include "oauth2/mem.h"
 #include "oauth2/oauth2.h"
 #include "oauth2/session.h"
@@ -29,6 +30,7 @@
 
 #define OAUTH2_STATE_LENGTH 16
 #define OAUTH2_NONCE_LENGTH 16
+#define OAUTH2_PKCE_LENGTH 48
 
 static bool _oauth2_openidc_authenticate(oauth2_log_t *log,
 					 const oauth2_cfg_openidc_t *cfg,
@@ -38,9 +40,11 @@ static bool _oauth2_openidc_authenticate(oauth2_log_t *log,
 	bool rc = false;
 	oauth2_openidc_provider_t *provider = NULL;
 	char *nonce = NULL, *state = NULL, *redirect_uri = NULL,
-	     *location = NULL;
+	     *location = NULL, *pkce = NULL, *code_challenge = NULL;
 	oauth2_nv_list_t *params = oauth2_nv_list_init(log);
 	char *client_id = NULL, *scope = NULL;
+	unsigned char *dst = NULL;
+	unsigned int dst_len = 0;
 
 	oauth2_debug(log, "enter");
 
@@ -75,13 +79,20 @@ static bool _oauth2_openidc_authenticate(oauth2_log_t *log,
 	state = oauth2_rand_str(log, OAUTH2_STATE_LENGTH);
 	oauth2_nv_list_add(log, params, OAUTH2_STATE, state);
 
+	pkce = oauth2_rand_str(log, OAUTH2_PKCE_LENGTH);
+	oauth2_jose_hash_bytes(log, "sha256", (const unsigned char *)pkce,
+			       strlen(pkce), &dst, &dst_len);
+	oauth2_base64url_encode(log, dst, dst_len, &code_challenge);
+	oauth2_nv_list_add(log, params, OAUTH2_CODE_CHALLENGE, code_challenge);
+	oauth2_nv_list_add(log, params, OAUTH2_CODE_CHALLENGE_METHOD, "S256");
+
 	// TODO: handle POST binding as well
 
 	if (*response == NULL)
 		goto end;
 
 	if (_oauth2_openidc_state_cookie_set(log, cfg, provider, request,
-					     *response, state) == false)
+					     *response, state, pkce) == false)
 		goto end;
 
 	location = oauth2_http_url_query_encode(
@@ -107,6 +118,12 @@ end:
 		oauth2_mem_free(location);
 	if (params)
 		oauth2_nv_list_free(log, params);
+	if (code_challenge)
+		oauth2_mem_free(code_challenge);
+	if (pkce)
+		oauth2_mem_free(pkce);
+	if (dst)
+		oauth2_mem_free(dst);
 
 	oauth2_debug(log, "return: %d", rc);
 
@@ -310,7 +327,8 @@ static bool _oauth2_openidc_token_request(oauth2_log_t *log,
 					  const oauth2_cfg_openidc_t *cfg,
 					  oauth2_http_request_t *request,
 					  oauth2_openidc_provider_t *provider,
-					  const char *code, char **s_id_token,
+					  const char *code, const char *pkce,
+					  char **s_id_token,
 					  char **s_access_token)
 {
 	bool rc = false;
@@ -332,6 +350,7 @@ static bool _oauth2_openidc_token_request(oauth2_log_t *log,
 			   OAUTH2_GRANT_TYPE_AUTHORIZATION_CODE);
 	oauth2_nv_list_add(log, params, OAUTH2_CODE, code);
 	oauth2_nv_list_add(log, params, OAUTH2_REDIRECT_URI, redirect_uri);
+	oauth2_nv_list_add(log, params, OAUTH2_CODE_VERIFIER, pkce);
 
 	if (_oauth2_openidc_token_endpoint_call(log, cfg->client, provider,
 						params, &json) == false)
@@ -437,7 +456,8 @@ static bool _oauth2_openidc_redirect_uri_handler(
 	bool rc = false;
 	oauth2_openidc_provider_t *provider = NULL;
 	const char *code = NULL, *state = NULL;
-	char *location = NULL, *s_id_token = NULL, *s_access_token = NULL;
+	char *location = NULL, *s_id_token = NULL, *s_access_token = NULL,
+	     *pkce = NULL;
 	json_t *id_token = NULL, *userinfo_claims = NULL;
 	oauth2_openidc_proto_state_t *proto_state = NULL;
 
@@ -475,8 +495,12 @@ static bool _oauth2_openidc_redirect_uri_handler(
 					   &provider) == false)
 		goto end;
 
+	if (oauth2_openidc_proto_state_pkce_get(log, proto_state, &pkce) ==
+	    false)
+		goto end;
+
 	if (_oauth2_openidc_token_request(log, cfg, request, provider, code,
-					  &s_id_token,
+					  pkce, &s_id_token,
 					  &s_access_token) == false)
 		goto end;
 
@@ -514,6 +538,8 @@ static bool _oauth2_openidc_redirect_uri_handler(
 
 end:
 
+	if (pkce)
+		oauth2_mem_free(pkce);
 	if (s_id_token)
 		oauth2_mem_free(s_id_token);
 	if (s_access_token)
