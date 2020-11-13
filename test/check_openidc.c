@@ -367,7 +367,6 @@ START_TEST(test_openidc_proto_state)
 	const char *cookie = NULL;
 
 	c = oauth2_cfg_openidc_init(_log);
-	oauth2_cfg_openidc_passphrase_set(_log, c, "mypassphrase1234");
 	oauth2_cfg_openidc_provider_resolver_set_options(
 	    _log, c, "string", test_openidc_metadata_get(), NULL);
 
@@ -583,8 +582,6 @@ static void _test_openidc_handle(oauth2_cfg_openidc_t *c)
 	char *state = NULL, *state_cookie_name = NULL, *state_cookie = NULL,
 	     *query_str = NULL, *session_cookie = NULL;
 	json_t *claims = NULL;
-
-	oauth2_cfg_openidc_passphrase_set(_log, c, "mypassphrase1234");
 
 	r = oauth2_http_request_init(_log);
 

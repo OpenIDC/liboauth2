@@ -46,7 +46,6 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, unauth_action,
 				   oauth2_unauth_action_t)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, state_cookie_name_prefix,
 				   char *)
-OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, passphrase, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, session,
 				   oauth2_cfg_session_t *)
 

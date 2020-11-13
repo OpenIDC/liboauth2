@@ -154,7 +154,7 @@ bool _oauth2_openidc_state_cookie_set(oauth2_log_t *log,
 	    log, provider, target_link_uri, request);
 
 	if (oauth2_jose_jwt_encrypt(
-		log, oauth2_cfg_openidc_passphrase_get(log, cfg),
+		log, oauth2_crypto_passphrase_get(log),
 		oauth2_openidc_proto_state_json_get(proto_state),
 		&value) == false)
 		goto end;
@@ -205,8 +205,7 @@ bool _oauth2_openidc_state_cookie_get(
 
 	rc = oauth2_http_response_cookie_set(log, response, name, NULL, path);
 
-	if (oauth2_jose_jwt_decrypt(log,
-				    oauth2_cfg_openidc_passphrase_get(log, cfg),
+	if (oauth2_jose_jwt_decrypt(log, oauth2_crypto_passphrase_get(log),
 				    value, &json) == false)
 		goto end;
 

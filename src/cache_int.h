@@ -31,6 +31,7 @@ typedef struct oauth2_cache_t {
 	char *key_hash_algo;
 	bool encrypt;
 	unsigned char *enc_key;
+	char *passphrase_hash_algo;
 } oauth2_cache_t;
 
 oauth2_cache_t *_oauth2_cache_init(oauth2_log_t *log, const char *type,

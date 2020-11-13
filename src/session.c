@@ -144,8 +144,8 @@ bool oauth2_session_load_cookie(oauth2_log_t *log,
 		goto end;
 	}
 
-	rc = oauth2_jose_jwt_decrypt(
-	    log, oauth2_cfg_session_passphrase_get(log, cfg), value, json);
+	rc = oauth2_jose_jwt_decrypt(log, oauth2_crypto_passphrase_get(log),
+				     value, json);
 
 end:
 
@@ -165,8 +165,7 @@ bool oauth2_session_save_cookie(oauth2_log_t *log,
 	;
 	char *value = NULL;
 
-	if (oauth2_jose_jwt_encrypt(log,
-				    oauth2_cfg_session_passphrase_get(log, cfg),
+	if (oauth2_jose_jwt_encrypt(log, oauth2_crypto_passphrase_get(log),
 				    json, &value) == false)
 		goto end;
 

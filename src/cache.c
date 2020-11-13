@@ -87,6 +87,8 @@ static void _oauth2_cache_free(oauth2_log_t *log, oauth2_cache_t *cache)
 		oauth2_mem_free(cache->key_hash_algo);
 	if (cache->enc_key)
 		oauth2_mem_free(cache->enc_key);
+	if (cache->passphrase_hash_algo)
+		oauth2_mem_free(cache->passphrase_hash_algo);
 
 	if (cache->type->free)
 		cache->type->free(log, cache);
@@ -104,9 +106,6 @@ oauth2_cache_t *_oauth2_cache_init(oauth2_log_t *log, const char *type,
 {
 	oauth2_cache_t *cache = NULL;
 	oauth2_cache_type_t *cache_type = NULL;
-	char *passphrase = NULL;
-	const char *passphrase_hash_algo = NULL;
-	unsigned int enc_key_len = -1;
 
 	_oauth2_cache_global_init(log);
 
@@ -131,6 +130,8 @@ oauth2_cache_t *_oauth2_cache_init(oauth2_log_t *log, const char *type,
 
 	cache->key_hash_algo =
 	    oauth2_strdup(oauth2_nv_list_get(log, params, "key_hash_algo"));
+	cache->passphrase_hash_algo = oauth2_strdup(
+	    oauth2_nv_list_get(log, params, "passphrase_hash_algo"));
 	cache->encrypt =
 	    oauth2_parse_bool(log, oauth2_nv_list_get(log, params, "encrypt"),
 			      cache->type->encrypt_by_default);
@@ -140,40 +141,12 @@ oauth2_cache_t *_oauth2_cache_init(oauth2_log_t *log, const char *type,
 		goto end;
 	}
 
-	passphrase =
-	    oauth2_strdup(oauth2_nv_list_get(log, params, "passphrase"));
-	if (passphrase == NULL)
-		// assumes that the cache parameters are configured in the same
-		// order on different cache sharing instances...
-		passphrase = oauth2_nv_list2s(log, params);
-
-	passphrase_hash_algo =
-	    oauth2_nv_list_get(log, params, "passphrase_hash_algo");
-	if (passphrase_hash_algo == NULL)
-		passphrase_hash_algo = OAUTH2_JOSE_OPENSSL_ALG_SHA256;
-
-	if (strcmp(passphrase_hash_algo, "none") == 0) {
-		cache->enc_key = (unsigned char *)oauth2_strdup(passphrase);
-	} else {
-		if (oauth2_jose_hash_bytes(log, passphrase_hash_algo,
-					   (const unsigned char *)passphrase,
-					   strlen(passphrase), &cache->enc_key,
-					   &enc_key_len) == false) {
-			oauth2_error(
-			    log, "could not hash cache encryption passphrase");
-			goto end;
-		}
-	}
-
 end:
 
 	if (cache)
 		_M_cache_list_register(log,
 				       oauth2_nv_list_get(log, params, "name"),
 				       cache, _oauth2_cache_free);
-
-	if (passphrase)
-		oauth2_mem_free(passphrase);
 
 	return cache;
 }
@@ -396,6 +369,42 @@ static const unsigned char OAUTH2_CACHE_CRYPTO_GCM_IV[] = {
 
 // TODO: static encryption/decryption context?
 
+const unsigned char *_oauth_cache_get_enc_key(oauth2_log_t *log,
+					      oauth2_cache_t *cache)
+{
+
+	const char *passphrase = NULL, *passphrase_hash_algo = NULL;
+	unsigned int enc_key_len = -1;
+
+	if (cache->enc_key != NULL)
+		goto end;
+
+	passphrase = oauth2_crypto_passphrase_get(log);
+	if (passphrase == NULL)
+		goto end;
+
+	passphrase_hash_algo = cache->passphrase_hash_algo
+				   ? passphrase_hash_algo
+				   : OAUTH2_JOSE_OPENSSL_ALG_SHA256;
+
+	if (strcmp(passphrase_hash_algo, "none") == 0) {
+		cache->enc_key = (unsigned char *)oauth2_strdup(passphrase);
+	} else {
+		if (oauth2_jose_hash_bytes(log, passphrase_hash_algo,
+					   (const unsigned char *)passphrase,
+					   strlen(passphrase), &cache->enc_key,
+					   &enc_key_len) == false) {
+			oauth2_error(
+			    log, "could not hash cache encryption passphrase");
+			goto end;
+		}
+	}
+
+end:
+
+	return cache->enc_key;
+}
+
 static int _oauth2_cache_encrypt_impl(oauth2_log_t *log, oauth2_cache_t *cache,
 				      unsigned char *plaintext,
 				      int plaintext_len,
@@ -428,7 +437,8 @@ static int _oauth2_cache_encrypt_impl(oauth2_log_t *log, oauth2_cache_t *cache,
 		goto end;
 	}
 
-	if (!EVP_EncryptInit_ex(ctx, NULL, NULL, cache->enc_key, iv)) {
+	if (!EVP_EncryptInit_ex(ctx, NULL, NULL,
+				_oauth_cache_get_enc_key(log, cache), iv)) {
 		oauth2_error(log, "EVP_EncryptInit_ex failed: %s",
 			     _OAUTH2_CACHE_OPENSSL_ERR);
 		goto end;
@@ -536,7 +546,8 @@ static int _oauth2_cache_decrypt_impl(oauth2_log_t *log, oauth2_cache_t *cache,
 		goto end;
 	}
 
-	if (!EVP_DecryptInit_ex(ctx, NULL, NULL, cache->enc_key, iv)) {
+	if (!EVP_DecryptInit_ex(ctx, NULL, NULL,
+				_oauth_cache_get_enc_key(log, cache), iv)) {
 		oauth2_error(log, "EVP_DecryptInit_ex failed: %s",
 			     _OAUTH2_CACHE_OPENSSL_ERR);
 		goto end;

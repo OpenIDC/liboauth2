@@ -30,6 +30,34 @@
 #define OAUTH2_CFG_FLAG_ON "on"
 #define OAUTH2_CFG_FLAG_OFF "off"
 
+static char *_crypto_passphrase = NULL;
+
+const char *oauth2_crypto_passphrase_set(oauth2_log_t *log,
+					 const char *passphrase)
+{
+	if (_crypto_passphrase != NULL)
+		oauth2_mem_free(_crypto_passphrase);
+	_crypto_passphrase = oauth2_strdup(passphrase);
+	return NULL;
+}
+
+#define OAUTH2_CFG_DEFAULT_CRYPTO_PASSPHRASE_LEN 12
+
+const char *oauth2_crypto_passphrase_get(oauth2_log_t *log)
+{
+	char *p = NULL;
+	if (_crypto_passphrase == NULL) {
+		oauth2_warn(log,
+			    "no crypto passphrase configured, generating one: "
+			    "configure it statically to survive restarts");
+		p = oauth2_rand_str(log,
+				    OAUTH2_CFG_DEFAULT_CRYPTO_PASSPHRASE_LEN);
+		oauth2_crypto_passphrase_set(log, p);
+		oauth2_mem_free(p);
+	}
+	return _crypto_passphrase;
+}
+
 const char *oauth2_cfg_set_flag_slot(void *cfg, size_t offset,
 				     const char *value)
 {

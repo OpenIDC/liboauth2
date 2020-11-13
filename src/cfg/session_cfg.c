@@ -24,6 +24,7 @@
 
 #include "cache_int.h"
 #include "cfg_int.h"
+#include "util_int.h"
 
 _OAUTH2_CFG_GLOBAL_LIST(session, oauth2_cfg_session_t)
 
@@ -40,8 +41,6 @@ oauth2_cfg_session_t *oauth2_cfg_session_init(oauth2_log_t *log)
 	session->cookie_path = NULL;
 	session->inactivity_timeout_s = OAUTH2_CFG_TIME_UNSET;
 	session->max_duration_s = OAUTH2_CFG_TIME_UNSET;
-
-	session->passphrase = NULL;
 
 	session->cache = NULL;
 
@@ -66,7 +65,6 @@ oauth2_cfg_session_t *oauth2_cfg_session_clone(oauth2_log_t *log,
 	dst->inactivity_timeout_s = src->inactivity_timeout_s;
 	dst->max_duration_s = src->max_duration_s;
 
-	dst->passphrase = oauth2_strdup(src->passphrase);
 	dst->cache = src->cache;
 
 	dst->load_callback = src->load_callback;
@@ -88,8 +86,6 @@ void oauth2_cfg_session_free(oauth2_log_t *log, oauth2_cfg_session_t *session)
 		oauth2_mem_free(session->cookie_name);
 	if (session->cookie_path)
 		oauth2_mem_free(session->cookie_path);
-	if (session->passphrase)
-		oauth2_mem_free(session->passphrase);
 	oauth2_mem_free(session);
 }
 
@@ -171,17 +167,6 @@ char *oauth2_cfg_session_cookie_path_get(oauth2_log_t *log,
 	return cfg->cookie_path;
 }
 
-// TODO: there most probably should NOT be a default for this setting
-#define OAUTH2_SESSION_PASSPHRASE_DEFAULT "blabla1234"
-
-char *oauth2_cfg_session_passphrase_get(oauth2_log_t *log,
-					const oauth2_cfg_session_t *cfg)
-{
-	if ((cfg == NULL) || (cfg->passphrase == NULL))
-		return OAUTH2_SESSION_PASSPHRASE_DEFAULT;
-	return cfg->passphrase;
-}
-
 oauth2_session_load_callback_t *
 oauth2_cfg_session_load_callback_get(oauth2_log_t *log,
 				     const oauth2_cfg_session_t *cfg)
@@ -216,9 +201,6 @@ _OAUTH_CFG_CTX_CALLBACK(oauth2_cfg_session_set_options_cookie)
 	cfg->type = OAUTH2_SESSION_TYPE_COOKIE;
 	cfg->load_callback = oauth2_session_load_cookie;
 	cfg->save_callback = oauth2_session_save_cookie;
-
-	cfg->passphrase =
-	    oauth2_strdup(oauth2_nv_list_get(log, params, "passphrase"));
 
 	oauth2_debug(log, "leave: %s", rv);
 

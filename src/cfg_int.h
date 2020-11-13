@@ -231,8 +231,6 @@ typedef struct oauth2_cfg_session_t {
 	oauth2_time_t inactivity_timeout_s;
 	oauth2_time_t max_duration_s;
 
-	char *passphrase;
-
 	oauth2_cache_t *cache;
 
 	oauth2_session_load_callback_t *load_callback;
@@ -263,7 +261,6 @@ typedef struct oauth2_cfg_openidc_t {
 	oauth2_openidc_client_t *client;
 	oauth2_unauth_action_t unauth_action;
 	char *state_cookie_name_prefix;
-	char *passphrase;
 	oauth2_cfg_session_t *session;
 } oauth2_cfg_openidc_t;
 

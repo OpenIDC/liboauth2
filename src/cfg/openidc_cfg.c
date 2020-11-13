@@ -38,7 +38,6 @@ oauth2_cfg_openidc_t *oauth2_cfg_openidc_init(oauth2_log_t *log)
 	c->provider_resolver = NULL;
 	c->unauth_action = OAUTH2_UNAUTH_ACTION_UNDEFINED;
 	c->state_cookie_name_prefix = NULL;
-	c->passphrase = NULL;
 	c->session = NULL;
 	c->client = NULL;
 
@@ -66,7 +65,6 @@ oauth2_cfg_openidc_t *oauth2_cfg_openidc_clone(oauth2_log_t *log,
 	dst->unauth_action = src->unauth_action;
 	dst->state_cookie_name_prefix =
 	    oauth2_strdup(src->state_cookie_name_prefix);
-	dst->passphrase = oauth2_strdup(src->passphrase);
 	dst->session = oauth2_cfg_session_clone(log, src->session);
 	dst->client = oauth2_openidc_client_clone(log, src->client);
 end:
@@ -98,7 +96,6 @@ void oauth2_cfg_openidc_merge(oauth2_log_t *log, oauth2_cfg_openidc_t *cfg,
 	_OAUTH_CFG_MERGE_VALUE(cfg, base, add, unauth_action,
 			       OAUTH2_UNAUTH_ACTION_UNDEFINED)
 	_OAUTH_CFG_MERGE_STRING(cfg, base, add, state_cookie_name_prefix);
-	_OAUTH_CFG_MERGE_STRING(cfg, base, add, passphrase);
 
 	cfg->session = add->session
 			   ? oauth2_cfg_session_clone(log, add->session)
@@ -123,8 +120,6 @@ void oauth2_cfg_openidc_free(oauth2_log_t *log, oauth2_cfg_openidc_t *c)
 		oauth2_mem_free(c->redirect_uri);
 	if (c->state_cookie_name_prefix)
 		oauth2_mem_free(c->state_cookie_name_prefix);
-	if (c->passphrase)
-		oauth2_mem_free(c->passphrase);
 	if (c->provider_resolver)
 		oauth2_cfg_openidc_provider_resolver_free(log,
 							  c->provider_resolver);
@@ -141,7 +136,6 @@ _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(cfg, openidc, handler_path, char *, str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(cfg, openidc, redirect_uri, char *, str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(cfg, openidc, state_cookie_name_prefix,
 				  char *, str)
-_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(cfg, openidc, passphrase, char *, str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(cfg, openidc, session,
 				      oauth2_cfg_session_t *, ptr)
 
