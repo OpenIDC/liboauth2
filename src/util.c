@@ -960,6 +960,15 @@ end:
 	return dst;
 }
 
+void oauth2_nv_list_merge_into(oauth2_log_t *log,
+			       const oauth2_nv_list_t *source,
+			       oauth2_nv_list_t *target)
+{
+	if (source) {
+		oauth2_nv_list_loop(log, source, _oauth2_nv_list_copy, target);
+	}
+}
+
 /*
  * JSON
  */

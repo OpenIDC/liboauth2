@@ -276,5 +276,7 @@ oauth2_cfg_ropc_get_token_endpoint(oauth2_cfg_ropc_t *cfg);
 const char *oauth2_cfg_ropc_get_client_id(oauth2_cfg_ropc_t *cfg);
 const char *oauth2_cfg_ropc_get_username(oauth2_cfg_ropc_t *cfg);
 const char *oauth2_cfg_ropc_get_password(oauth2_cfg_ropc_t *cfg);
+const oauth2_nv_list_t *
+oauth2_cfg_ropc_get_request_parameters(oauth2_cfg_ropc_t *cfg);
 
 #endif /* _OAUTH2_CFG_H_ */

@@ -461,7 +461,8 @@ bool oauth2_ropc_exec(oauth2_log_t *log, oauth2_cfg_ropc_t *cfg,
 				   username);
 	oauth2_nv_list_add(log, params, OAUTH2_PROTO_ROPC_PASSWORD, password);
 
-	// TODO: merge configurable endpoint parameters
+	oauth2_nv_list_merge_into(
+	    log, oauth2_cfg_ropc_get_request_parameters(cfg), params);
 
 	ctx = oauth2_http_call_ctx_init(log);
 	if (ctx == NULL)

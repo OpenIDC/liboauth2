@@ -123,6 +123,9 @@ typedef bool(oauth2_nv_list_loop_cb_t)(oauth2_log_t *log, void *rec,
 void oauth2_nv_list_loop(oauth2_log_t *log, const oauth2_nv_list_t *list,
 			 oauth2_nv_list_loop_cb_t *callback, void *rec);
 char *oauth2_nv_list2s(oauth2_log_t *log, const oauth2_nv_list_t *list);
+void oauth2_nv_list_merge_into(oauth2_log_t *log,
+			       const oauth2_nv_list_t *source,
+			       oauth2_nv_list_t *target);
 
 oauth2_log_t *oauth2_init(oauth2_log_level_t level, oauth2_log_sink_t *sink);
 void oauth2_shutdown(oauth2_log_t *);

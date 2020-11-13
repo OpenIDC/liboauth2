@@ -192,6 +192,7 @@ typedef struct oauth2_cfg_ropc_t {
 	char *client_id;
 	char *username;
 	char *password;
+	oauth2_nv_list_t *request_parameters;
 } oauth2_cfg_ropc_t;
 
 oauth2_cfg_ropc_t *oauth2_cfg_ropc_init(oauth2_log_t *log)
@@ -206,6 +207,7 @@ oauth2_cfg_ropc_t *oauth2_cfg_ropc_init(oauth2_log_t *log)
 	ropc->client_id = NULL;
 	ropc->username = NULL;
 	ropc->password = NULL;
+	ropc->request_parameters = NULL;
 
 end:
 
@@ -225,6 +227,8 @@ void oauth2_cfg_ropc_free(oauth2_log_t *log, oauth2_cfg_ropc_t *ropc)
 		oauth2_mem_free(ropc->username);
 	if (ropc->password)
 		oauth2_mem_free(ropc->password);
+	if (ropc->request_parameters)
+		oauth2_nv_list_free(log, ropc->request_parameters);
 
 	oauth2_mem_free(ropc);
 
@@ -248,6 +252,8 @@ void oauth2_cfg_ropc_merge(oauth2_log_t *log, oauth2_cfg_ropc_t *dst,
 	dst->client_id = oauth2_strdup(src->client_id);
 	dst->username = oauth2_strdup(src->username);
 	dst->password = oauth2_strdup(src->password);
+	dst->request_parameters =
+	    oauth2_nv_list_clone(log, src->request_parameters);
 
 end:
 
@@ -268,6 +274,8 @@ oauth2_cfg_ropc_t *oauth2_cfg_ropc_clone(oauth2_log_t *log,
 	dst->client_id = oauth2_strdup(src->client_id);
 	dst->username = oauth2_strdup(src->username);
 	dst->password = oauth2_strdup(src->password);
+	dst->request_parameters =
+	    oauth2_nv_list_clone(log, src->request_parameters);
 
 end:
 
@@ -319,6 +327,15 @@ char *oauth2_cfg_set_ropc(oauth2_log_t *log, oauth2_cfg_ropc_t *cfg,
 			goto end;
 	}
 
+	value = oauth2_nv_list_get(log, params, "params");
+	if (value) {
+		if (oauth2_parse_form_encoded_params(
+			log, value, &cfg->request_parameters) == false) {
+			rv =
+			    oauth2_strdup("could not parse request parameters");
+			goto end;
+		}
+	}
 end:
 
 	if (params)
@@ -340,6 +357,12 @@ const char *oauth2_cfg_ropc_get_client_id(oauth2_cfg_ropc_t *cfg)
 	if ((cfg == NULL) || (cfg->client_id == NULL))
 		return OAUTH2_CFG_ROPC_CLIENT_ID_DEFAULT;
 	return cfg->client_id;
+}
+
+const oauth2_nv_list_t *
+oauth2_cfg_ropc_get_request_parameters(oauth2_cfg_ropc_t *cfg)
+{
+	return cfg->request_parameters;
 }
 
 const char *oauth2_cfg_ropc_get_username(oauth2_cfg_ropc_t *cfg)
