@@ -244,10 +244,9 @@ char *oauth2_cfg_session_set_options(oauth2_log_t *log,
 	oauth2_nv_list_t *params = NULL;
 	const char *value = NULL;
 
-	if (cfg == NULL) {
-		rv = oauth2_strdup("internal error: cfg is null");
-		goto end;
-	}
+	if (cfg == NULL)
+		// global
+		cfg = oauth2_cfg_session_init(log);
 
 	rv = oauth2_cfg_set_options(log, cfg, type, NULL, options,
 				    _oauth2_cfg_session_options_set);

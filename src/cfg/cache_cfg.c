@@ -24,7 +24,7 @@
 #include "cache_int.h"
 #include "cfg_int.h"
 
-char *oauth2_cfg_set_cache(oauth2_log_t *log, const char *type,
+char *oauth2_cfg_set_cache(oauth2_log_t *log, void *dummy, const char *type,
 			   const char *options)
 {
 	char *rv = NULL;

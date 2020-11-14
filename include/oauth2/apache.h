@@ -144,36 +144,43 @@ int oauth2_apache_post_config(apr_pool_t *pool, apr_pool_t *p1, apr_pool_t *p2,
  * directory config
  */
 
-#define OAUTH2_APACHE_CMD_ARGS1(type, member)                                  \
-	static const char *apache_##type##_set_##member(                       \
+#define OAUTH2_APACHE_CMD_ARGS1(module, type, primitive, func, member)         \
+	static const char *apache_##module##_set_##primitive(                  \
 	    cmd_parms *cmd, void *m, const char *v1)                           \
 	{                                                                      \
-		const char *rv = NULL;                                         \
-		oauth2_##type##_t *cfg = (oauth2_##type##_t *)m;               \
-		rv = type##_set_##member(cfg, v1);                             \
-		return rv;                                                     \
+		oauth2_apache_cfg_srv_t *srv_cfg = ap_get_module_config(       \
+		    cmd->server->module_config, &module##_module);             \
+		type *cfg = (type *)m;                                         \
+		(void)cfg;                                                     \
+		return func(srv_cfg->log, member, v1);                         \
 	}
 
-#define OAUTH2_APACHE_CMD_ARGS2(type, member)                                  \
-	static const char *apache_##type##_set_##member(                       \
+#define OAUTH2_APACHE_CMD_ARGS2(module, type, primitive, func, member)         \
+	static const char *apache_##module##_set_##primitive(                  \
 	    cmd_parms *cmd, void *m, const char *v1, const char *v2)           \
 	{                                                                      \
-		const char *rv = NULL;                                         \
-		oauth2_##type##_t *cfg = (oauth2_##type##_t *)m;               \
-		rv = type##_set_##member(cfg, v1, v2);                         \
-		return rv;                                                     \
+		oauth2_apache_cfg_srv_t *srv_cfg = ap_get_module_config(       \
+		    cmd->server->module_config, &module##_module);             \
+		type *cfg = (type *)m;                                         \
+		(void)cfg;                                                     \
+		return func(srv_cfg->log, member, v1, v2);                     \
 	}
 
-#define OAUTH2_APACHE_CMD_ARGS23(type, member)                                 \
-	static const char *apache_##type##_set_##member(                       \
+#define OAUTH2_APACHE_CMD_ARGS3(module, type, primitive, func, member)         \
+	static const char *apache_##module##_set_##primitive(                  \
 	    cmd_parms *cmd, void *m, const char *v1, const char *v2,           \
 	    const char *v3)                                                    \
 	{                                                                      \
-		const char *rv = NULL;                                         \
-		oauth2_##type##_t *cfg = (oauth2_##type##_t *)m;               \
-		rv = type##_set_##member(cfg, v1, v2, v3);                     \
-		return rv;                                                     \
+		oauth2_apache_cfg_srv_t *srv_cfg = ap_get_module_config(       \
+		    cmd->server->module_config, &module##_module);             \
+		type *cfg = (type *)m;                                         \
+		(void)cfg;                                                     \
+		return func(srv_cfg->log, member, v1, v2, v3);                 \
 	}
+
+#define OAUTH2_APACHE_CMD_ARGS(module, nargs, cmd, member, desc)               \
+	AP_INIT_TAKE##nargs(cmd, apache_##module##_set_##member, NULL,         \
+			    RSRC_CONF | ACCESS_CONF | OR_AUTHCFG, desc)
 
 #define OAUTH2_APACHE_DIR_CTX(type, method) oauth2_##type##_dir_##method
 

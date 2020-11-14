@@ -32,7 +32,7 @@
 
 static char *_crypto_passphrase = NULL;
 
-const char *oauth2_crypto_passphrase_set(oauth2_log_t *log,
+const char *oauth2_crypto_passphrase_set(oauth2_log_t *log, void *dummy,
 					 const char *passphrase)
 {
 	if (_crypto_passphrase != NULL)
@@ -52,7 +52,7 @@ const char *oauth2_crypto_passphrase_get(oauth2_log_t *log)
 			    "configure it statically to survive restarts");
 		p = oauth2_rand_str(log,
 				    OAUTH2_CFG_DEFAULT_CRYPTO_PASSPHRASE_LEN);
-		oauth2_crypto_passphrase_set(log, p);
+		oauth2_crypto_passphrase_set(log, NULL, p);
 		oauth2_mem_free(p);
 	}
 	return _crypto_passphrase;

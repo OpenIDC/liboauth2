@@ -52,7 +52,7 @@ const char *oauth2_cfg_set_str_slot(void *cfg, size_t offset,
 	    oauth2_##module##_##object##_t *,                                  \
 	    oauth2_##module##_##object##_t *);
 
-const char *oauth2_crypto_passphrase_set(oauth2_log_t *log,
+const char *oauth2_crypto_passphrase_set(oauth2_log_t *log, void *dummy,
 					 const char *passphrase);
 const char *oauth2_crypto_passphrase_get(oauth2_log_t *log);
 
@@ -60,7 +60,7 @@ const char *oauth2_crypto_passphrase_get(oauth2_log_t *log);
  * cache
  */
 
-char *oauth2_cfg_set_cache(oauth2_log_t *log, const char *type,
+char *oauth2_cfg_set_cache(oauth2_log_t *log, void *dummy, const char *type,
 			   const char *options);
 
 /*

@@ -48,7 +48,7 @@
 
 // functions
 
-#define OAUTH2_NGINX_CFG_FUNC_START(type, member, module, primitive)           \
+#define OAUTH2_NGINX_CFG_FUNC_START(module, type, primitive)                   \
 	static char *ngx_##module##_set_##primitive(                           \
 	    ngx_conf_t *cf, ngx_command_t *cmd, void *conf)                    \
 	{                                                                      \
@@ -63,18 +63,18 @@
 	return rv ? NGX_CONF_ERROR : NGX_CONF_OK;                              \
 	}
 
-#define OAUTH2_NGINX_CFG_FUNC_ARGS1(type, member, module, primitive)           \
-	OAUTH2_NGINX_CFG_FUNC_START(type, member, module, primitive)           \
+#define OAUTH2_NGINX_CFG_FUNC_ARGS1(module, type, primitive, func, member)     \
+	OAUTH2_NGINX_CFG_FUNC_START(module, type, primitive)                   \
 	char *v1 = cf->args->nelts > 1                                         \
 		       ? oauth2_strndup((const char *)value[1].data,           \
 					(size_t)value[1].len)                  \
 		       : NULL;                                                 \
-	rv = module##_set_##primitive(cfg->cfg, v1);                           \
+	rv = func(cfg->log, member, v1);                                       \
 	oauth2_mem_free(v1);                                                   \
 	OAUTH2_NGINX_CFG_FUNC_END(cf, rv)
 
-#define OAUTH2_NGINX_CFG_FUNC_ARGS2(type, member, module, primitive)           \
-	OAUTH2_NGINX_CFG_FUNC_START(type, member, module, primitive)           \
+#define OAUTH2_NGINX_CFG_FUNC_ARGS2(module, type, primitive, func, member)     \
+	OAUTH2_NGINX_CFG_FUNC_START(module, type, primitive)                   \
 	char *v1 = cf->args->nelts > 1                                         \
 		       ? oauth2_strndup((const char *)value[1].data,           \
 					(size_t)value[1].len)                  \
@@ -83,13 +83,13 @@
 		       ? oauth2_strndup((const char *)value[2].data,           \
 					(size_t)value[2].len)                  \
 		       : NULL;                                                 \
-	rv = module##_set_##primitive(cfg->cfg, v1, v2);                       \
+	rv = func(cfg->log, member, v1, v2);                                   \
 	oauth2_mem_free(v2);                                                   \
 	oauth2_mem_free(v1);                                                   \
 	OAUTH2_NGINX_CFG_FUNC_END(cf, rv)
 
-#define OAUTH2_NGINX_CFG_FUNC_ARGS3(type, member, module, primitive)           \
-	OAUTH2_NGINX_CFG_FUNC_START(type, member, module, primitive)           \
+#define OAUTH2_NGINX_CFG_FUNC_ARGS3(module, type, primitive, func, member)     \
+	OAUTH2_NGINX_CFG_FUNC_START(module, type, primitive)                   \
 	char *v1 = cf->args->nelts > 1                                         \
 		       ? oauth2_strndup((const char *)value[1].data,           \
 					(size_t)value[1].len)                  \
@@ -102,7 +102,7 @@
 		       ? oauth2_strndup((const char *)value[3].data,           \
 					(size_t)value[3].len)                  \
 		       : NULL;                                                 \
-	rv = module##_set_##primitive(cfg->cfg, v1, v2, v3);                   \
+	rv = func(cfg->log, member, v1, v2, v3);                               \
 	oauth2_mem_free(v3);                                                   \
 	oauth2_mem_free(v2);                                                   \
 	oauth2_mem_free(v1);                                                   \
@@ -110,28 +110,13 @@
 
 // commands
 
-#define OAUTH2_NGINX_CMD(module, directive, primitive, take)                   \
+#define OAUTH2_NGINX_CMD(take, module, directive, primitive)                   \
 	{                                                                      \
-		ngx_string(directive), NGX_HTTP_LOC_CONF | take,               \
+		ngx_string(directive),                                         \
+		    NGX_HTTP_LOC_CONF | NGX_CONF_TAKE##take,                   \
 		    ngx_##module##_set_##primitive, NGX_HTTP_LOC_CONF_OFFSET,  \
 		    0, NULL                                                    \
 	}
-
-#define OAUTH2_NGINX_CMD_TAKE1(module, directive, primitive)                   \
-	OAUTH2_NGINX_CMD(module, directive, primitive, NGX_CONF_TAKE1)
-
-#define OAUTH2_NGINX_CMD_TAKE12(module, directive, primitive)                  \
-	OAUTH2_NGINX_CMD(module, directive, primitive, NGX_CONF_TAKE12)
-
-#define OAUTH2_NGINX_CMD_TAKE23(module, directive, primitive)                  \
-	OAUTH2_NGINX_CMD(module, directive, primitive, NGX_CONF_TAKE23)
-
-#define OAUTH2_NGINX_CMD_TAKE123(module, directive, primitive)                 \
-	OAUTH2_NGINX_CMD(module, directive, primitive, NGX_CONF_TAKE123)
-
-#define OAUTH2_NGINX_CMD_TAKE34(module, directive, primitive)                  \
-	OAUTH2_NGINX_CMD(module, directive, primitive,                         \
-			 NGX_CONF_TAKE3 | NGX_CONF_TAKE4)
 
 // logging
 
