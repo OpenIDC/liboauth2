@@ -117,7 +117,7 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, http_timeout, oauth2_uint_t)
 
 char *oauth2_openidc_client_set_options(oauth2_log_t *log,
 					oauth2_cfg_openidc_t *cfg,
-					const char *client_id,
+					const char *type, const char *value,
 					const char *options);
 
 /*

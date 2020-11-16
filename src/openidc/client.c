@@ -92,44 +92,160 @@ end:
 	return dst;
 }
 
-char *oauth2_openidc_client_set_options(oauth2_log_t *log,
-					oauth2_cfg_openidc_t *cfg,
-					const char *client_id,
-					const char *options)
+static char *_oauth2_openidc_client_metadata_parse(
+    oauth2_log_t *log, oauth2_cfg_openidc_t *cfg, const char *s_json,
+    const oauth2_nv_list_t *params)
 {
 	char *rv = NULL;
-	oauth2_nv_list_t *params = NULL;
+	json_t *json = NULL;
+	oauth2_cfg_endpoint_auth_t *auth = NULL;
+	char *value = NULL;
+
+	oauth2_debug(log, "enter");
+
+	if (oauth2_json_decode_object(log, s_json, &json) == false) {
+		rv = oauth2_strdup("could not parse json object");
+		goto end;
+	}
+
+	cfg->client = oauth2_openidc_client_init(log);
+	if (cfg->client == NULL)
+		goto end;
+
+	if ((oauth2_json_string_get(log, json, "client_id", &value, NULL) ==
+	     false) ||
+	    (value == NULL)) {
+		rv = oauth2_strdup("could not parse client_id");
+		goto end;
+	}
+	if (value) {
+		oauth2_openidc_client_client_id_set(log, cfg->client, value);
+		oauth2_mem_free(value);
+	}
+
+	if (oauth2_json_string_get(log, json, "client_secret", &value, NULL) ==
+	    false) {
+		rv = oauth2_strdup("could not parse client_secret");
+		goto end;
+	}
+	if (value) {
+		oauth2_openidc_client_client_secret_set(log, cfg->client,
+							value);
+		oauth2_mem_free(value);
+	}
+
+	if (oauth2_json_string_get(log, json, "scope", &value, NULL) == false) {
+		rv = oauth2_strdup("could not parse scope");
+		goto end;
+	}
+	if (value) {
+		oauth2_openidc_client_scope_set(log, cfg->client, value);
+		oauth2_mem_free(value);
+	}
+
+	auth = oauth2_cfg_endpoint_auth_init(log);
+
+	if (oauth2_json_string_get(log, json, "token_endpoint_auth_method",
+				   &value, NULL) == false) {
+		rv =
+		    oauth2_strdup("could not parse token_endpoint_auth_method");
+		goto end;
+	}
+
+	if (value == NULL)
+		goto end;
+
+	// TODO: token endpoint auth options (e.g. jwk for private_key_jwt) must
+	// be in JSON now... merge with params from options instead of value
+	// only... (e.g. client key/cert)?
+	rv = oauth2_cfg_set_endpoint_auth(log, auth, value, params, NULL);
+
+	if (rv != NULL) {
+		oauth2_cfg_endpoint_auth_free(log, auth);
+		goto end;
+	}
+
+	oauth2_openidc_client_token_endpoint_auth_set(log, cfg->client, auth);
+
+end:
+
+	if ((rv != NULL) && (cfg->client)) {
+		oauth2_openidc_client_free(log, cfg->client);
+		cfg->client = NULL;
+	}
+	if (json)
+		json_decref(json);
+
+	oauth2_debug(log, "leave: %s", rv);
+
+	return rv;
+}
+
+static char *
+_oauth2_openidc_client_set_options_file(oauth2_log_t *log, const char *filename,
+					const oauth2_nv_list_t *params, void *c)
+{
+	oauth2_cfg_openidc_t *cfg = (oauth2_cfg_openidc_t *)c;
+	char *s_json = NULL;
+	char *rv = NULL;
+
+	s_json = oauth_read_file(log, filename);
+	if (s_json == NULL)
+		goto end;
+
+	rv = _oauth2_openidc_client_metadata_parse(log, cfg, s_json, params);
+
+end:
+
+	if (s_json)
+		oauth2_mem_free(s_json);
+
+	return rv;
+}
+
+static char *
+_oauth2_openidc_client_set_options_json(oauth2_log_t *log, const char *value,
+					const oauth2_nv_list_t *params, void *c)
+{
+	oauth2_cfg_openidc_t *cfg = (oauth2_cfg_openidc_t *)c;
+	return _oauth2_openidc_client_metadata_parse(log, cfg, value, params);
+}
+
+static char *
+_oauth2_openidc_client_set_options_string(oauth2_log_t *log, const char *value,
+					  const oauth2_nv_list_t *params,
+					  void *c)
+{
+	oauth2_cfg_openidc_t *cfg = (oauth2_cfg_openidc_t *)c;
+	char *rv = NULL;
+	oauth2_nv_list_t *client_params = NULL;
 	oauth2_cfg_endpoint_auth_t *auth = NULL;
 
 	oauth2_debug(log, "enter");
 
-	if (cfg->client) {
-		oauth2_openidc_client_free(log, cfg->client);
-		cfg->client = NULL;
+	if (oauth2_parse_form_encoded_params(log, value, &client_params) ==
+	    false) {
+		rv = oauth2_strdup("could not parse parameters");
+		goto end;
 	}
 
-	oauth2_parse_form_encoded_params(log, options, &params);
-
-	cfg->client = oauth2_openidc_client_init(log);
-
-	oauth2_openidc_client_client_id_set(log, cfg->client, client_id);
+	oauth2_openidc_client_client_id_set(
+	    log, cfg->client,
+	    oauth2_nv_list_get(log, client_params, "client_id"));
 	oauth2_openidc_client_client_secret_set(
-	    log, cfg->client, oauth2_nv_list_get(log, params, "client_secret"));
+	    log, cfg->client,
+	    oauth2_nv_list_get(log, client_params, "client_secret"));
 	oauth2_openidc_client_scope_set(
-	    log, cfg->client, oauth2_nv_list_get(log, params, "scope"));
-
-	rv = oauth2_strdup(oauth2_cfg_set_flag_slot(
-	    cfg->client, offsetof(oauth2_openidc_client_t, ssl_verify),
-	    oauth2_nv_list_get(log, params, "ssl_verify")));
-	if (rv != NULL)
-		goto end;
+	    log, cfg->client, oauth2_nv_list_get(log, client_params, "scope"));
 
 	auth = oauth2_cfg_endpoint_auth_init(log);
 
+	// TODO: merge client_params and params?
 	rv = oauth2_cfg_set_endpoint_auth(
 	    log, auth,
-	    oauth2_nv_list_get(log, params, "token_endpoint_auth_method"),
-	    params, NULL);
+	    oauth2_nv_list_get(log, client_params,
+			       "token_endpoint_auth_method"),
+	    client_params, NULL);
 
 	if (rv == NULL)
 		oauth2_openidc_client_token_endpoint_auth_set(log, cfg->client,
@@ -139,8 +255,8 @@ char *oauth2_openidc_client_set_options(oauth2_log_t *log,
 
 end:
 
-	if (params)
-		oauth2_nv_list_free(log, params);
+	if (client_params)
+		oauth2_nv_list_free(log, client_params);
 
 	oauth2_debug(log, "leave: %d");
 
@@ -159,3 +275,61 @@ _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, client, ssl_verify,
 				      oauth2_flag_t, bln)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, client, http_timeout,
 				      oauth2_uint_t, uint)
+
+#define OAUTH2_OPENIDC_RESOLVER_STRING_STR "string"
+#define OAUTH2_OPENIDC_RESOLVER_JSON_STR "json"
+#define OAUTH2_OPENIDC_RESOLVER_FILE_STR "file"
+
+// clang-format off
+static oauth2_cfg_set_options_ctx_t _oauth2_cfg_client_resolver_options_set[] = {
+	{ OAUTH2_OPENIDC_RESOLVER_STRING_STR, _oauth2_openidc_client_set_options_string },
+	{ OAUTH2_OPENIDC_RESOLVER_JSON_STR, _oauth2_openidc_client_set_options_json },
+	{ OAUTH2_OPENIDC_RESOLVER_FILE_STR, _oauth2_openidc_client_set_options_file },
+	{ NULL, NULL }
+};
+// clang-format on
+
+char *oauth2_openidc_client_set_options(oauth2_log_t *log,
+					oauth2_cfg_openidc_t *cfg,
+					const char *type, const char *value,
+					const char *options)
+{
+	char *rv = NULL;
+	oauth2_nv_list_t *params = NULL;
+
+	if (cfg->client) {
+		oauth2_openidc_client_free(log, cfg->client);
+		cfg->client = NULL;
+	}
+
+	if (oauth2_parse_form_encoded_params(log, options, &params) == false) {
+		rv = oauth2_strdup("could not parse parameters");
+		goto end;
+	}
+
+	cfg->client = oauth2_openidc_client_init(log);
+
+	oauth2_parse_form_encoded_params(log, options, &params);
+	cfg->session = _oauth2_cfg_session_obtain(
+	    log, oauth2_nv_list_get(log, params, "session"));
+	if (cfg->session == NULL) {
+		rv = oauth2_strdup("could not configure session");
+		goto end;
+	}
+
+	rv = oauth2_strdup(oauth2_cfg_set_flag_slot(
+	    cfg->client, offsetof(oauth2_openidc_client_t, ssl_verify),
+	    oauth2_nv_list_get(log, params, "ssl_verify")));
+	if (rv != NULL)
+		goto end;
+
+	rv = oauth2_cfg_set_options(log, cfg, type, value, options,
+				    _oauth2_cfg_client_resolver_options_set);
+
+end:
+
+	if (params)
+		oauth2_nv_list_free(log, params);
+
+	return rv;
+}
