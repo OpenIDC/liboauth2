@@ -28,66 +28,82 @@ START_TEST(test_flag_slot)
 	rv = oauth2_cfg_set_flag_slot(
 	    NULL, offsetof(test_flag_slot_struct, flag), NULL);
 	ck_assert_ptr_ne(rv, NULL);
+	ck_assert_uint_eq(st.flag, OAUTH2_CFG_FLAG_UNSET);
 
 	rv = oauth2_cfg_set_flag_slot(
 	    &st, offsetof(test_flag_slot_struct, flag), NULL);
 	ck_assert_ptr_ne(rv, NULL);
+	ck_assert_uint_eq(st.flag, OAUTH2_CFG_FLAG_UNSET);
 
 	rv = oauth2_cfg_set_flag_slot(
 	    &st, offsetof(test_flag_slot_struct, flag), "");
 	ck_assert_ptr_ne(rv, NULL);
+	ck_assert_uint_eq(st.flag, OAUTH2_CFG_FLAG_UNSET);
 
 	rv = oauth2_cfg_set_flag_slot(
 	    &st, offsetof(test_flag_slot_struct, flag), "true");
 	ck_assert_ptr_eq(rv, NULL);
+	ck_assert_uint_eq(st.flag, true);
 
 	rv = oauth2_cfg_set_flag_slot(
 	    &st, offsetof(test_flag_slot_struct, flag), "false");
 	ck_assert_ptr_eq(rv, NULL);
+	ck_assert_uint_eq(st.flag, false);
 
 	rv = oauth2_cfg_set_flag_slot(
 	    &st, offsetof(test_flag_slot_struct, flag), "True");
 	ck_assert_ptr_eq(rv, NULL);
+	ck_assert_uint_eq(st.flag, true);
 
 	rv = oauth2_cfg_set_flag_slot(
 	    &st, offsetof(test_flag_slot_struct, flag), "False");
 	ck_assert_ptr_eq(rv, NULL);
+	ck_assert_uint_eq(st.flag, false);
 
 	rv = oauth2_cfg_set_flag_slot(
 	    &st, offsetof(test_flag_slot_struct, flag), "TRUE");
 	ck_assert_ptr_eq(rv, NULL);
+	ck_assert_uint_eq(st.flag, true);
 
 	rv = oauth2_cfg_set_flag_slot(
 	    &st, offsetof(test_flag_slot_struct, flag), "FALSE");
 	ck_assert_ptr_eq(rv, NULL);
+	ck_assert_uint_eq(st.flag, false);
 
 	rv = oauth2_cfg_set_flag_slot(
 	    &st, offsetof(test_flag_slot_struct, flag), "0");
 	ck_assert_ptr_eq(rv, NULL);
+	ck_assert_uint_eq(st.flag, false);
 
 	rv = oauth2_cfg_set_flag_slot(
 	    &st, offsetof(test_flag_slot_struct, flag), "1");
 	ck_assert_ptr_eq(rv, NULL);
+	ck_assert_uint_eq(st.flag, true);
 
 	rv = oauth2_cfg_set_flag_slot(
 	    &st, offsetof(test_flag_slot_struct, flag), "2");
 	ck_assert_ptr_ne(rv, NULL);
+	ck_assert_uint_eq(st.flag, OAUTH2_CFG_FLAG_UNSET);
 
 	rv = oauth2_cfg_set_flag_slot(
 	    &st, offsetof(test_flag_slot_struct, flag), "On");
 	ck_assert_ptr_eq(rv, NULL);
+	ck_assert_uint_eq(st.flag, true);
 
 	rv = oauth2_cfg_set_flag_slot(
 	    &st, offsetof(test_flag_slot_struct, flag), "Off");
 	ck_assert_ptr_eq(rv, NULL);
+	ck_assert_uint_eq(st.flag, false);
 
 	rv = oauth2_cfg_set_flag_slot(
 	    &st, offsetof(test_flag_slot_struct, flag), "ON");
 	ck_assert_ptr_eq(rv, NULL);
+	ck_assert_uint_eq(st.flag, true);
 
 	rv = oauth2_cfg_set_flag_slot(
 	    &st, offsetof(test_flag_slot_struct, flag), "OFF");
 	ck_assert_ptr_eq(rv, NULL);
+	ck_assert_uint_eq(st.flag, false);
 }
 END_TEST
 
