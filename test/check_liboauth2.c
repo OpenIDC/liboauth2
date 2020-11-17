@@ -325,6 +325,7 @@ int main(void)
 	srunner_add_suite(sr, oauth2_check_version_suite());
 	srunner_add_suite(sr, oauth2_check_mem_suite());
 	srunner_add_suite(sr, oauth2_check_log_suite());
+	srunner_add_suite(sr, oauth2_check_cfg_suite());
 	srunner_add_suite(sr, oauth2_check_util_suite());
 	srunner_add_suite(sr, oauth2_check_ipc_suite());
 	srunner_add_suite(sr, oauth2_check_cache_suite());

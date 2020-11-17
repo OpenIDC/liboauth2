@@ -181,6 +181,7 @@ check_liboauth2_SOURCES = \
 	test/check_version.c \
 	test/check_mem.c \
 	test/check_log.c \
+	test/check_cfg.c \
 	test/check_util.c \
 	test/check_ipc.c \
 	test/check_cache.c \

@@ -45,7 +45,7 @@ static void teardown(void)
 START_TEST(test_cache_bogus)
 {
 	char *rv = NULL;
-	rv = oauth2_cfg_set_cache(_log, "bogus", NULL);
+	rv = oauth2_cfg_set_cache(_log, NULL, "bogus", NULL);
 	ck_assert_ptr_ne(rv, NULL);
 	oauth2_mem_free(rv);
 }
@@ -104,7 +104,8 @@ START_TEST(test_cache_shm)
 	oauth2_cache_t *c = NULL;
 	char *rv = NULL;
 
-	rv = oauth2_cfg_set_cache(_log, "shm", "max_val_size=16&max_entries=2");
+	rv = oauth2_cfg_set_cache(_log, NULL, "shm",
+				  "max_val_size=16&max_entries=2");
 	ck_assert_ptr_eq(rv, NULL);
 	c = oauth2_cache_obtain(_log, NULL);
 	ck_assert_ptr_ne(c, NULL);
@@ -129,7 +130,7 @@ START_TEST(test_cache_shm)
 	ck_assert_int_eq(rc, false);
 
 	rv = oauth2_cfg_set_cache(
-	    _log, "shm",
+	    _log, NULL, "shm",
 	    "name=short_key_size&key_hash_algo=none&max_key_size=8");
 	ck_assert_ptr_eq(rv, NULL);
 	c = oauth2_cache_obtain(_log, "short_key_size");
@@ -151,7 +152,7 @@ START_TEST(test_cache_file)
 	char *rv = NULL;
 
 	rv = oauth2_cfg_set_cache(
-	    _log, "file", "name=file&key_hash_algo=none&max_key_size=8");
+	    _log, NULL, "file", "name=file&key_hash_algo=none&max_key_size=8");
 	ck_assert_ptr_eq(rv, NULL);
 	c = oauth2_cache_obtain(_log, "file");
 	ck_assert_ptr_ne(c, NULL);
@@ -186,7 +187,7 @@ START_TEST(test_cache_redis)
 	oauth2_cache_t *c = NULL;
 	char *rv = NULL;
 
-	rv = oauth2_cfg_set_cache(_log, "redis", "name=redis");
+	rv = oauth2_cfg_set_cache(_log, NULL, "redis", "name=redis");
 	ck_assert_ptr_eq(rv, NULL);
 	c = oauth2_cache_obtain(_log, "redis");
 	ck_assert_ptr_ne(c, NULL);

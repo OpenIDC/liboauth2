@@ -746,10 +746,11 @@ START_TEST(test_openidc_handle_cookie)
 	    "session=short_cookie");
 
 	oauth2_openidc_client_set_options(
-	    _log, c, "myclient",
+	    _log, c, "string",
 	    "token_endpoint_auth_method=client_secret_post&client_id=myclient&"
 	    "client_secret="
-	    "mysecret&scope=openid%20profile&ssl_verify=false");
+	    "mysecret&scope=openid%20profile",
+	    "ssl_verify=false");
 
 	_test_openidc_handle(c);
 
@@ -767,7 +768,8 @@ START_TEST(test_openidc_handle_cache)
 
 	c = oauth2_cfg_openidc_init(_log);
 
-	rv = oauth2_cfg_set_cache(_log, "shm", "name=memory&max_entries=5");
+	rv = oauth2_cfg_set_cache(_log, NULL, "shm",
+				  "name=memory&max_entries=5");
 	ck_assert_ptr_eq(rv, NULL);
 	cache = oauth2_cache_obtain(_log, NULL);
 	ck_assert_ptr_ne(cache, NULL);
@@ -782,10 +784,11 @@ START_TEST(test_openidc_handle_cache)
 	    "session=short_memory");
 
 	oauth2_openidc_client_set_options(
-	    _log, c, "myclient",
+	    _log, c, "string",
 	    "token_endpoint_auth_method=client_secret_post&client_id=myclient&"
 	    "client_secret="
-	    "mysecret&scope=openid%20profile&ssl_verify=false");
+	    "mysecret&scope=openid%20profile",
+	    "ssl_verify=false");
 
 	_test_openidc_handle(c);
 

@@ -32,6 +32,7 @@
 Suite *oauth2_check_version_suite();
 Suite *oauth2_check_mem_suite();
 Suite *oauth2_check_log_suite();
+Suite *oauth2_check_cfg_suite();
 Suite *oauth2_check_util_suite();
 Suite *oauth2_check_ipc_suite();
 Suite *oauth2_check_cache_suite();
