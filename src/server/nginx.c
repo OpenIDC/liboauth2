@@ -231,35 +231,52 @@ void oauth2_nginx_request_context_free(void *rec)
 	}
 }
 
+static bool oauth2_nginx_response_header_set(oauth2_log_t *log, void *rec,
+					     const char *name,
+					     const char *value)
+{
+	bool rc = false;
+	ngx_table_elt_t *h = NULL;
+	ngx_http_request_t *r = (ngx_http_request_t *)rec;
+
+	h = ngx_list_push(&r->headers_out.headers);
+	if (h == NULL)
+		goto end;
+
+	h->hash = 1;
+	h->key.len = strlen(name);
+	h->key.data = ngx_palloc(r->pool, h->key.len);
+	memcpy(h->key.data, name, h->key.len);
+	h->value.len = strlen(value);
+	h->value.data = ngx_palloc(r->pool, h->value.len);
+	memcpy(h->value.data, value, h->value.len);
+
+	rc = true;
+
+end:
+
+	return rc;
+}
+
 ngx_int_t oauth2_nginx_http_response_set(oauth2_log_t *log,
 					 oauth2_http_response_t *response,
 					 ngx_http_request_t *r)
 {
 	ngx_int_t nrc = NGX_ERROR;
-	// ngx_table_elt_t *h = NULL;
 
 	if ((response == NULL) || (r == NULL))
 		goto end;
 
-	//	oauth2_http_response_headers_loop(log, response,
-	//				  oauth2_nginx_response_header_set, r);
+	oauth2_http_response_headers_loop(log, response,
+					  oauth2_nginx_response_header_set, r);
 
 	r->headers_out.status =
 	    oauth2_http_response_status_code_get(log, response);
 
-	nrc = ngx_http_send_header(r);
+	// nrc = ngx_http_send_header(r);
+	nrc = NGX_OK;
 
 end:
 
 	return nrc;
 }
-
-// clang-format off
-/*
-oauth2_cfg_server_callback_funcs_t oauth2_nginx_server_callback_funcs = {
-    _oauth2_nginx_env_get_cb,
-	_oauth2_nginx_env_set_cb,
-    _oauth2_nginx_read_form_post
-};
-*/
-// clang-format on
