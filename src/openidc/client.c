@@ -308,8 +308,6 @@ char *oauth2_openidc_client_set_options(oauth2_log_t *log,
 	}
 
 	cfg->client = oauth2_openidc_client_init(log);
-
-	oauth2_parse_form_encoded_params(log, options, &params);
 	cfg->session = _oauth2_cfg_session_obtain(
 	    log, oauth2_nv_list_get(log, params, "session"));
 	if (cfg->session == NULL) {
