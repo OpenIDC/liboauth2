@@ -25,6 +25,7 @@
 #include "cfg_int.h"
 #include "util_int.h"
 
+#include <errno.h>
 #include <limits.h>
 
 #define OAUTH2_CFG_FLAG_ON "on"
@@ -88,6 +89,44 @@ end:
 	return rv;
 }
 
+static const char *_oauth2_cfg_parse_long_uint(const char *value,
+					       long int *rvalue)
+{
+	const char *rv = NULL;
+	char *endptr = NULL;
+	long int v = 0;
+
+	if ((value == NULL) || (rvalue == NULL)) {
+		rv = "internal error: value or rvalue is NULL";
+		goto end;
+	}
+
+	errno = 0;
+	v = strtol(value, &endptr, 10);
+
+	if (endptr == value)
+		rv = "strtol: no digits found";
+	else if ((errno == ERANGE) && (v == LONG_MIN))
+		rv = "strtol: underflow occurred";
+	else if ((errno == ERANGE) && (v == LONG_MAX))
+		rv = "strtol: overflow occurred";
+	else if (errno == EINVAL)
+		rv = "strtol: invalid, base contains unsupported value";
+	else if ((errno != 0) && (v == 0))
+		rv = "strtol: invalid, unspecified error occurred";
+	else if ((errno == 0) && (*endptr != '\0'))
+		rv = "strtol: valid, but additional characters remain";
+	else if (v < 0) {
+		rv = "strtol: negative value found";
+	} else if ((errno == 0) && (*endptr == '\0')) {
+		*rvalue = v;
+	}
+
+end:
+
+	return rv;
+}
+
 const char *oauth2_cfg_set_uint_slot(void *cfg, size_t offset,
 				     const char *value)
 {
@@ -95,19 +134,14 @@ const char *oauth2_cfg_set_uint_slot(void *cfg, size_t offset,
 	oauth2_uint_t *fp = NULL;
 	long int v = 0;
 
-	if (value == NULL)
-		goto end;
-
-	v = strtol(value, NULL, 10);
-
-	if (v == LONG_MIN) {
-		rv = "strtol underflow";
+	if (cfg == NULL) {
+		rv = "internal error: struct is NULL";
 		goto end;
 	}
-	if (v == LONG_MAX) {
-		rv = "strtol overflow";
+
+	rv = _oauth2_cfg_parse_long_uint(value, &v);
+	if (rv != NULL)
 		goto end;
-	}
 
 	fp = (oauth2_uint_t *)((char *)cfg + offset);
 	*fp = (oauth2_uint_t)v;
@@ -124,19 +158,14 @@ const char *oauth2_cfg_set_time_slot(void *cfg, size_t offset,
 	oauth2_time_t *fp = NULL;
 	long int v = 0;
 
-	if (value == NULL)
-		goto end;
-
-	v = strtol(value, NULL, 10);
-
-	if (v == LONG_MIN) {
-		rv = "strtol underflow";
+	if (cfg == NULL) {
+		rv = "internal error: struct is NULL";
 		goto end;
 	}
-	if (v == LONG_MAX) {
-		rv = "strtol overflow";
+
+	rv = _oauth2_cfg_parse_long_uint(value, &v);
+	if (rv != NULL)
 		goto end;
-	}
 
 	fp = (oauth2_time_t *)((char *)cfg + offset);
 	*fp = (oauth2_time_t)v;
@@ -151,8 +180,10 @@ const char *oauth2_cfg_set_str_slot(void *cfg, size_t offset, const char *value)
 	const char *rv = NULL;
 	char **fp = NULL;
 
-	if (value == NULL)
+	if ((cfg == NULL) || (value == NULL)) {
+		rv = "internal error: struct or value is NULL";
 		goto end;
+	}
 
 	fp = (char **)((char *)cfg + offset);
 	*fp = oauth2_strdup(value);
