@@ -153,27 +153,27 @@ end:
 
 oauth2_cache_t *oauth2_cache_obtain(oauth2_log_t *log, const char *name)
 {
-	oauth2_cache_t *rv = NULL;
+	oauth2_cache_t *c = NULL;
 
 	oauth2_debug(log, "enter: %s", name);
 
 	if (_M_cache_list_empty(log)) {
-		rv = _oauth2_cache_init(log, NULL, NULL);
-		if (rv == NULL)
+		c = _oauth2_cache_init(log, NULL, NULL);
+		if (c == NULL)
 			goto end;
-		if (_oauth2_cache_post_config(log, rv) == false) {
-			rv = NULL;
+		if (_oauth2_cache_post_config(log, c) == false) {
+			c = NULL;
 			goto end;
 		}
 	}
 
-	rv = _M_cache_list_get(log, name);
+	c = _M_cache_list_get(log, name);
 
 end:
 
-	oauth2_debug(log, "leave: %p", rv);
+	oauth2_debug(log, "leave: %p", c);
 
-	return rv;
+	return c;
 }
 
 void _oauth2_cache_global_cleanup(oauth2_log_t *log)
