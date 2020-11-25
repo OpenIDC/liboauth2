@@ -1,7 +1,9 @@
 #include <check.h>
 
-#include "cfg_int.h"
+#include "oauth2/cfg.h"
 #include <oauth2/mem.h>
+
+#include "cfg_int.h"
 
 static oauth2_log_t *_log = 0;
 
@@ -146,6 +148,53 @@ START_TEST(test_uint_slot)
 }
 END_TEST
 
+START_TEST(test_target_pass)
+{
+
+	oauth2_cfg_target_pass_t *cfg = NULL, *cfg2 = NULL, *cfg3 = NULL;
+	char *rv = NULL;
+
+	cfg = oauth2_cfg_target_pass_init(_log);
+	ck_assert_ptr_ne(cfg, NULL);
+
+	rv = oauth2_cfg_set_target_pass_options(_log, NULL, NULL);
+	ck_assert_ptr_ne(rv, NULL);
+	oauth2_mem_free(rv);
+
+	ck_assert_uint_eq(oauth2_cfg_target_pass_get_as_envvars(cfg), true);
+	ck_assert_uint_eq(oauth2_cfg_target_pass_get_as_headers(cfg), true);
+	ck_assert_ptr_eq(oauth2_cfg_target_pass_get_authn_header(cfg), NULL);
+	ck_assert_str_eq(oauth2_cfg_target_pass_get_prefix(cfg),
+			 "OAUTH2_CLAIM_");
+	ck_assert_str_eq(oauth2_cfg_target_get_remote_user_claim(cfg), "sub");
+
+	rv = oauth2_cfg_set_target_pass_options(
+	    _log, cfg,
+	    "envvars=false&headers=false&authn_header=auth&prefix=oidc&remote_"
+	    "user_claim=preferred_username");
+	ck_assert_ptr_eq(rv, NULL);
+
+	ck_assert_uint_eq(oauth2_cfg_target_pass_get_as_envvars(cfg), false);
+	ck_assert_uint_eq(oauth2_cfg_target_pass_get_as_headers(cfg), false);
+	ck_assert_str_eq(oauth2_cfg_target_pass_get_authn_header(cfg), "auth");
+	ck_assert_str_eq(oauth2_cfg_target_pass_get_prefix(cfg), "oidc");
+	ck_assert_str_eq(oauth2_cfg_target_get_remote_user_claim(cfg),
+			 "preferred_username");
+
+	oauth2_cfg_target_pass_merge(_log, NULL, NULL, NULL);
+
+	cfg2 = oauth2_cfg_target_pass_init(_log);
+	ck_assert_ptr_ne(cfg2, NULL);
+	cfg3 = oauth2_cfg_target_pass_init(_log);
+	ck_assert_ptr_ne(cfg3, NULL);
+	oauth2_cfg_target_pass_merge(_log, cfg2, cfg, cfg3);
+
+	oauth2_cfg_target_pass_free(_log, cfg3);
+	oauth2_cfg_target_pass_free(_log, cfg2);
+	oauth2_cfg_target_pass_free(_log, cfg);
+}
+END_TEST
+
 Suite *oauth2_check_cfg_suite()
 {
 	Suite *s = suite_create("cfg");
@@ -155,6 +204,7 @@ Suite *oauth2_check_cfg_suite()
 
 	tcase_add_test(c, test_flag_slot);
 	tcase_add_test(c, test_uint_slot);
+	tcase_add_test(c, test_target_pass);
 
 	suite_add_tcase(s, c);
 
