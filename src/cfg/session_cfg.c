@@ -49,7 +49,7 @@ oauth2_cfg_session_t *oauth2_cfg_session_init(oauth2_log_t *log)
 
 	return session;
 }
-
+/*
 oauth2_cfg_session_t *oauth2_cfg_session_clone(oauth2_log_t *log,
 					       oauth2_cfg_session_t *src)
 {
@@ -73,7 +73,7 @@ oauth2_cfg_session_t *oauth2_cfg_session_clone(oauth2_log_t *log,
 end:
 	return dst;
 }
-
+*/
 // void oauth2_cfg_session_merge(
 //	    oauth2_log_t *log, oauth2_cfg_session_t *cfg,
 //	    oauth2_cfg_session_t *add,

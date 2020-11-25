@@ -35,7 +35,7 @@ START_TEST(test_flag_slot)
 
 	rv = oauth2_cfg_set_flag_slot(&st, offsetof(test_cfg_slot_struct, flag),
 				      NULL);
-	ck_assert_ptr_ne(rv, NULL);
+	ck_assert_ptr_eq(rv, NULL);
 	ck_assert_uint_eq(st.flag, OAUTH2_CFG_FLAG_UNSET);
 
 	rv = oauth2_cfg_set_flag_slot(&st, offsetof(test_cfg_slot_struct, flag),

@@ -149,7 +149,7 @@ bool _oauth2_openidc_state_cookie_set(oauth2_log_t *log,
 	const char *path = NULL;
 
 	name = oauth2_stradd(
-	    name, oauth2_openidc_cfg_state_cookie_name_prefix_get(log, cfg),
+	    name, oauth2_cfg_openidc_state_cookie_name_prefix_get(log, cfg),
 	    state, NULL);
 	if (name == NULL)
 		goto end;
@@ -201,7 +201,7 @@ bool _oauth2_openidc_state_cookie_get(
 	const char *path = NULL;
 
 	name = oauth2_stradd(
-	    name, oauth2_openidc_cfg_state_cookie_name_prefix_get(log, cfg),
+	    name, oauth2_cfg_openidc_state_cookie_name_prefix_get(log, cfg),
 	    state, NULL);
 	if (name == NULL)
 		goto end;

@@ -65,10 +65,13 @@ const char *oauth2_cfg_set_flag_slot(void *cfg, size_t offset,
 	const char *rv = NULL;
 	oauth2_flag_t *fp = NULL;
 
-	if ((cfg == NULL) || (value == NULL)) {
-		rv = "internal error: struct or value is NULL";
+	if (cfg == NULL) {
+		rv = "internal error: struct is NULL";
 		goto end;
 	}
+
+	if (value == NULL)
+		goto end;
 
 	fp = (oauth2_flag_t *)((char *)cfg + offset);
 

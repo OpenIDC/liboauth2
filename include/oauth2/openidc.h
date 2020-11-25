@@ -40,7 +40,7 @@ OAUTH2_CFG_TYPE_DECLARE(cfg, openidc_provider_resolver)
 
 OAUTH2_CFG_TYPE_DECLARE(cfg, openidc)
 
-OAUTH2_TYPE_DECLARE_MEMBER_SET(cfg, openidc, handler_path, char *)
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, handler_path, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET(cfg, openidc, redirect_uri, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, unauth_action,
 				   oauth2_unauth_action_t)
@@ -119,6 +119,8 @@ char *oauth2_openidc_client_set_options(oauth2_log_t *log,
 					oauth2_cfg_openidc_t *cfg,
 					const char *type, const char *value,
 					const char *options);
+
+OAUTH2_TYPE_DECLARE_MEMBER_GET(cfg, openidc, client, oauth2_openidc_client_t *)
 
 /*
  * OpenID Connect configuration

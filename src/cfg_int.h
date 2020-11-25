@@ -264,11 +264,6 @@ typedef struct oauth2_cfg_openidc_t {
 	oauth2_cfg_session_t *session;
 } oauth2_cfg_openidc_t;
 
-#define OAUTH2_OPENIDC_STATE_COOKIE_NAME_PREFIX_DEFAULT "openidc_state_"
-
-char *oauth2_openidc_cfg_state_cookie_name_prefix_get(
-    oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg);
-
 /*
  * generic
  */

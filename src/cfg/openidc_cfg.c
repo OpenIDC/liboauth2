@@ -65,7 +65,7 @@ oauth2_cfg_openidc_t *oauth2_cfg_openidc_clone(oauth2_log_t *log,
 	dst->unauth_action = src->unauth_action;
 	dst->state_cookie_name_prefix =
 	    oauth2_strdup(src->state_cookie_name_prefix);
-	dst->session = oauth2_cfg_session_clone(log, src->session);
+	dst->session = src->session;
 	dst->client = oauth2_openidc_client_clone(log, src->client);
 end:
 
@@ -87,7 +87,6 @@ void oauth2_cfg_openidc_merge(oauth2_log_t *log, oauth2_cfg_openidc_t *cfg,
 
 	_OAUTH_CFG_MERGE_STRING(cfg, base, add, handler_path);
 	_OAUTH_CFG_MERGE_STRING(cfg, base, add, redirect_uri);
-	_OAUTH_CFG_MERGE_VALUE(cfg, base, add, provider_resolver, NULL)
 	cfg->provider_resolver =
 	    add->provider_resolver ? oauth2_cfg_openidc_provider_resolver_clone(
 					 log, add->provider_resolver)
@@ -97,9 +96,7 @@ void oauth2_cfg_openidc_merge(oauth2_log_t *log, oauth2_cfg_openidc_t *cfg,
 			       OAUTH2_UNAUTH_ACTION_UNDEFINED)
 	_OAUTH_CFG_MERGE_STRING(cfg, base, add, state_cookie_name_prefix);
 
-	cfg->session = add->session
-			   ? oauth2_cfg_session_clone(log, add->session)
-			   : oauth2_cfg_session_clone(log, base->session);
+	cfg->session = add->session ? add->session : base->session;
 	cfg->client = add->client
 			  ? oauth2_openidc_client_clone(log, add->client)
 			  : oauth2_openidc_client_clone(log, base->client);
@@ -156,7 +153,7 @@ oauth2_cfg_openidc_provider_resolver_get(oauth2_log_t *log,
 
 #define OAUTH2_OPENIDC_CFG_HANDLER_PATH_DEFAULT "/openid-connect"
 
-char *oauth2_openidc_cfg_handler_path_get(oauth2_log_t *log,
+char *oauth2_cfg_openidc_handler_path_get(oauth2_log_t *log,
 					  const oauth2_cfg_openidc_t *c)
 {
 	return c->handler_path ? c->handler_path
@@ -181,7 +178,7 @@ char *oauth2_cfg_openidc_redirect_uri_get(oauth2_log_t *log,
 		path = oauth2_strdup(c->redirect_uri);
 	} else {
 		path = oauth2_stradd(
-		    NULL, oauth2_openidc_cfg_handler_path_get(log, c),
+		    NULL, oauth2_cfg_openidc_handler_path_get(log, c),
 		    "/redirect_uri", NULL);
 	}
 
@@ -233,8 +230,10 @@ end:
 	return redirect_uri;
 }
 
+#define OAUTH2_OPENIDC_STATE_COOKIE_NAME_PREFIX_DEFAULT "openidc_state_"
+
 char *
-oauth2_openidc_cfg_state_cookie_name_prefix_get(oauth2_log_t *log,
+oauth2_cfg_openidc_state_cookie_name_prefix_get(oauth2_log_t *log,
 						const oauth2_cfg_openidc_t *cfg)
 {
 	return cfg->state_cookie_name_prefix
@@ -244,6 +243,9 @@ oauth2_openidc_cfg_state_cookie_name_prefix_get(oauth2_log_t *log,
 
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(cfg, openidc, unauth_action,
 				      oauth2_unauth_action_t, uint)
+
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(cfg, openidc, client,
+				      oauth2_openidc_client_t *, ptr)
 
 /*
  * provider resolver
@@ -282,30 +284,15 @@ oauth2_cfg_openidc_provider_resolver_clone(
 
 	dst->cache = src->cache;
 	dst->callback = src->callback;
+
+	// TODO: sort out wrt. _init...
+	if (dst->ctx)
+		oauth2_cfg_ctx_free(log, dst->ctx);
 	dst->ctx = oauth2_cfg_ctx_clone(log, src->ctx);
 
 end:
 
 	return dst;
-}
-
-void oauth2_cfg_openidc_provider_resolver_merge(
-    oauth2_log_t *log, oauth2_cfg_openidc_provider_resolver_t *cfg,
-    oauth2_cfg_openidc_provider_resolver_t *base,
-    oauth2_cfg_openidc_provider_resolver_t *add)
-{
-
-	if ((cfg == NULL) || (base == NULL) || (add == NULL))
-		goto end;
-
-	cfg->cache = add->cache ? add->cache : base->cache;
-	cfg->callback = add->callback ? add->callback : base->callback;
-	cfg->ctx = add->ctx ? oauth2_cfg_ctx_clone(log, add->ctx)
-			    : oauth2_cfg_ctx_clone(log, base->ctx);
-
-end:
-
-	return;
 }
 
 void oauth2_cfg_openidc_provider_resolver_free(

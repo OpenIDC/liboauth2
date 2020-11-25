@@ -268,10 +268,12 @@ end:
 START_TEST(test_openidc_cfg)
 {
 	bool rc = false;
-	oauth2_cfg_openidc_t *c = NULL;
+	oauth2_cfg_openidc_t *c = NULL, *c2 = NULL, *c3 = NULL, *c4 = NULL,
+			     *c5 = NULL;
 	oauth2_http_request_t *r = NULL;
 	oauth2_openidc_provider_t *p = NULL;
-	char *value = NULL;
+	oauth2_cfg_openidc_provider_resolver_t *pr = NULL;
+	char *value = NULL, *rv = NULL;
 
 	c = oauth2_cfg_openidc_init(_log);
 	r = oauth2_http_request_init(_log);
@@ -314,6 +316,60 @@ START_TEST(test_openidc_cfg)
 	value = oauth2_cfg_openidc_redirect_uri_get_iss(_log, c, r, p);
 	ck_assert_str_eq(value, "https://example.com/redirect_uri?iss=jan");
 	oauth2_mem_free(value);
+
+	c2 = oauth2_cfg_openidc_clone(_log, c);
+	ck_assert_ptr_ne(c2, NULL);
+	value = oauth2_cfg_openidc_redirect_uri_get_iss(_log, c2, r, p);
+	ck_assert_str_eq(value, "https://example.com/redirect_uri?iss=jan");
+	oauth2_mem_free(value);
+
+	rv = oauth2_cfg_openidc_provider_resolver_set_options(
+	    _log, c, "string", "issuer=https://localhost", NULL);
+	ck_assert_ptr_eq(rv, NULL);
+	rv = oauth2_openidc_client_set_options(_log, c, "string",
+					       "client_id=mycc", NULL);
+	ck_assert_ptr_eq(rv, NULL);
+
+	c3 = oauth2_cfg_openidc_clone(_log, c);
+	c4 = oauth2_cfg_openidc_init(_log);
+
+	pr = oauth2_cfg_openidc_provider_resolver_init(_log);
+	ck_assert_ptr_ne(pr, NULL);
+	rc = oauth2_cfg_openidc_provider_resolver_set(_log, c4, pr);
+	ck_assert_uint_eq(rc, true);
+	rc = oauth2_cfg_openidc_handler_path_set(_log, c4, "/mypath");
+	ck_assert_uint_eq(rc, true);
+	rc = oauth2_cfg_openidc_state_cookie_name_prefix_set(_log, c4,
+							     "mycookie-");
+	ck_assert_uint_eq(rc, true);
+
+	c5 = oauth2_cfg_openidc_init(_log);
+	oauth2_cfg_openidc_merge(_log, c5, c4, c);
+	value = oauth2_cfg_openidc_redirect_uri_get_iss(_log, c5, r, p);
+	ck_assert_str_eq(value, "https://example.com/redirect_uri?iss=jan");
+	oauth2_mem_free(value);
+	ck_assert_ptr_ne(oauth2_cfg_openidc_provider_resolver_get(_log, c5),
+			 NULL);
+	ck_assert_str_eq(oauth2_cfg_openidc_handler_path_get(_log, c5),
+			 "/mypath");
+	ck_assert_str_eq(
+	    oauth2_cfg_openidc_state_cookie_name_prefix_get(_log, c5),
+	    "mycookie-");
+	oauth2_cfg_openidc_free(_log, c5);
+
+	c5 = oauth2_cfg_openidc_init(_log);
+	oauth2_cfg_openidc_merge(_log, c5, c, c4);
+	ck_assert_str_eq(
+	    oauth2_cfg_openidc_state_cookie_name_prefix_get(_log, c5),
+	    "mycookie-");
+	ck_assert_str_eq(oauth2_openidc_client_client_id_get(
+			     _log, oauth2_cfg_openidc_client_get(_log, c5)),
+			 "mycc");
+
+	oauth2_cfg_openidc_free(_log, c5);
+	oauth2_cfg_openidc_free(_log, c4);
+	oauth2_cfg_openidc_free(_log, c3);
+	oauth2_cfg_openidc_free(_log, c2);
 
 	oauth2_openidc_provider_free(_log, p);
 	oauth2_http_request_free(_log, r);

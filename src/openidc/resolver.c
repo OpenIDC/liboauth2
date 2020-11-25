@@ -303,6 +303,8 @@ char *oauth2_cfg_openidc_provider_resolver_set_options(
 	char *rv = NULL;
 	oauth2_nv_list_t *params = NULL;
 
+	oauth2_debug(log, "type=%s value=%s options=%s", type, value, options);
+
 	if (cfg->provider_resolver) {
 		oauth2_cfg_openidc_provider_resolver_free(
 		    log, cfg->provider_resolver);
@@ -324,6 +326,8 @@ end:
 
 	if (params)
 		oauth2_nv_list_free(log, params);
+
+	oauth2_debug(log, "leave: %s", rv);
 
 	return rv;
 }
