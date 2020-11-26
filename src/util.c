@@ -938,7 +938,8 @@ static bool _oauth2_nv_list_copy(oauth2_log_t *log, void *rec, const char *key,
 	return oauth2_nv_list_add(log, dst, key, value);
 }
 
-oauth2_nv_list_t *oauth2_nv_list_clone(oauth2_log_t *log, oauth2_nv_list_t *src)
+oauth2_nv_list_t *oauth2_nv_list_clone(oauth2_log_t *log,
+				       const oauth2_nv_list_t *src)
 {
 	oauth2_nv_list_t *dst = NULL;
 

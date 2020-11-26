@@ -90,7 +90,8 @@ void oauth2_cfg_token_verify_free(oauth2_log_t *log,
 }
 
 oauth2_cfg_token_verify_t *
-oauth2_cfg_token_verify_clone(oauth2_log_t *log, oauth2_cfg_token_verify_t *src)
+oauth2_cfg_token_verify_clone(oauth2_log_t *log,
+			      const oauth2_cfg_token_verify_t *src)
 {
 
 	oauth2_cfg_token_verify_t *dst = NULL;

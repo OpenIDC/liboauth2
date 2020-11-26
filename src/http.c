@@ -1519,9 +1519,12 @@ end:
 }
 
 oauth2_http_response_t *
-oauth2_http_response_clone(oauth2_log_t *log, oauth2_http_response_t *response)
+oauth2_http_response_clone(oauth2_log_t *log, const oauth2_http_response_t *src)
 {
-	return NULL;
+	oauth2_http_response_t *dst = oauth2_http_response_init(log);
+	dst->headers = oauth2_nv_list_clone(log, src->headers);
+	dst->status_code = src->status_code;
+	return dst;
 }
 
 void oauth2_http_response_free(oauth2_log_t *log,

@@ -48,7 +48,7 @@ typedef uint64_t oauth2_time_t;
 	oauth2_##module##_##object##_t *oauth2_##module##_##object##_init(     \
 	    oauth2_log_t *);                                                   \
 	oauth2_##module##_##object##_t *oauth2_##module##_##object##_clone(    \
-	    oauth2_log_t *, oauth2_##module##_##object##_t *);                 \
+	    oauth2_log_t *, const oauth2_##module##_##object##_t *);           \
 	void oauth2_##module##_##object##_free(                                \
 	    oauth2_log_t *, oauth2_##module##_##object##_t *);
 

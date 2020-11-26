@@ -61,8 +61,8 @@ end:
 	return;
 }
 
-oauth2_cfg_endpoint_t *oauth2_cfg_endpoint_clone(oauth2_log_t *log,
-						 oauth2_cfg_endpoint_t *src)
+oauth2_cfg_endpoint_t *
+oauth2_cfg_endpoint_clone(oauth2_log_t *log, const oauth2_cfg_endpoint_t *src)
 {
 	oauth2_cfg_endpoint_t *dst = NULL;
 
@@ -261,7 +261,7 @@ end:
 }
 
 oauth2_cfg_ropc_t *oauth2_cfg_ropc_clone(oauth2_log_t *log,
-					 oauth2_cfg_ropc_t *src)
+					 const oauth2_cfg_ropc_t *src)
 {
 	oauth2_cfg_ropc_t *dst = NULL;
 

@@ -63,7 +63,7 @@ oauth2_openidc_proto_state_t *
 oauth2_openidc_proto_state_init(oauth2_log_t *log);
 oauth2_openidc_proto_state_t *
 oauth2_openidc_proto_state_clone(oauth2_log_t *log,
-				 oauth2_openidc_proto_state_t *src);
+				 const oauth2_openidc_proto_state_t *src);
 void oauth2_openidc_proto_state_free(oauth2_log_t *log,
 				     oauth2_openidc_proto_state_t *p);
 bool oauth2_openidc_proto_state_set(oauth2_log_t *log,
@@ -108,8 +108,6 @@ OAUTH2_TYPE_DECLARE(openidc, client)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, scope, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, client_id, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, client_secret, char *)
-OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, provider,
-				   oauth2_openidc_provider_t *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, token_endpoint_auth,
 				   oauth2_cfg_endpoint_auth_t *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, ssl_verify, oauth2_flag_t)

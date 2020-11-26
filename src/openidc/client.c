@@ -36,7 +36,6 @@ oauth2_openidc_client_t *oauth2_openidc_client_init(oauth2_log_t *log)
 	c->client_id = NULL;
 	c->client_secret = NULL;
 	c->scope = NULL;
-	c->provider = NULL;
 	c->token_endpoint_auth = NULL;
 	c->ssl_verify = OAUTH2_CFG_FLAG_UNSET;
 	c->http_timeout = OAUTH2_CFG_UINT_UNSET;
@@ -68,7 +67,8 @@ end:
 }
 
 oauth2_openidc_client_t *
-oauth2_openidc_client_clone(oauth2_log_t *log, oauth2_openidc_client_t *src)
+oauth2_openidc_client_clone(oauth2_log_t *log,
+			    const oauth2_openidc_client_t *src)
 {
 	oauth2_openidc_client_t *dst = NULL;
 
@@ -94,23 +94,29 @@ end:
 
 static char *_oauth2_openidc_client_metadata_parse(
     oauth2_log_t *log, oauth2_cfg_openidc_t *cfg, const char *s_json,
-    const oauth2_nv_list_t *params)
+    const oauth2_nv_list_t *options_params)
 {
 	char *rv = NULL;
 	json_t *json = NULL;
 	oauth2_cfg_endpoint_auth_t *auth = NULL;
 	char *value = NULL;
+	oauth2_nv_list_t *params = NULL;
 
 	oauth2_debug(log, "enter");
+
+	if ((cfg == NULL) || (cfg->client == NULL) || (s_json == NULL)) {
+		rv = oauth2_strdup(
+		    "internal error: struct, client or json is NULL");
+		goto end;
+	}
 
 	if (oauth2_json_decode_object(log, s_json, &json) == false) {
 		rv = oauth2_strdup("could not parse json object");
 		goto end;
 	}
 
-	cfg->client = oauth2_openidc_client_init(log);
-	if (cfg->client == NULL)
-		goto end;
+	params = options_params ? oauth2_nv_list_clone(log, options_params)
+				: oauth2_nv_list_init(log);
 
 	if ((oauth2_json_string_get(log, json, "client_id", &value, NULL) ==
 	     false) ||
@@ -119,8 +125,11 @@ static char *_oauth2_openidc_client_metadata_parse(
 		goto end;
 	}
 	if (value) {
+		// TODO: better merging?
+		oauth2_nv_list_add(log, params, "client_id", value);
 		oauth2_openidc_client_client_id_set(log, cfg->client, value);
 		oauth2_mem_free(value);
+		value = NULL;
 	}
 
 	if (oauth2_json_string_get(log, json, "client_secret", &value, NULL) ==
@@ -129,9 +138,12 @@ static char *_oauth2_openidc_client_metadata_parse(
 		goto end;
 	}
 	if (value) {
+		// TODO: better merging?
+		oauth2_nv_list_add(log, params, "client_secret", value);
 		oauth2_openidc_client_client_secret_set(log, cfg->client,
 							value);
 		oauth2_mem_free(value);
+		value = NULL;
 	}
 
 	if (oauth2_json_string_get(log, json, "scope", &value, NULL) == false) {
@@ -141,30 +153,34 @@ static char *_oauth2_openidc_client_metadata_parse(
 	if (value) {
 		oauth2_openidc_client_scope_set(log, cfg->client, value);
 		oauth2_mem_free(value);
+		value = NULL;
 	}
 
 	auth = oauth2_cfg_endpoint_auth_init(log);
 
+	value = NULL;
 	if (oauth2_json_string_get(log, json, "token_endpoint_auth_method",
 				   &value, NULL) == false) {
 		rv =
 		    oauth2_strdup("could not parse token_endpoint_auth_method");
+		oauth2_cfg_endpoint_auth_free(log, auth);
 		goto end;
 	}
 
-	if (value == NULL)
+	if (value == NULL) {
+		oauth2_cfg_endpoint_auth_free(log, auth);
 		goto end;
+	}
 
-	// TODO: token endpoint auth options (e.g. jwk for private_key_jwt) must
-	// be in JSON now... merge with params from options instead of value
-	// only... (e.g. client key/cert)?
 	rv = oauth2_cfg_set_endpoint_auth(log, auth, value, params, NULL);
-
 	if (rv != NULL) {
 		oauth2_cfg_endpoint_auth_free(log, auth);
 		goto end;
 	}
 
+	oauth2_cfg_endpoint_auth_free(
+	    log,
+	    oauth2_openidc_client_token_endpoint_auth_get(log, cfg->client));
 	oauth2_openidc_client_token_endpoint_auth_set(log, cfg->client, auth);
 
 end:
@@ -173,6 +189,11 @@ end:
 		oauth2_openidc_client_free(log, cfg->client);
 		cfg->client = NULL;
 	}
+
+	if (value)
+		oauth2_mem_free(value);
+	if (params)
+		oauth2_nv_list_free(log, params);
 	if (json)
 		json_decref(json);
 
@@ -247,11 +268,15 @@ _oauth2_openidc_client_set_options_string(oauth2_log_t *log, const char *value,
 			       "token_endpoint_auth_method"),
 	    client_params, NULL);
 
-	if (rv == NULL)
-		oauth2_openidc_client_token_endpoint_auth_set(log, cfg->client,
-							      auth);
-	else
+	if (rv != NULL) {
 		oauth2_cfg_endpoint_auth_free(log, auth);
+		goto end;
+	}
+
+	oauth2_cfg_endpoint_auth_free(
+	    log,
+	    oauth2_openidc_client_token_endpoint_auth_get(log, cfg->client));
+	oauth2_openidc_client_token_endpoint_auth_set(log, cfg->client, auth);
 
 end:
 
@@ -269,8 +294,6 @@ _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, client, client_secret, char *,
 				      str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, client, token_endpoint_auth,
 				      oauth2_cfg_endpoint_auth_t *, ptr)
-_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, client, provider,
-				      oauth2_openidc_provider_t *, ptr)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, client, ssl_verify,
 				      oauth2_flag_t, bln)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, client, http_timeout,
@@ -299,9 +322,12 @@ char *oauth2_openidc_client_set_options(oauth2_log_t *log,
 
 	oauth2_debug(log, "type=%s value=%s options=%s", type, value, options);
 
-	if (cfg->client) {
-		oauth2_openidc_client_free(log, cfg->client);
-		cfg->client = NULL;
+	if (cfg->client == NULL) {
+		cfg->client = oauth2_openidc_client_init(log);
+		if (cfg->client == NULL) {
+			rv = oauth2_strdup("could not create client");
+			goto end;
+		}
 	}
 
 	if (oauth2_parse_form_encoded_params(log, options, &params) == false) {
@@ -309,11 +335,10 @@ char *oauth2_openidc_client_set_options(oauth2_log_t *log,
 		goto end;
 	}
 
-	cfg->client = oauth2_openidc_client_init(log);
 	cfg->session = _oauth2_cfg_session_obtain(
 	    log, oauth2_nv_list_get(log, params, "session"));
 	if (cfg->session == NULL) {
-		rv = oauth2_strdup("could not configure session");
+		rv = oauth2_strdup("could not obtain session");
 		goto end;
 	}
 

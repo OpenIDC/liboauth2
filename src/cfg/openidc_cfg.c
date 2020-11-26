@@ -47,7 +47,7 @@ end:
 }
 
 oauth2_cfg_openidc_t *oauth2_cfg_openidc_clone(oauth2_log_t *log,
-					       oauth2_cfg_openidc_t *src)
+					       const oauth2_cfg_openidc_t *src)
 {
 	oauth2_cfg_openidc_t *dst = NULL;
 
@@ -271,7 +271,7 @@ end:
 
 oauth2_cfg_openidc_provider_resolver_t *
 oauth2_cfg_openidc_provider_resolver_clone(
-    oauth2_log_t *log, oauth2_cfg_openidc_provider_resolver_t *src)
+    oauth2_log_t *log, const oauth2_cfg_openidc_provider_resolver_t *src)
 {
 	oauth2_cfg_openidc_provider_resolver_t *dst = NULL;
 

@@ -104,7 +104,7 @@ end:
 
 oauth2_cfg_endpoint_auth_t *
 oauth2_cfg_endpoint_auth_clone(oauth2_log_t *log,
-			       oauth2_cfg_endpoint_auth_t *src)
+			       const oauth2_cfg_endpoint_auth_t *src)
 {
 	oauth2_cfg_endpoint_auth_t *dst = NULL;
 	cjose_err err;

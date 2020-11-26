@@ -635,6 +635,89 @@ START_TEST(test_openidc_resolver)
 }
 END_TEST
 
+START_TEST(test_openidc_client)
+{
+	char *rv = NULL;
+	oauth2_cfg_openidc_t *cfg = NULL;
+	oauth2_openidc_client_t *client = NULL;
+
+	cfg = oauth2_cfg_openidc_init(_log);
+	ck_assert_ptr_ne(cfg, NULL);
+
+	rv = oauth2_openidc_client_set_options(
+	    _log, cfg, "file", "./test/client.json", "ssl_verify=false");
+	ck_assert_ptr_eq(rv, NULL);
+
+	client = oauth2_cfg_openidc_client_get(_log, cfg);
+	ck_assert_ptr_ne(client, NULL);
+	ck_assert_str_eq(oauth2_openidc_client_client_id_get(_log, client),
+			 "a_client");
+	ck_assert_uint_eq(oauth2_openidc_client_ssl_verify_get(_log, client),
+			  false);
+
+	rv = oauth2_openidc_client_set_options(
+	    _log, cfg, "json", "{ \"client_id\": \"b_client\" }",
+	    "ssl_verify=true");
+	ck_assert_str_eq(oauth2_openidc_client_client_id_get(_log, client),
+			 "b_client");
+	ck_assert_ptr_eq(rv, NULL);
+	ck_assert_uint_eq(oauth2_openidc_client_ssl_verify_get(_log, client),
+			  true);
+
+	rv = oauth2_openidc_client_set_options(
+	    _log, cfg, "string",
+	    "client_id=bla&client_secret=bla&token_endpoint_auth_method=bogus",
+	    NULL);
+	ck_assert_ptr_ne(rv, NULL);
+	oauth2_mem_free(rv);
+	rv = oauth2_openidc_client_set_options(_log, cfg, "json", NULL, NULL);
+	ck_assert_ptr_ne(rv, NULL);
+	oauth2_mem_free(rv);
+	rv = oauth2_openidc_client_set_options(_log, cfg, "json", "{", NULL);
+	ck_assert_ptr_ne(rv, NULL);
+	oauth2_mem_free(rv);
+	rv = oauth2_openidc_client_set_options(_log, cfg, "json",
+					       "{ \"client_id\": 0 }", NULL);
+	ck_assert_ptr_ne(rv, NULL);
+	oauth2_mem_free(rv);
+	rv = oauth2_openidc_client_set_options(
+	    _log, cfg, "json",
+	    "{ \"client_id\": \"valid\", \"client_secret\": 0 }", NULL);
+	ck_assert_ptr_ne(rv, NULL);
+	oauth2_mem_free(rv);
+	rv = oauth2_openidc_client_set_options(
+	    _log, cfg, "json",
+	    "{ \"client_id\": \"valid\", \"client_secret\": \"valid\", "
+	    "\"scope\": 0 }",
+	    NULL);
+	ck_assert_ptr_ne(rv, NULL);
+	oauth2_mem_free(rv);
+	rv = oauth2_openidc_client_set_options(
+	    _log, cfg, "json",
+	    "{ \"client_id\": \"valid\", \"client_secret\": \"valid\", "
+	    "\"scope\": \"valid\", \"token_endpoint_auth_method\": 0 }",
+	    NULL);
+	ck_assert_ptr_ne(rv, NULL);
+	oauth2_mem_free(rv);
+	rv = oauth2_openidc_client_set_options(
+	    _log, cfg, "json",
+	    "{ \"client_id\": \"valid\", \"client_secret\": \"valid\", "
+	    "\"scope\": \"valid\", \"token_endpoint_auth_method\": \"bogus\" }",
+	    NULL);
+	ck_assert_ptr_ne(rv, NULL);
+	oauth2_mem_free(rv);
+	rv = oauth2_openidc_client_set_options(
+	    _log, cfg, "json",
+	    "{ \"client_id\": \"valid\", \"client_secret\": \"valid\", "
+	    "\"scope\": \"valid\", \"token_endpoint_auth_method\": "
+	    "\"client_secret_post\" }",
+	    NULL);
+	ck_assert_ptr_eq(rv, NULL);
+
+	oauth2_cfg_openidc_free(_log, cfg);
+}
+END_TEST
+
 static void _test_openidc_handle(oauth2_cfg_openidc_t *c)
 {
 	bool rc = false;
@@ -867,6 +950,7 @@ Suite *oauth2_check_openidc_suite()
 	tcase_add_test(c, test_openidc_cfg);
 	tcase_add_test(c, test_openidc_proto_state);
 	tcase_add_test(c, test_openidc_resolver);
+	tcase_add_test(c, test_openidc_client);
 	tcase_add_test(c, test_openidc_handle_cookie);
 	tcase_add_test(c, test_openidc_handle_cache);
 

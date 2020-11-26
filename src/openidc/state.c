@@ -39,7 +39,7 @@ oauth2_openidc_proto_state_t *oauth2_openidc_proto_state_init(oauth2_log_t *log)
 
 oauth2_openidc_proto_state_t *
 oauth2_openidc_proto_state_clone(oauth2_log_t *log,
-				 oauth2_openidc_proto_state_t *src)
+				 const oauth2_openidc_proto_state_t *src)
 {
 	oauth2_openidc_proto_state_t *dst =
 	    oauth2_openidc_proto_state_init(log);

@@ -276,7 +276,8 @@ end:
 }
 
 oauth2_cfg_source_token_t *
-oauth2_cfg_source_token_clone(oauth2_log_t *log, oauth2_cfg_source_token_t *src)
+oauth2_cfg_source_token_clone(oauth2_log_t *log,
+			      const oauth2_cfg_source_token_t *src)
 {
 	oauth2_cfg_source_token_t *dst = NULL;
 
