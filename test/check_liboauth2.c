@@ -334,7 +334,12 @@ int main(void)
 	srunner_add_suite(sr, oauth2_check_proto_suite());
 	srunner_add_suite(sr, oauth2_check_oauth2_suite());
 	srunner_add_suite(sr, oauth2_check_openidc_suite());
+#ifdef HAVE_APACHE
 	srunner_add_suite(sr, oauth2_check_apache_suite());
+#endif
+#ifdef HAVE_NGINX
+	srunner_add_suite(sr, oauth2_check_nginx_suite());
+#endif
 
 	// sema = sem_open ("sema", O_CREAT | O_EXCL, 0644, 0);
 	pid_t pid = http_server_spawn();

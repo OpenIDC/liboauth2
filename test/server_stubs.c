@@ -118,10 +118,63 @@ const char *ap_run_http_scheme(const request_rec *r)
 #undef LF
 #undef CR
 #undef CRLF
+#include <oauth2/mem.h>
 #include <oauth2/nginx.h>
 
 void ngx_log_error_core(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
 			const char *fmt, ...)
 {
 }
+
+ngx_pool_t *ngx_create_pool(size_t size, ngx_log_t *log)
+{
+	ngx_pool_t *pool = (ngx_pool_t *)oauth2_mem_alloc(size);
+	return pool;
+}
+
+void ngx_destroy_pool(ngx_pool_t *pool)
+{
+	oauth2_mem_free(pool);
+}
+
+void *ngx_palloc(ngx_pool_t *pool, size_t size)
+{
+	void *p = (void *)oauth2_mem_alloc(size);
+	return p;
+}
+
+void *ngx_list_push(ngx_list_t *l)
+{
+	void *elt;
+	ngx_list_part_t *last;
+
+	last = l->last;
+
+	if (last->nelts == l->nalloc) {
+
+		/* the last part is full, allocate a new list part */
+
+		last = ngx_palloc(l->pool, sizeof(ngx_list_part_t));
+		if (last == NULL) {
+			return NULL;
+		}
+
+		last->elts = ngx_palloc(l->pool, l->nalloc * l->size);
+		if (last->elts == NULL) {
+			return NULL;
+		}
+
+		last->nelts = 0;
+		last->next = NULL;
+
+		l->last->next = last;
+		l->last = last;
+	}
+
+	elt = (char *)last->elts + l->size * last->nelts;
+	last->nelts++;
+
+	return elt;
+}
+
 #endif

@@ -196,6 +196,10 @@ if HAVE_APACHE
 check_liboauth2_SOURCES += \
 	test/check_apache.c
 endif
+if HAVE_NGINX
+check_liboauth2_SOURCES += \
+	test/check_nginx.c
+endif
 
 endif
 

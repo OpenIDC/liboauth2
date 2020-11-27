@@ -46,7 +46,12 @@ Suite *oauth2_check_oauth2_suite();
 void oauth2_check_oauth2_cleanup();
 Suite *oauth2_check_openidc_suite();
 void oauth2_check_openidc_cleanup();
+#ifdef HAVE_APACHE
 Suite *oauth2_check_apache_suite();
+#endif
+#ifdef HAVE_NGINX
+Suite *oauth2_check_nginx_suite();
+#endif
 
 typedef char *(http_serve_callback_get_t)(const char *request);
 typedef char *(http_serve_callback_post_t)(const char *request);

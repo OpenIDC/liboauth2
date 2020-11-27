@@ -180,6 +180,9 @@ static void _oauth2_nginx_headers_copy(oauth2_nginx_request_context_t *ctx)
 
 void _oauth2_nginx_request_copy(oauth2_nginx_request_context_t *ctx)
 {
+	if ((ctx == NULL) || (ctx->r == NULL))
+		goto end;
+
 	_oauth2_nginx_schema_copy(ctx);
 	_oauth2_nginx_host_copy(ctx);
 	_oauth2_nginx_port_copy(ctx);
@@ -187,6 +190,10 @@ void _oauth2_nginx_request_copy(oauth2_nginx_request_context_t *ctx)
 	_oauth2_nginx_query_copy(ctx);
 	_oauth2_nginx_method_copy(ctx);
 	_oauth2_nginx_headers_copy(ctx);
+
+end:
+
+	return;
 }
 
 oauth2_nginx_request_context_t *
@@ -195,6 +202,9 @@ oauth2_nginx_request_context_init(ngx_http_request_t *r)
 	// ngx_http_core_srv_conf_t *cscf;
 	oauth2_nginx_request_context_t *ctx = NULL;
 	oauth2_log_sink_t *log_sink_nginx = NULL;
+
+	//	if (r == NULL)
+	//		goto end;
 
 	// cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
 
@@ -213,6 +223,8 @@ oauth2_nginx_request_context_init(ngx_http_request_t *r)
 	_oauth2_nginx_request_copy(ctx);
 
 	oauth2_debug(ctx->log, "created NGINX request context: %p", ctx);
+
+	// end:
 
 	return ctx;
 }
