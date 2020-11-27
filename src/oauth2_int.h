@@ -33,7 +33,12 @@ _OAUTH_CFG_CTX_CALLBACK(oauth2_verify_options_set_introspect_url);
 _OAUTH_CFG_CTX_CALLBACK(oauth2_verify_options_set_metadata_url);
 
 bool oauth2_auth_basic(oauth2_log_t *log, oauth2_http_call_ctx_t *ctx,
-		       oauth2_cfg_endpoint_auth_t *auth,
+		       const oauth2_cfg_endpoint_auth_t *auth,
 		       oauth2_nv_list_t *params);
+
+bool oauth2_dpop_token_verify(oauth2_log_t *log,
+			      oauth2_cfg_dpop_verify_t *verify,
+			      oauth2_http_request_t *request,
+			      json_t *json_payload);
 
 #endif /* _OAUTH2_INT_H_ */

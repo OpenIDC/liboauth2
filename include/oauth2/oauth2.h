@@ -56,7 +56,12 @@
 #define OAUTH2_ERROR_INVALID_REQUEST "invalid_request"
 #define OAUTH2_ERROR_INSUFFICIENT_SCOPE "insufficient_scope"
 
-#define OAUTH2_HTTP_HDR_DPOP "DPoP"
+#define OAUTH2_CLAIM_ISS "iss"
+#define OAUTH2_CLAIM_SUB "sub"
+#define OAUTH2_CLAIM_JTI "jti"
+#define OAUTH2_CLAIM_EXP "exp"
+#define OAUTH2_CLAIM_AUD "aud"
+#define OAUTH2_CLAIM_IAT "iat"
 
 typedef enum {
 	OAUTH2_UNAUTH_ACTION_UNDEFINED,

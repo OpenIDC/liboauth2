@@ -74,6 +74,7 @@ liboauth2_la_SOURCES = \
 	src/proto.c \
 	src/oauth2_int.h \
 	src/oauth2.c \
+	src/dpop.c \
 	src/session.c \
 	src/openidc_int.h \
 	src/openidc/provider.c \
