@@ -172,7 +172,9 @@ bool oauth2_session_save_cookie(oauth2_log_t *log,
 	name = oauth2_cfg_session_cookie_name_get(log, cfg);
 	path = oauth2_cfg_session_cookie_path_get(log, cfg);
 
-	rc = oauth2_http_response_cookie_set(log, response, name, value, path);
+	rc = oauth2_http_response_cookie_set(
+	    log, response, name, value, path,
+	    oauth2_http_request_is_secure(log, request), OAUTH2_CFG_TIME_UNSET);
 
 end:
 
@@ -254,7 +256,9 @@ bool oauth2_session_save_cache(oauth2_log_t *log,
 	name = oauth2_cfg_session_cookie_name_get(log, cfg);
 	path = oauth2_cfg_session_cookie_path_get(log, cfg);
 
-	rc = oauth2_http_response_cookie_set(log, response, name, key, path);
+	rc = oauth2_http_response_cookie_set(
+	    log, response, name, key, path,
+	    oauth2_http_request_is_secure(log, request), OAUTH2_CFG_TIME_UNSET);
 
 end:
 

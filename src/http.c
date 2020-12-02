@@ -1304,7 +1304,7 @@ _oauth2_http_request_get_parsed_cookies(oauth2_log_t *log,
 
 	rc = _oauth2_nv_list_parse(log, cookies, request->_parsed_cookies,
 				   _OAUTH2_CHAR_SEMICOL, _OAUTH2_CHAR_EQUAL,
-				   true, false);
+				   true, true);
 
 end:
 
@@ -1497,6 +1497,16 @@ end:
 	return rc;
 }
 
+bool oauth2_http_request_is_secure(oauth2_log_t *log,
+				   const oauth2_http_request_t *request)
+{
+	bool rc = false;
+	char *scheme = oauth2_http_request_scheme_get(log, request);
+	rc = (strcasecmp(scheme, "https") == 0);
+	oauth2_mem_free(scheme);
+	return rc;
+}
+
 typedef struct oauth2_http_response_t {
 	oauth2_nv_list_t *headers;
 	oauth2_http_status_code_t status_code;
@@ -1626,14 +1636,18 @@ const char *oauth2_http_response_header_set_cookie_prefix_get(
 	return ctx.result;
 }
 
+#define OAUTH2_HTTP_COOKIE_MAX_AGE_LENGTH_MAX 64
+
 bool oauth2_http_response_cookie_set(oauth2_log_t *log,
 				     oauth2_http_response_t *response,
 				     const char *name, const char *value,
-				     const char *path)
+				     const char *path, const bool is_secure,
+				     oauth2_time_t max_age)
 {
 	bool rc = false;
 	char *str = NULL;
 	oauth2_nv_list_t *cookies = NULL;
+	char maxagestr[OAUTH2_HTTP_COOKIE_MAX_AGE_LENGTH_MAX];
 
 	if (value) {
 
@@ -1646,12 +1660,24 @@ bool oauth2_http_response_cookie_set(oauth2_log_t *log,
 
 	} else {
 
-		str = oauth2_stradd(NULL, name, "=;",
-				    " expires=Thu, 01 Jan 1970 00:00:00 GMT");
+		str = oauth2_stradd(
+		    NULL, name, "=;",
+		    " expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0");
 	}
 
 	if (path)
 		str = oauth2_stradd(str, "; path", "=", path);
+
+	if ((value != NULL) && (max_age != OAUTH2_CFG_TIME_UNSET)) {
+		oauth2_snprintf(maxagestr,
+				OAUTH2_HTTP_COOKIE_MAX_AGE_LENGTH_MAX,
+				OAUTH2_TIME_T_FORMAT, max_age);
+		str = oauth2_stradd(str, "; Max-Age", "=", maxagestr);
+	}
+
+	if (is_secure)
+		str = oauth2_stradd(str, "; HttpOnly", "; Secure",
+				    "; SameSite=None");
 
 	rc = oauth2_http_response_header_add(log, response,
 					     OAUTH2_HTTP_HDR_SET_COOKIE, str);

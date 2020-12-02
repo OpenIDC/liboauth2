@@ -44,10 +44,15 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, handler_path, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET(cfg, openidc, redirect_uri, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, unauth_action,
 				   oauth2_unauth_action_t)
-OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, state_cookie_name_prefix,
-				   char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, session,
 				   oauth2_cfg_session_t *)
+
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, state_cookie_name_prefix,
+				   char *)
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, state_cookie_timeout,
+				   oauth2_time_t)
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, state_cookie_max,
+				   oauth2_uint_t)
 
 char *oauth2_cfg_openidc_redirect_uri_get(oauth2_log_t *,
 					  const oauth2_cfg_openidc_t *,

@@ -116,7 +116,8 @@ const char *oauth2_http_response_header_set_cookie_prefix_get(
 bool oauth2_http_response_cookie_set(oauth2_log_t *log,
 				     oauth2_http_response_t *response,
 				     const char *name, const char *value,
-				     const char *path);
+				     const char *path, const bool is_secure,
+				     oauth2_time_t max_age);
 void oauth2_http_response_headers_loop(oauth2_log_t *log,
 				       oauth2_http_response_t *response,
 				       oauth2_nv_list_loop_cb_t *callback,
@@ -172,6 +173,8 @@ oauth2_http_request_header_accept_get(oauth2_log_t *log,
 
 bool oauth2_http_request_is_xml_http_request(
     oauth2_log_t *log, const oauth2_http_request_t *request);
+bool oauth2_http_request_is_secure(oauth2_log_t *log,
+				   const oauth2_http_request_t *request);
 
 /*
  * request args functions

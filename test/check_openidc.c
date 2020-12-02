@@ -900,7 +900,6 @@ END_TEST
 START_TEST(test_openidc_handle_cache)
 {
 	oauth2_cache_t *cache = NULL;
-	oauth2_nv_list_t *params = NULL;
 	oauth2_cfg_session_t *session_cfg = NULL;
 	oauth2_cfg_openidc_t *c = NULL;
 	char *rv = NULL;
@@ -931,7 +930,50 @@ START_TEST(test_openidc_handle_cache)
 
 	_test_openidc_handle(c);
 
-	oauth2_nv_list_free(_log, params);
+	oauth2_cfg_openidc_free(_log, c);
+}
+END_TEST
+
+START_TEST(test_openidc_state_cookie)
+{
+	oauth2_cfg_openidc_t *c = NULL;
+	oauth2_http_request_t *request = NULL;
+	oauth2_http_response_t *response = NULL;
+	char *state_cookie = NULL;
+
+	c = oauth2_cfg_openidc_init(_log);
+
+	oauth2_cfg_openidc_provider_resolver_set_options(
+	    _log, c, "string", test_openidc_metadata_get(), NULL);
+	oauth2_openidc_client_set_options(
+	    _log, c, "string", "client_id=myclient&client_secret=mysecret",
+	    NULL);
+
+	// char *state = NULL, *state_cookie_name = NULL, *state_cookie = NULL;
+
+	request = oauth2_http_request_init(_log);
+	oauth2_http_request_path_set(_log, request, "/secure");
+	oauth2_http_request_header_set(_log, request, "Host",
+				       "app.example.org");
+	oauth2_http_request_header_set(_log, request, "Accept", "text/html");
+
+	oauth2_openidc_handle(_log, c, request, &response, NULL);
+	ck_assert_ptr_ne(NULL, response);
+
+	ck_assert_uint_eq(oauth2_http_response_status_code_get(_log, response),
+			  302);
+
+	state_cookie = oauth2_strdup(
+	    oauth2_http_response_header_get(_log, response, "Set-Cookie"));
+	ck_assert_ptr_ne(NULL, state_cookie);
+	ck_assert_ptr_ne(NULL, strstr(state_cookie, "openidc_state_"));
+
+	// TODO:
+
+	oauth2_mem_free(state_cookie);
+	oauth2_http_request_free(_log, request);
+	oauth2_http_response_free(_log, response);
+
 	oauth2_cfg_openidc_free(_log, c);
 }
 END_TEST
@@ -953,6 +995,7 @@ Suite *oauth2_check_openidc_suite()
 	tcase_add_test(c, test_openidc_client);
 	tcase_add_test(c, test_openidc_handle_cookie);
 	tcase_add_test(c, test_openidc_handle_cache);
+	tcase_add_test(c, test_openidc_state_cookie);
 
 	suite_add_tcase(s, c);
 

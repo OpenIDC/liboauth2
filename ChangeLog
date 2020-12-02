@@ -1,3 +1,6 @@
+12/02/2020
+- cleanup OIDC expired/superfluous state cookies; closes zmartzone/ngx_openidc_module#6
+
 11/13/2020
 - add support for PKCE
 

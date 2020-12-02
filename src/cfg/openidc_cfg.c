@@ -37,9 +37,12 @@ oauth2_cfg_openidc_t *oauth2_cfg_openidc_init(oauth2_log_t *log)
 	c->redirect_uri = NULL;
 	c->provider_resolver = NULL;
 	c->unauth_action = OAUTH2_UNAUTH_ACTION_UNDEFINED;
-	c->state_cookie_name_prefix = NULL;
 	c->session = NULL;
 	c->client = NULL;
+
+	c->state_cookie_name_prefix = NULL;
+	c->state_cookie_timeout = OAUTH2_CFG_TIME_UNSET;
+	c->state_cookie_max = OAUTH2_CFG_UINT_UNSET;
 
 end:
 
@@ -63,10 +66,14 @@ oauth2_cfg_openidc_t *oauth2_cfg_openidc_clone(oauth2_log_t *log,
 	dst->provider_resolver = oauth2_cfg_openidc_provider_resolver_clone(
 	    log, src->provider_resolver);
 	dst->unauth_action = src->unauth_action;
-	dst->state_cookie_name_prefix =
-	    oauth2_strdup(src->state_cookie_name_prefix);
 	dst->session = src->session;
 	dst->client = oauth2_openidc_client_clone(log, src->client);
+
+	dst->state_cookie_name_prefix =
+	    oauth2_strdup(src->state_cookie_name_prefix);
+	dst->state_cookie_timeout = src->state_cookie_timeout;
+	dst->state_cookie_max = src->state_cookie_max;
+
 end:
 
 	return dst;
@@ -94,12 +101,17 @@ void oauth2_cfg_openidc_merge(oauth2_log_t *log, oauth2_cfg_openidc_t *cfg,
 					 log, base->provider_resolver);
 	_OAUTH_CFG_MERGE_VALUE(cfg, base, add, unauth_action,
 			       OAUTH2_UNAUTH_ACTION_UNDEFINED)
-	_OAUTH_CFG_MERGE_STRING(cfg, base, add, state_cookie_name_prefix);
 
 	cfg->session = add->session ? add->session : base->session;
 	cfg->client = add->client
 			  ? oauth2_openidc_client_clone(log, add->client)
 			  : oauth2_openidc_client_clone(log, base->client);
+
+	_OAUTH_CFG_MERGE_STRING(cfg, base, add, state_cookie_name_prefix);
+	_OAUTH_CFG_MERGE_VALUE(cfg, base, add, state_cookie_timeout,
+			       OAUTH2_CFG_TIME_UNSET);
+	_OAUTH_CFG_MERGE_VALUE(cfg, base, add, state_cookie_max,
+			       OAUTH2_CFG_UINT_UNSET);
 
 end:
 
@@ -115,13 +127,15 @@ void oauth2_cfg_openidc_free(oauth2_log_t *log, oauth2_cfg_openidc_t *c)
 		oauth2_mem_free(c->handler_path);
 	if (c->redirect_uri)
 		oauth2_mem_free(c->redirect_uri);
-	if (c->state_cookie_name_prefix)
-		oauth2_mem_free(c->state_cookie_name_prefix);
 	if (c->provider_resolver)
 		oauth2_cfg_openidc_provider_resolver_free(log,
 							  c->provider_resolver);
 	if (c->client)
 		oauth2_openidc_client_free(log, c->client);
+
+	if (c->state_cookie_name_prefix)
+		oauth2_mem_free(c->state_cookie_name_prefix);
+
 	oauth2_mem_free(c);
 
 end:
@@ -131,10 +145,50 @@ end:
 
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(cfg, openidc, handler_path, char *, str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(cfg, openidc, redirect_uri, char *, str)
-_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(cfg, openidc, state_cookie_name_prefix,
-				  char *, str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(cfg, openidc, session,
 				      oauth2_cfg_session_t *, ptr)
+
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(cfg, openidc, state_cookie_name_prefix,
+				  char *, str)
+
+#define OAUTH2_OPENIDC_STATE_COOKIE_NAME_PREFIX_DEFAULT "openidc_state_"
+
+char *
+oauth2_cfg_openidc_state_cookie_name_prefix_get(oauth2_log_t *log,
+						const oauth2_cfg_openidc_t *cfg)
+{
+	return cfg->state_cookie_name_prefix
+		   ? cfg->state_cookie_name_prefix
+		   : OAUTH2_OPENIDC_STATE_COOKIE_NAME_PREFIX_DEFAULT;
+}
+
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(cfg, openidc, state_cookie_timeout,
+				  oauth2_time_t, time)
+
+#define OAUTH2_OPENIDC_STATE_COOKIE_TIMEOUT_DEFAULT 300
+
+oauth2_time_t
+oauth2_cfg_openidc_state_cookie_timeout_get(oauth2_log_t *log,
+					    const oauth2_cfg_openidc_t *cfg)
+{
+	return cfg->state_cookie_timeout != OAUTH2_CFG_TIME_UNSET
+		   ? cfg->state_cookie_timeout
+		   : OAUTH2_OPENIDC_STATE_COOKIE_TIMEOUT_DEFAULT;
+}
+
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(cfg, openidc, state_cookie_max, oauth2_uint_t,
+				  uint)
+
+#define OAUTH2_OPENIDC_STATE_COOKIE_MAX_DEFAULT 6
+
+oauth2_uint_t
+oauth2_cfg_openidc_state_cookie_max_get(oauth2_log_t *log,
+					const oauth2_cfg_openidc_t *cfg)
+{
+	return cfg->state_cookie_max != OAUTH2_CFG_UINT_UNSET
+		   ? cfg->state_cookie_max
+		   : OAUTH2_OPENIDC_STATE_COOKIE_MAX_DEFAULT;
+}
 
 bool oauth2_cfg_openidc_provider_resolver_set(
     oauth2_log_t *log, oauth2_cfg_openidc_t *cfg,
@@ -228,17 +282,6 @@ end:
 		oauth2_mem_free(value);
 
 	return redirect_uri;
-}
-
-#define OAUTH2_OPENIDC_STATE_COOKIE_NAME_PREFIX_DEFAULT "openidc_state_"
-
-char *
-oauth2_cfg_openidc_state_cookie_name_prefix_get(oauth2_log_t *log,
-						const oauth2_cfg_openidc_t *cfg)
-{
-	return cfg->state_cookie_name_prefix
-		   ? cfg->state_cookie_name_prefix
-		   : OAUTH2_OPENIDC_STATE_COOKIE_NAME_PREFIX_DEFAULT;
 }
 
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(cfg, openidc, unauth_action,
