@@ -353,3 +353,71 @@ end:
 
 	return;
 }
+
+char *oauth2_cfg_openidc_set_options(oauth2_log_t *log,
+				     oauth2_cfg_openidc_t *cfg,
+				     const char *options)
+{
+	char *rv = NULL;
+	oauth2_nv_list_t *params = NULL;
+	const char *value = NULL;
+
+	if (cfg == NULL) {
+		rv = oauth2_strdup("struct is null");
+		goto end;
+	}
+
+	if (oauth2_parse_form_encoded_params(log, options, &params) == false)
+		goto end;
+
+	value = oauth2_nv_list_get(log, params, "handler_path");
+	if (value) {
+		rv = oauth2_strdup(oauth2_cfg_set_str_slot(
+		    cfg, offsetof(oauth2_cfg_openidc_t, handler_path), value));
+		if (rv)
+			goto end;
+	}
+
+	value = oauth2_nv_list_get(log, params, "redirect_uri");
+	if (value) {
+		rv = oauth2_strdup(oauth2_cfg_set_str_slot(
+		    cfg, offsetof(oauth2_cfg_openidc_t, redirect_uri), value));
+		if (rv)
+			goto end;
+	}
+
+	value = oauth2_nv_list_get(log, params, "state.cookie.name.prefix");
+	if (value) {
+		rv = oauth2_strdup(oauth2_cfg_set_str_slot(
+		    cfg,
+		    offsetof(oauth2_cfg_openidc_t, state_cookie_name_prefix),
+		    value));
+		if (rv)
+			goto end;
+	}
+
+	value = oauth2_nv_list_get(log, params, "state.cookie.timeout");
+	if (value) {
+		rv = oauth2_strdup(oauth2_cfg_set_time_slot(
+		    cfg, offsetof(oauth2_cfg_openidc_t, state_cookie_timeout),
+		    value));
+		if (rv)
+			goto end;
+	}
+
+	value = oauth2_nv_list_get(log, params, "state.cookie.max");
+	if (value) {
+		rv = oauth2_strdup(oauth2_cfg_set_uint_slot(
+		    cfg, offsetof(oauth2_cfg_openidc_t, state_cookie_max),
+		    value));
+		if (rv)
+			goto end;
+	}
+
+end:
+
+	if (params)
+		oauth2_nv_list_free(log, params);
+
+	return rv;
+}

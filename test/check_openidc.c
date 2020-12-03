@@ -1015,6 +1015,8 @@ START_TEST(test_openidc_state_cookie)
 
 	c = oauth2_cfg_openidc_init(_log);
 
+	oauth2_cfg_openidc_set_options(_log, c, "state.cookie.max=1");
+
 	oauth2_cfg_openidc_provider_resolver_set_options(
 	    _log, c, "string", test_openidc_metadata_get(), NULL);
 	oauth2_openidc_client_set_options(
@@ -1026,8 +1028,6 @@ START_TEST(test_openidc_state_cookie)
 	oauth2_http_request_header_set(_log, request, "Host",
 				       "app.example.org");
 	oauth2_http_request_header_set(_log, request, "Accept", "text/html");
-
-	oauth2_cfg_openidc_state_cookie_max_set(_log, c, 1);
 
 	rc = oauth2_openidc_handle(_log, c, request, &response, NULL);
 	ck_assert_int_eq(rc, true);

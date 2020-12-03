@@ -129,6 +129,10 @@ OAUTH2_TYPE_DECLARE_MEMBER_GET(cfg, openidc, client, oauth2_openidc_client_t *)
  * OpenID Connect configuration
  */
 
+char *oauth2_cfg_openidc_set_options(oauth2_log_t *log,
+				     oauth2_cfg_openidc_t *cfg,
+				     const char *options);
+
 char *oauth2_cfg_openidc_redirect_uri_get_iss(
     oauth2_log_t *, const oauth2_cfg_openidc_t *, const oauth2_http_request_t *,
     const oauth2_openidc_provider_t *);
