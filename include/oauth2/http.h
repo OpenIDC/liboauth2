@@ -108,9 +108,10 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(http, response, status_code,
 bool oauth2_http_response_header_set(oauth2_log_t *log,
 				     oauth2_http_response_t *response,
 				     const char *name, const char *value);
-const char *oauth2_http_response_header_get(oauth2_log_t *log,
-					    oauth2_http_response_t *response,
-					    const char *name);
+const char *
+oauth2_http_response_header_get(oauth2_log_t *log,
+				const oauth2_http_response_t *response,
+				const char *name);
 const char *oauth2_http_response_header_set_cookie_prefix_get(
     oauth2_log_t *log, oauth2_http_response_t *response, const char *prefix);
 bool oauth2_http_response_cookie_set(oauth2_log_t *log,
@@ -119,7 +120,7 @@ bool oauth2_http_response_cookie_set(oauth2_log_t *log,
 				     const char *path, const bool is_secure,
 				     oauth2_time_t max_age);
 void oauth2_http_response_headers_loop(oauth2_log_t *log,
-				       oauth2_http_response_t *response,
+				       const oauth2_http_response_t *response,
 				       oauth2_nv_list_loop_cb_t *callback,
 				       void *rec);
 

@@ -213,7 +213,7 @@ bool oauth2_session_load_cache(oauth2_log_t *log,
 	if (oauth2_json_decode_object(log, value, json) == false)
 		goto end;
 
-	oauth2_debug(log, "restored session from cache: %s##", value);
+	oauth2_debug(log, "restored session from cache: %s", value);
 
 	rc = true;
 

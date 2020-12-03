@@ -151,17 +151,17 @@ static bool _oauth2_openidc_cookie_clear(oauth2_log_t *log,
 static int _oauth2_openidc_delete_oldest_state_cookies(
     oauth2_log_t *log, oauth2_http_response_t *response, const char *path,
     int number_of_valid_state_cookies, int max_number_of_state_cookies,
-    oidc_state_cookies_t *first, const bool is_secure)
+    oidc_state_cookies_t **first, const bool is_secure)
 {
 	oidc_state_cookies_t *cur = NULL, *prev = NULL, *prev_oldest = NULL,
 			     *oldest = NULL;
 
 	while (number_of_valid_state_cookies >= max_number_of_state_cookies) {
 
-		oldest = first;
+		oldest = *first;
 		prev_oldest = NULL;
-		prev = first;
-		cur = first->next;
+		prev = *first;
+		cur = (*first)->next;
 
 		while (cur) {
 			if ((cur->timestamp < oldest->timestamp)) {
@@ -183,7 +183,7 @@ static int _oauth2_openidc_delete_oldest_state_cookies(
 		if (prev_oldest)
 			prev_oldest->next = oldest->next;
 		else
-			first = first->next;
+			*first = (*first)->next;
 
 		number_of_valid_state_cookies--;
 
@@ -371,7 +371,7 @@ static bool _oauth2_openidc_clean_expired_state_cookies(
 
 	_oauth2_openidc_delete_oldest_state_cookies(
 	    log, response, path, number_of_valid_state_cookies,
-	    oauth2_cfg_openidc_state_cookie_max_get(log, cfg), first,
+	    oauth2_cfg_openidc_state_cookie_max_get(log, cfg), &first,
 	    oauth2_http_request_is_secure(log, request));
 
 	while (first) {

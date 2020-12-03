@@ -1594,9 +1594,8 @@ static bool oauth2_http_response_header_add(oauth2_log_t *log,
 	return oauth2_nv_list_add(log, response->headers, name, value);
 }
 
-const char *oauth2_http_response_header_get(oauth2_log_t *log,
-					    oauth2_http_response_t *response,
-					    const char *name)
+const char *oauth2_http_response_header_get(
+    oauth2_log_t *log, const oauth2_http_response_t *response, const char *name)
 {
 	return oauth2_nv_list_get(log, response->headers, name);
 }
@@ -1662,7 +1661,7 @@ bool oauth2_http_response_cookie_set(oauth2_log_t *log,
 
 		str = oauth2_stradd(
 		    NULL, name, "=;",
-		    " expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0");
+		    " Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0");
 	}
 
 	if (path)
@@ -1693,7 +1692,7 @@ end:
 }
 
 void oauth2_http_response_headers_loop(oauth2_log_t *log,
-				       oauth2_http_response_t *response,
+				       const oauth2_http_response_t *response,
 				       oauth2_nv_list_loop_cb_t *callback,
 				       void *rec)
 {
