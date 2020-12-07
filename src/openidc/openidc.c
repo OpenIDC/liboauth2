@@ -147,6 +147,7 @@ static bool _oauth2_openidc_unauthenticated_request(
 	case OAUTH2_UNAUTH_ACTION_PASS:
 		// r->user = "";
 		// oidc_scrub_headers(r);
+		rc = true;
 		goto end;
 		break;
 	case OAUTH2_UNAUTH_ACTION_HTTP_401:
