@@ -285,8 +285,16 @@ ngx_int_t oauth2_nginx_http_response_set(oauth2_log_t *log,
 	r->headers_out.status =
 	    oauth2_http_response_status_code_get(log, response);
 
+	if (r->headers_out.status == 200)
+		nrc = NGX_OK;
+	else if (r->headers_out.status == 302)
+		nrc = NGX_HTTP_MOVED_TEMPORARILY;
+	else if (r->headers_out.status == 401)
+		nrc = NGX_HTTP_UNAUTHORIZED;
+	else
+		nrc = r->headers_out.status;
+
 	// nrc = ngx_http_send_header(r);
-	nrc = NGX_OK;
 
 end:
 
