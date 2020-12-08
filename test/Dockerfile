@@ -39,6 +39,7 @@ ENV LD_LIBRARY_PATH ${SRCDIR}/.libs
 ENV CK_FORK "no"
 
 RUN sed -i "s/bind .*/bind 127.0.0.1/g" /etc/redis/redis.conf
+RUN echo "requirepass foobared" >> /etc/redis/redis.conf
 
 RUN echo "#!/bin/sh" >> ./start.sh
 RUN echo "service memcached start" >> ./start.sh
@@ -46,6 +47,8 @@ RUN echo "service redis-server start" >> ./start.sh
 RUN chmod a+x ./start.sh
 
 COPY . ${SRCDIR}
+
+ARG CONFIGURE_ARGS
 
 RUN ./autogen.sh
 RUN ./configure \

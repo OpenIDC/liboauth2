@@ -150,17 +150,31 @@ START_TEST(test_cache_file)
 	bool rc = false;
 	oauth2_cache_t *c = NULL;
 	char *rv = NULL;
+	char *value = NULL;
 
 	rv = oauth2_cfg_set_cache(
-	    _log, NULL, "file", "name=file&key_hash_algo=none&max_key_size=8");
+	    _log, NULL, "file",
+	    "name=file&key_hash_algo=none&max_key_size=8&clean_interval=1");
 	ck_assert_ptr_eq(rv, NULL);
 	c = oauth2_cache_obtain(_log, "file");
 	ck_assert_ptr_ne(c, NULL);
 
 	_test_basic_cache(c);
 
-	rc = oauth2_cache_set(_log, c, "hans", "zandbelt", 10);
+	rc = oauth2_cache_set(_log, c, "hans", "zandbelt", 1);
 	ck_assert_int_eq(rc, true);
+
+	// also wait for the cache clean cycle (interval=1) to run
+	sleep(1);
+
+	rc = oauth2_cache_set(_log, c, "hans2", "zandbelt2", 1);
+	ck_assert_int_eq(rc, true);
+
+	value = NULL;
+	rc = oauth2_cache_get(_log, c, "hans", &value);
+	ck_assert_int_eq(rc, true);
+	ck_assert_ptr_eq(value, NULL);
+
 	// TODO: test file /tmp/mod-auth-openidc-hans exists?
 }
 END_TEST
@@ -187,7 +201,8 @@ START_TEST(test_cache_redis)
 	oauth2_cache_t *c = NULL;
 	char *rv = NULL;
 
-	rv = oauth2_cfg_set_cache(_log, NULL, "redis", "name=redis");
+	rv = oauth2_cfg_set_cache(_log, NULL, "redis",
+				  "name=redis&password=foobared");
 	ck_assert_ptr_eq(rv, NULL);
 	c = oauth2_cache_obtain(_log, "redis");
 	ck_assert_ptr_ne(c, NULL);

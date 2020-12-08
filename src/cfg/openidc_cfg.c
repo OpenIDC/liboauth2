@@ -417,13 +417,17 @@ char *oauth2_cfg_openidc_set_options(oauth2_log_t *log,
 	value = oauth2_nv_list_get(log, params, "unauth_action");
 	if (value) {
 		if (strncasecmp(value, "auth", 4) == 0)
-			oauth2_cfg_openidc_unauth_action_set(log, cfg, OAUTH2_UNAUTH_ACTION_AUTHENTICATE);
+			oauth2_cfg_openidc_unauth_action_set(
+			    log, cfg, OAUTH2_UNAUTH_ACTION_AUTHENTICATE);
 		else if (strncasecmp(value, "pass", 4) == 0)
-			oauth2_cfg_openidc_unauth_action_set(log, cfg, OAUTH2_UNAUTH_ACTION_PASS);
+			oauth2_cfg_openidc_unauth_action_set(
+			    log, cfg, OAUTH2_UNAUTH_ACTION_PASS);
 		else if (strncasecmp(value, "401", 3) == 0)
-			oauth2_cfg_openidc_unauth_action_set(log, cfg, OAUTH2_UNAUTH_ACTION_HTTP_401);
+			oauth2_cfg_openidc_unauth_action_set(
+			    log, cfg, OAUTH2_UNAUTH_ACTION_HTTP_401);
 		else if (strncasecmp(value, "410", 3) == 0)
-			oauth2_cfg_openidc_unauth_action_set(log, cfg, OAUTH2_UNAUTH_ACTION_HTTP_410);
+			oauth2_cfg_openidc_unauth_action_set(
+			    log, cfg, OAUTH2_UNAUTH_ACTION_HTTP_410);
 		else {
 			rv = oauth2_strdup("unknown value for unauth_action");
 			goto end;
