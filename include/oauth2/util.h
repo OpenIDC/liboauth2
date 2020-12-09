@@ -32,7 +32,7 @@
 #define OAUTH2_STRINGIFY(x) #x
 #define OAUTH2_TOSTRING(x) OAUTH2_STRINGIFY(x)
 
-typedef bool oauth2_flag_t;
+typedef char oauth2_flag_t;
 typedef unsigned int oauth2_uint_t;
 typedef uint64_t oauth2_time_t;
 

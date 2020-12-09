@@ -43,6 +43,7 @@ oauth2_cfg_openidc_t *oauth2_cfg_openidc_init(oauth2_log_t *log)
 	c->state_cookie_name_prefix = NULL;
 	c->state_cookie_timeout = OAUTH2_CFG_TIME_UNSET;
 	c->state_cookie_max = OAUTH2_CFG_UINT_UNSET;
+	c->state_cookie_delete_oldest = OAUTH2_CFG_FLAG_UNSET;
 
 end:
 
@@ -73,6 +74,7 @@ oauth2_cfg_openidc_t *oauth2_cfg_openidc_clone(oauth2_log_t *log,
 	    oauth2_strdup(src->state_cookie_name_prefix);
 	dst->state_cookie_timeout = src->state_cookie_timeout;
 	dst->state_cookie_max = src->state_cookie_max;
+	dst->state_cookie_delete_oldest = src->state_cookie_delete_oldest;
 
 end:
 
@@ -112,6 +114,8 @@ void oauth2_cfg_openidc_merge(oauth2_log_t *log, oauth2_cfg_openidc_t *cfg,
 			       OAUTH2_CFG_TIME_UNSET);
 	_OAUTH_CFG_MERGE_VALUE(cfg, base, add, state_cookie_max,
 			       OAUTH2_CFG_UINT_UNSET);
+	_OAUTH_CFG_MERGE_VALUE(cfg, base, add, state_cookie_delete_oldest,
+			       OAUTH2_CFG_FLAG_UNSET);
 
 end:
 
@@ -188,6 +192,16 @@ oauth2_cfg_openidc_state_cookie_max_get(oauth2_log_t *log,
 	return cfg->state_cookie_max != OAUTH2_CFG_UINT_UNSET
 		   ? cfg->state_cookie_max
 		   : OAUTH2_OPENIDC_STATE_COOKIE_MAX_DEFAULT;
+}
+
+#define OAUTH2_OPENIDC_STATE_COOKIE_DELETE_OLDEST_DEFAULT false
+
+oauth2_flag_t oauth2_cfg_openidc_state_cookie_delete_oldest_get(
+    oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg)
+{
+	return (cfg->state_cookie_delete_oldest != OAUTH2_CFG_FLAG_UNSET)
+		   ? cfg->state_cookie_delete_oldest
+		   : OAUTH2_OPENIDC_STATE_COOKIE_DELETE_OLDEST_DEFAULT;
 }
 
 bool oauth2_cfg_openidc_provider_resolver_set(
@@ -409,6 +423,16 @@ char *oauth2_cfg_openidc_set_options(oauth2_log_t *log,
 	if (value) {
 		rv = oauth2_strdup(oauth2_cfg_set_uint_slot(
 		    cfg, offsetof(oauth2_cfg_openidc_t, state_cookie_max),
+		    value));
+		if (rv)
+			goto end;
+	}
+
+	value = oauth2_nv_list_get(log, params, "state.cookie.delete.oldest");
+	if (value) {
+		rv = oauth2_strdup(oauth2_cfg_set_flag_slot(
+		    cfg,
+		    offsetof(oauth2_cfg_openidc_t, state_cookie_delete_oldest),
 		    value));
 		if (rv)
 			goto end;

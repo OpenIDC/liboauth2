@@ -1015,7 +1015,8 @@ START_TEST(test_openidc_state_cookie)
 
 	c = oauth2_cfg_openidc_init(_log);
 
-	oauth2_cfg_openidc_set_options(_log, c, "state.cookie.max=1");
+	oauth2_cfg_openidc_set_options(
+	    _log, c, "state.cookie.max=1&state.cookie.delete.oldest=true");
 
 	oauth2_cfg_openidc_provider_resolver_set_options(
 	    _log, c, "string", test_openidc_metadata_get(), NULL);

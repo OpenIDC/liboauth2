@@ -269,6 +269,7 @@ typedef struct oauth2_cfg_openidc_t {
 	char *state_cookie_name_prefix;
 	oauth2_time_t state_cookie_timeout;
 	oauth2_uint_t state_cookie_max;
+	oauth2_flag_t state_cookie_delete_oldest;
 } oauth2_cfg_openidc_t;
 
 /*

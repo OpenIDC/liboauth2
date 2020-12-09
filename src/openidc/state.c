@@ -369,10 +369,23 @@ static bool _oauth2_openidc_clean_expired_state_cookies(
 		cookieStr = strtok_r(NULL, delim, &save_ptr);
 	}
 
+	if ((number_of_valid_state_cookies >=
+	     oauth2_cfg_openidc_state_cookie_max_get(log, cfg)) &&
+	    (oauth2_cfg_openidc_state_cookie_delete_oldest_get(log, cfg) ==
+	     false)) {
+		oauth2_debug(log,
+			     "max number of state cookies has been reached");
+		goto end;
+	}
+
 	_oauth2_openidc_delete_oldest_state_cookies(
 	    log, response, path, number_of_valid_state_cookies,
 	    oauth2_cfg_openidc_state_cookie_max_get(log, cfg), &first,
 	    oauth2_http_request_is_secure(log, request));
+
+	rc = true;
+
+end:
 
 	while (first) {
 		entry = first;
@@ -381,10 +394,6 @@ static bool _oauth2_openidc_clean_expired_state_cookies(
 		oauth2_mem_free(entry->target_uri);
 		oauth2_mem_free(entry);
 	}
-
-	rc = true;
-
-end:
 
 	if (cookies)
 		oauth2_mem_free(cookies);
@@ -413,8 +422,9 @@ bool _oauth2_openidc_state_cookie_set(oauth2_log_t *log,
 	if (name == NULL)
 		goto end;
 
-	_oauth2_openidc_clean_expired_state_cookies(log, cfg, request,
-						    response);
+	if (_oauth2_openidc_clean_expired_state_cookies(log, cfg, request,
+							response) == false)
+		goto end;
 
 	target_link_uri = oauth2_http_request_url_get(log, request);
 
