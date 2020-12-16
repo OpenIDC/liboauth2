@@ -1,5 +1,5 @@
 #
-# libauth2_apache - Apache C bindings for liboauth2
+# liboauth2_apache - Apache C bindings for liboauth2
 #
 
 prefix=@prefix@
@@ -7,8 +7,8 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: libauth2_apache
-URL: https://github.com/zmartzone/libauth2
+Name: liboauth2_apache
+URL: https://github.com/zmartzone/liboauth2
 Description: Apache C bindings for liboauth2
 Version: @VERSION@
 Requires: liboauth2 >= 1.4.0, apr-1, apr-util-1
