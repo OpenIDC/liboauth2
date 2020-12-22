@@ -19,6 +19,7 @@
  *
  **************************************************************************/
 
+#include "check_liboauth2.h"
 #include "oauth2/log.h"
 #include <check.h>
 #include <stdlib.h>

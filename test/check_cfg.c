@@ -1,5 +1,6 @@
 #include <check.h>
 
+#include "check_liboauth2.h"
 #include "oauth2/cfg.h"
 #include <oauth2/mem.h>
 

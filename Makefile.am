@@ -192,7 +192,8 @@ check_liboauth2_SOURCES = \
 	test/check_oauth2.c \
 	test/check_openidc.c \
 	test/server_stubs.c \
-	test/provider.json	
+	test/provider.json \	
+	test/client.json	
 if HAVE_APACHE
 check_liboauth2_SOURCES += \
 	test/check_apache.c

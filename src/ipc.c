@@ -73,16 +73,24 @@ oauth2_ipc_sema_t *oauth2_ipc_sema_init(oauth2_log_t *log)
 
 void oauth2_ipc_sema_free(oauth2_log_t *log, oauth2_ipc_sema_t *s)
 {
-	if ((s == NULL) && (s->sema == NULL))
+	if (s == NULL)
 		goto end;
 
-	if (sem_close(s->sema) != 0)
-		oauth2_error(log, "sem_close() failed: %s ", strerror(errno));
-	if (sem_unlink(s->name) != 0)
-		oauth2_error(log, "sem_unlink() failed: %s ", strerror(errno));
-	s->sema = NULL;
+	if (s->sema != NULL) {
+		if (sem_close(s->sema) != 0)
+			oauth2_error(log, "sem_close() failed: %s ",
+				     strerror(errno));
+		if (sem_unlink(s->name) != 0) {
+			oauth2_error(log, "sem_unlink() failed: %s ",
+				     strerror(errno));
+			goto end;
+		}
+		s->sema = NULL;
+	}
+
 	if (s->name)
 		oauth2_mem_free(s->name);
+
 	oauth2_mem_free(s);
 
 end:
@@ -292,9 +300,6 @@ end:
  * shared memory
  */
 
-// TODO: we may not need name and call unlink: close the last one should
-// unlink...?
-
 typedef struct oauth2_ipc_shm_t {
 	char *name;
 	int fd;
@@ -384,7 +389,6 @@ bool oauth2_ipc_shm_post_config(oauth2_log_t *log, oauth2_ipc_shm_t *shm)
 		goto end;
 	}
 
-	// TODO: isn't this the wrong order then...?
 	if (ftruncate(shm->fd, shm->size) != 0) {
 		oauth2_error(log, "ftruncate() failed: %s", strerror(errno));
 		goto end;
@@ -396,6 +400,8 @@ bool oauth2_ipc_shm_post_config(oauth2_log_t *log, oauth2_ipc_shm_t *shm)
 		oauth2_error(log, "mmap() failed:: %s", strerror(errno));
 		goto end;
 	}
+
+	// TODO: we could close fd here
 
 	rc = oauth2_ipc_sema_post(log, shm->num);
 

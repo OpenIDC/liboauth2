@@ -1,11 +1,11 @@
 # liboauth2
-Generic library that can be used to build OAuth 2.0 and OpenID Connect C-based servers and clients e.g. web-server plugins.
+Generic library that can be used to build OAuth 2.x and OpenID Connect C-based servers and clients e.g. web-server plugins.
 
 ## Overview
 
-- extends [cjose](https://github.com/cisco/cjose) into OAuth 2.0 and OpenID Connect specific claims, secrets and hashes
-- adds OAuth 2.0 / OpenID Connect protocols by abstracting HTTP requests/responses from web server implementation specifics
-- reusable code across for other OAuth 2.0 (and REST) related protocols
+- extends [cjose](https://github.com/cisco/cjose) into OAuth 2.x and OpenID Connect specific claims, secrets and hashes
+- adds OAuth 2.x / OpenID Connect protocols by abstracting HTTP requests/responses from web server implementation specifics
+- reusable code across for other OAuth 2.x (and REST) related protocols
   e.g. token exchange with endpoint authentication, source token retrieval, target pass settings etc.
 - generic code with plugins for Apache, NGINX and possibly more (e.g. Envoy, HA Proxy, IIS)
 - configurable cache backend/size/options per cache element type
@@ -28,7 +28,7 @@ Generic library that can be used to build OAuth 2.0 and OpenID Connect C-based s
 
 ## Dependencies
 
-liboauth2 has the following dependencies:
+liboauth2 depends on the following libraries:
 - [`openssl`](https://www.openssl.org/) for SSL and crypto support
 - [`libcurl`](https://curl.haxx.se/libcurl/) for HTTP client support
 - [`jansson`](http://www.digip.org/jansson/) for JSON parsing
@@ -44,12 +44,11 @@ liboauth2 has the following dependencies:
 #### Community Support
 For generic questions, see the Wiki pages with Frequently Asked Questions at:  
   [https://github.com/zmartzone/liboauth2/wiki](https://github.com/zmartzone/liboauth2/wiki)  
-Any questions/issues should go to issues tracker.
+Any questions should go to the [Discussions](https://github.com/zmartzone/liboauth2/discussions) tracker.
 
-#### Commercial Services
-For commercial Support contracts, Professional Services, Training and use-case specific support you can contact:  
+#### Commercial Support
+For commercial support contracts, professional services, training and use-case specific support you can contact (ZmartZone IAM)[https://www.zmartzone.eu] at:  
   [sales@zmartzone.eu](mailto:sales@zmartzone.eu)  
-
 
 Disclaimer
 ----------

@@ -85,6 +85,19 @@ void liboauth2_check_register_http_callbacks(
 #define ck_assert_ptr_ne(X, Y) _ck_assert_ptr(X, !=, Y)
 #endif
 
+#ifndef _ck_assert_uint
+#define _ck_assert_uint(X, OP, Y)                                              \
+	do {                                                                   \
+		uintmax_t _ck_x = (X);                                         \
+		uintmax_t _ck_y = (Y);                                         \
+		ck_assert_msg(_ck_x OP _ck_y,                                  \
+			      "Assertion '%s' failed: %s == %ju, %s == %ju",   \
+			      #X " " #OP " " #Y, #X, _ck_x, #Y, _ck_y);        \
+	} while (0)
+#define ck_assert_uint_eq(X, Y) _ck_assert_uint(X, ==, Y)
+#define ck_assert_uint_ne(X, Y) _ck_assert_uint(X, !=, Y)
+#endif
+
 #define OAUTH2_CHECK_HTTP_PATHS                                                \
 	static char *_http_base_path = NULL;                                   \
                                                                                \

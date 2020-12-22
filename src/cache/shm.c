@@ -262,6 +262,9 @@ static bool oauth2_cache_shm_get(oauth2_log_t *log, oauth2_cache_t *cache,
 		goto end;
 
 	ptr = oauth2_ipc_shm_get(log, impl->shm);
+	if (ptr == NULL)
+		goto unlock;
+
 	now_s = oauth2_time_now_sec();
 
 	for (i = 0; i < impl->max_entries;
@@ -300,9 +303,11 @@ static bool oauth2_cache_shm_get(oauth2_log_t *log, oauth2_cache_t *cache,
 		}
 	}
 
-	oauth2_ipc_mutex_unlock(log, impl->mutex);
-
 	rc = true;
+
+unlock:
+
+	oauth2_ipc_mutex_unlock(log, impl->mutex);
 
 end:
 
@@ -352,6 +357,9 @@ static bool oauth2_cache_shm_set(oauth2_log_t *log, oauth2_cache_t *cache,
 		goto end;
 
 	ptr = oauth2_ipc_shm_get(log, impl->shm);
+	if (ptr == NULL)
+		goto unlock;
+
 	now_s = oauth2_time_now_sec();
 
 	match = NULL;
@@ -428,9 +436,11 @@ static bool oauth2_cache_shm_set(oauth2_log_t *log, oauth2_cache_t *cache,
 		ptr->access_s = 0;
 	}
 
-	oauth2_ipc_mutex_unlock(log, impl->mutex);
-
 	rc = true;
+
+unlock:
+
+	oauth2_ipc_mutex_unlock(log, impl->mutex);
 
 end:
 
