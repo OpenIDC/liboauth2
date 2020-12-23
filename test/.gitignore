@@ -5,3 +5,4 @@
 /*.gcno
 /.deps/
 /.dirstamp
+/Dockerfile*

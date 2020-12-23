@@ -1,4 +1,8 @@
-10/21/2020
+12/23/2020
+- use per-process semaphore locking to prevent multi-process issue; see #18
+- release 1.4.0.1
+
+12/21/2020
 - release 1.4.0
 
 12/03/2020

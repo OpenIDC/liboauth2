@@ -1,4 +1,4 @@
-AC_INIT([liboauth2],[1.4.0],[hans.zandbelt@zmartzone.eu])
+AC_INIT([liboauth2],[1.4.0.1],[hans.zandbelt@zmartzone.eu])
 
 AM_INIT_AUTOMAKE([foreign no-define subdir-objects])
 AC_CONFIG_MACRO_DIR([m4])

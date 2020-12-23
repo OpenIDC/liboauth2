@@ -27,3 +27,4 @@
 /liboauth2_nginx.pc
 /ChangeLog.org
 /.settings/
+/autom4te.cache/

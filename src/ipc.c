@@ -48,8 +48,10 @@ static char *_oauth2_ipc_get_name(oauth2_log_t *log, const char *type,
 {
 	char *rv = NULL;
 	rv = oauth2_mem_alloc(_OAUTH2_IPC_NAME_MAX);
-	oauth2_snprintf(rv, _OAUTH2_IPC_NAME_MAX, "/zzo-%s-%ld.%p", type,
-			(long int)getpid(), ptr);
+	// oauth2_snprintf(rv, _OAUTH2_IPC_NAME_MAX, "/zzo-%s-%ld.%p", type,
+	//		(long int)getpid(), ptr);
+	oauth2_snprintf(rv, _OAUTH2_IPC_NAME_MAX, "/zzo-%s-%p", type, ptr ? ptr : 0);
+	//oauth2_snprintf(rv, _OAUTH2_IPC_NAME_MAX, "/zzo-%s", type);
 	return rv;
 }
 
@@ -80,11 +82,6 @@ void oauth2_ipc_sema_free(oauth2_log_t *log, oauth2_ipc_sema_t *s)
 		if (sem_close(s->sema) != 0)
 			oauth2_error(log, "sem_close() failed: %s ",
 				     strerror(errno));
-		if (sem_unlink(s->name) != 0) {
-			oauth2_error(log, "sem_unlink() failed: %s ",
-				     strerror(errno));
-			goto end;
-		}
 		s->sema = NULL;
 	}
 
@@ -114,7 +111,7 @@ bool oauth2_ipc_sema_post_config(oauth2_log_t *log, oauth2_ipc_sema_t *sema)
 	if (sema->name == NULL)
 		goto end;
 
-	sema->sema = sem_open(sema->name, O_CREAT | O_EXCL, 0644, 0);
+	sema->sema = sem_open(sema->name, O_CREAT, 0644, 0);
 	if (sema->sema == SEM_FAILED) {
 		oauth2_error(
 		    log,
@@ -123,6 +120,9 @@ bool oauth2_ipc_sema_post_config(oauth2_log_t *log, oauth2_ipc_sema_t *sema)
 		sema->sema = NULL;
 		goto end;
 	}
+
+	if (sem_unlink(sema->name) != 0)
+		oauth2_error(log, "sem_unlink() failed: %s ", strerror(errno));
 
 	rc = true;
 
@@ -302,7 +302,7 @@ end:
 
 typedef struct oauth2_ipc_shm_t {
 	char *name;
-	int fd;
+	// int fd;
 	oauth2_ipc_mutex_t *mutex;
 	oauth2_ipc_sema_t *num;
 	size_t size;
@@ -313,7 +313,7 @@ oauth2_ipc_shm_t *oauth2_ipc_shm_init(oauth2_log_t *log, size_t size)
 {
 	oauth2_ipc_shm_t *shm = oauth2_mem_alloc(sizeof(oauth2_ipc_shm_t));
 	shm->mutex = oauth2_ipc_mutex_init(log);
-	shm->fd = -1;
+	// shm->fd = -1;
 	shm->num = oauth2_ipc_sema_init(log);
 	shm->name = NULL;
 	shm->ptr = NULL;
@@ -333,9 +333,11 @@ void oauth2_ipc_shm_free(oauth2_log_t *log, oauth2_ipc_shm_t *shm)
 		oauth2_ipc_mutex_free(log, shm->mutex);
 	shm->mutex = NULL;
 
-	if (shm->fd != -1) {
-		close(shm->fd);
-		shm->fd = -1;
+	if (shm->ptr) {
+		if (munmap(shm->ptr, shm->size) < 0)
+			oauth2_error(log, "munmap() failed: %s",
+				     strerror(errno));
+		shm->ptr = NULL;
 	}
 
 	if (shm->num) {
@@ -365,6 +367,7 @@ end:
 bool oauth2_ipc_shm_post_config(oauth2_log_t *log, oauth2_ipc_shm_t *shm)
 {
 	bool rc = false;
+	int fd = -1;
 
 	if (shm == NULL)
 		goto end;
@@ -383,29 +386,30 @@ bool oauth2_ipc_shm_post_config(oauth2_log_t *log, oauth2_ipc_shm_t *shm)
 
 	oauth2_debug(log, "creating shm with name: %s", shm->name);
 
-	shm->fd = shm_open(shm->name, O_CREAT | O_RDWR, 0666);
-	if (shm->fd == -1) {
-		oauth2_error(log, "shm_open() failed:: %s", strerror(errno));
+	fd = shm_open(shm->name, O_CREAT | O_RDWR, 0666);
+	if (fd == -1) {
+		oauth2_error(log, "shm_open() failed: %s", strerror(errno));
 		goto end;
 	}
 
-	if (ftruncate(shm->fd, shm->size) != 0) {
+	if (ftruncate(fd, shm->size) != 0) {
 		oauth2_error(log, "ftruncate() failed: %s", strerror(errno));
-		goto end;
+		//goto end;
 	}
 
 	shm->ptr =
-	    mmap(0, shm->size, PROT_READ | PROT_WRITE, MAP_SHARED, shm->fd, 0);
+	    mmap(0, shm->size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1 /*fd*/, 0);
 	if (shm->ptr == MAP_FAILED) {
-		oauth2_error(log, "mmap() failed:: %s", strerror(errno));
+		oauth2_error(log, "mmap() failed: %s", strerror(errno));
 		goto end;
 	}
-
-	// TODO: we could close fd here
 
 	rc = oauth2_ipc_sema_post(log, shm->num);
 
 end:
+
+	if (fd != -1)
+		close(fd);
 
 	return rc;
 }
