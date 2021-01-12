@@ -28,3 +28,5 @@
 /ChangeLog.org
 /.settings/
 /autom4te.cache/
+.vs/libauth2/v16
+x64
