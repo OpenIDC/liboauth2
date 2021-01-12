@@ -78,13 +78,13 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(IncludePath);$(ProjectDir)target\httpd-2.4.41-win32-VS16\Apache24\include;$(ProjectDir)cjose\include;$(ProjectDir)vcpkg\installed\x86-windows\include</IncludePath>
+    <IncludePath>$(IncludePath);$(ProjectDir)target\httpd-2.4.46-win32-VS16\Apache24\include;$(ProjectDir)cjose\include;$(ProjectDir)vcpkg\installed\x86-windows\include</IncludePath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(ProjectDir)target\httpd-2.4.41-win64-VS16\Apache24\include;$(ProjectDir)cjose\include;$(ProjectDir)\vcpkg\installed\x64-windows\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)target\httpd-2.4.46-win64-VS16\Apache24\include;$(ProjectDir)cjose\include;$(ProjectDir)vcpkg\installed\x64-windows\include;$(ProjectDir)include;$(ProjectDir)src;$(IncludePath)</IncludePath>
     <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -103,7 +103,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
@@ -152,6 +152,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="include\oauth2\apache.h" />
+    <ClInclude Include="include\oauth2\cache.h" />
+    <ClInclude Include="include\oauth2\cfg.h" />
+    <ClInclude Include="include\oauth2\http.h" />
+    <ClInclude Include="include\oauth2\ipc.h" />
+    <ClInclude Include="include\oauth2\jose.h" />
+    <ClInclude Include="include\oauth2\log.h" />
+    <ClInclude Include="include\oauth2\mem.h" />
+    <ClInclude Include="include\oauth2\nginx.h" />
+    <ClInclude Include="include\oauth2\oauth2.h" />
+    <ClInclude Include="include\oauth2\openidc.h" />
+    <ClInclude Include="include\oauth2\proto.h" />
+    <ClInclude Include="include\oauth2\session.h" />
+    <ClInclude Include="include\oauth2\util.h" />
+    <ClInclude Include="include\oauth2\version.h" />
     <ClInclude Include="src\cache_int.h" />
     <ClInclude Include="src\cfg_int.h" />
     <ClInclude Include="src\jose_int.h" />
@@ -162,18 +177,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\cache\file.c" />
-    <ClCompile Include="src\cache\memcache.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="src\cache\redis.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="src\cache\shm.c" />
     <ClCompile Include="src\cfg\auth.c" />
-    <ClCompile Include="src\cfg\cache_cfg.c" />
     <ClCompile Include="src\cfg\cfg.c" />
     <ClCompile Include="src\cfg\openidc_cfg.c" />
     <ClCompile Include="src\cfg\proto_cfg.c" />
@@ -187,11 +191,8 @@
     <ClCompile Include="src\openidc\resolver.c" />
     <ClCompile Include="src\openidc\state.c" />
     <ClCompile Include="src\server\apache.c" />
-    <ClCompile Include="src\server\nginx.c" />
-    <ClCompile Include="src\config.c" />
     <ClCompile Include="src\dpop.c" />
     <ClCompile Include="src\http.c" />
-    <ClCompile Include="src\ipc.c" />
     <ClCompile Include="src\jose.c" />
     <ClCompile Include="src\log.c" />
     <ClCompile Include="src\mem.c" />

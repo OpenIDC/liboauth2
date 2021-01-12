@@ -3,11 +3,6 @@ call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliar
 msbuild.exe "cjose/cjose.vcxproj" /p:Configuration=Release /p:Platform="x64"
 msbuild.exe "liboauth2.vcxproj" /p:Configuration=Release /p:Platform="x64"
 
-call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars32.bat"
-msbuild.exe "cjose/cjose.vcxproj" /p:Configuration=Release /p:Platform="win32"
-msbuild.exe "liboauth2.vcxproj" /p:Configuration=Release /p:Platform="win32"
-
-
 mkdir target
 mkdir target\liboauth2
 mkdir target\liboauth2\x64

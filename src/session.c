@@ -201,8 +201,10 @@ bool oauth2_session_load_cache(oauth2_log_t *log,
 		goto end;
 	}
 
+#ifdef AUTH2_CACHE_ENABLED
 	if (oauth2_cache_get(log, cfg->cache, key, &value) == false)
 		goto end;
+#endif
 
 	if (value == NULL) {
 		oauth2_debug(log, "no session found in cache");
@@ -246,13 +248,14 @@ bool oauth2_session_save_cache(oauth2_log_t *log,
 		goto end;
 	}
 
+#ifdef AUTH2_CACHE_ENABLED
 	if (oauth2_cache_set(log, cfg->cache, key, value,
 			     oauth2_cfg_session_inactivity_timeout_s_get(
 				 log, cfg)) == false) {
 		oauth2_error(log, "could not store session in cache");
 		goto end;
 	}
-
+#endif
 	name = oauth2_cfg_session_cookie_name_get(log, cfg);
 	path = oauth2_cfg_session_cookie_path_get(log, cfg);
 

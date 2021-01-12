@@ -1,0 +1,130 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="src\dpop.c" />
+    <ClCompile Include="src\http.c" />
+    <ClCompile Include="src\jose.c" />
+    <ClCompile Include="src\log.c" />
+    <ClCompile Include="src\mem.c" />
+    <ClCompile Include="src\oauth2.c" />
+    <ClCompile Include="src\proto.c" />
+    <ClCompile Include="src\session.c" />
+    <ClCompile Include="src\util.c" />
+    <ClCompile Include="src\version.c" />
+    <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="src\cfg\auth.c">
+      <Filter>cfg</Filter>
+    </ClCompile>
+    <ClCompile Include="src\cfg\cfg.c">
+      <Filter>cfg</Filter>
+    </ClCompile>
+    <ClCompile Include="src\cfg\openidc_cfg.c">
+      <Filter>cfg</Filter>
+    </ClCompile>
+    <ClCompile Include="src\cfg\proto_cfg.c">
+      <Filter>cfg</Filter>
+    </ClCompile>
+    <ClCompile Include="src\cfg\source.c">
+      <Filter>cfg</Filter>
+    </ClCompile>
+    <ClCompile Include="src\cfg\target.c">
+      <Filter>cfg</Filter>
+    </ClCompile>
+    <ClCompile Include="src\cfg\verify.c">
+      <Filter>cfg</Filter>
+    </ClCompile>
+    <ClCompile Include="src\openidc\client.c">
+      <Filter>openidc</Filter>
+    </ClCompile>
+    <ClCompile Include="src\openidc\openidc.c">
+      <Filter>openidc</Filter>
+    </ClCompile>
+    <ClCompile Include="src\openidc\provider.c">
+      <Filter>openidc</Filter>
+    </ClCompile>
+    <ClCompile Include="src\openidc\resolver.c">
+      <Filter>openidc</Filter>
+    </ClCompile>
+    <ClCompile Include="src\openidc\state.c">
+      <Filter>openidc</Filter>
+    </ClCompile>
+    <ClCompile Include="src\server\apache.c">
+      <Filter>server</Filter>
+    </ClCompile>
+    <ClCompile Include="src\cfg\session_cfg.c">
+      <Filter>cfg</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\cache_int.h" />
+    <ClInclude Include="src\cfg_int.h" />
+    <ClInclude Include="src\jose_int.h" />
+    <ClInclude Include="src\oauth2_int.h" />
+    <ClInclude Include="src\openidc_int.h" />
+    <ClInclude Include="src\util_int.h" />
+    <ClInclude Include="stdafx.h" />
+    <ClInclude Include="targetver.h" />
+    <ClInclude Include="include\oauth2\apache.h">
+      <Filter>oauth2</Filter>
+    </ClInclude>
+    <ClInclude Include="include\oauth2\cache.h">
+      <Filter>oauth2</Filter>
+    </ClInclude>
+    <ClInclude Include="include\oauth2\cfg.h">
+      <Filter>oauth2</Filter>
+    </ClInclude>
+    <ClInclude Include="include\oauth2\http.h">
+      <Filter>oauth2</Filter>
+    </ClInclude>
+    <ClInclude Include="include\oauth2\ipc.h">
+      <Filter>oauth2</Filter>
+    </ClInclude>
+    <ClInclude Include="include\oauth2\jose.h">
+      <Filter>oauth2</Filter>
+    </ClInclude>
+    <ClInclude Include="include\oauth2\log.h">
+      <Filter>oauth2</Filter>
+    </ClInclude>
+    <ClInclude Include="include\oauth2\mem.h">
+      <Filter>oauth2</Filter>
+    </ClInclude>
+    <ClInclude Include="include\oauth2\nginx.h">
+      <Filter>oauth2</Filter>
+    </ClInclude>
+    <ClInclude Include="include\oauth2\oauth2.h">
+      <Filter>oauth2</Filter>
+    </ClInclude>
+    <ClInclude Include="include\oauth2\openidc.h">
+      <Filter>oauth2</Filter>
+    </ClInclude>
+    <ClInclude Include="include\oauth2\proto.h">
+      <Filter>oauth2</Filter>
+    </ClInclude>
+    <ClInclude Include="include\oauth2\session.h">
+      <Filter>oauth2</Filter>
+    </ClInclude>
+    <ClInclude Include="include\oauth2\util.h">
+      <Filter>oauth2</Filter>
+    </ClInclude>
+    <ClInclude Include="include\oauth2\version.h">
+      <Filter>oauth2</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="cfg">
+      <UniqueIdentifier>{7c3dbc29-f043-4312-8a06-044724ef9cd7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="openidc">
+      <UniqueIdentifier>{c671095d-9aba-4c55-b4ed-a52bee05861c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="server">
+      <UniqueIdentifier>{3341a6c1-2177-4c3a-a853-a16e7817e148}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="cjose">
+      <UniqueIdentifier>{364aa2a9-8681-4952-ae2e-707247afd89b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="oauth2">
+      <UniqueIdentifier>{716efd19-1f55-4e64-998e-564ec783e7da}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

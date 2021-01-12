@@ -1,0 +1,3 @@
+[submodule "cjose"]
+	path = cjose
+	url = https://github.com/cisco/cjose

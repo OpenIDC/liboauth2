@@ -54,8 +54,10 @@ oauth2_log_t *oauth2_init(oauth2_log_level_t level, oauth2_log_sink_t *sink)
 
 void oauth2_shutdown(oauth2_log_t *log)
 {
+#ifdef AUTH2_CACHE_ENABLED
 	_oauth2_session_global_cleanup(log);
 	_oauth2_cache_global_cleanup(log);
+#endif
 
 	if (_s_curl) {
 		curl_easy_cleanup(_s_curl);

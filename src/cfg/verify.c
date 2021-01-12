@@ -28,6 +28,21 @@
 #include "jose_int.h"
 #include "oauth2_int.h"
 
+#ifdef _WIN32
+	int strcasecmp(const char *s1, const char *s2)
+	{
+		if (!s1)
+			return (s1 == s2) ? 0 : 1;
+		if (!s2)
+			return 1;
+		for (; tolower(*s1) == tolower(*s2); ++s1, ++s2)
+			if (*s1 == 0)
+				return 0;
+		return tolower(*(const unsigned char *)s1) -
+			   tolower(*(const unsigned char *)s2);
+	}
+#endif
+
 #define OAUTH2_JOSE_VERIFY_JWK_PLAIN_STR "plain"
 #define OAUTH2_JOSE_VERIFY_JWK_BASE64_STR "base64"
 #define OAUTH2_JOSE_VERIFY_JWK_BASE64URL_STR "base64url"
@@ -193,8 +208,10 @@ _oauth2_cfg_token_verify_options_dpop_set(oauth2_log_t *log,
 {
 	char *rv = NULL;
 
+#ifdef AUTH2_CACHE_ENABLED
 	verify->dpop.cache = oauth2_cache_obtain(
 	    log, oauth2_nv_list_get(log, params, "dpop.cache"));
+#endif
 
 	verify->dpop.expiry_s = oauth2_parse_uint(
 	    log, oauth2_nv_list_get(log, params, "dpop.expiry"),
@@ -235,8 +252,10 @@ char *oauth2_cfg_token_verify_add_options(oauth2_log_t *log,
 
 	v = _oauth2_cfg_token_verify_add(log, verify);
 
+#ifdef AUTH2_CACHE_ENABLED
 	v->cache = oauth2_cache_obtain(
 	    log, oauth2_nv_list_get(log, params, "verify.cache"));
+#endif
 	v->expiry_s =
 	    oauth2_parse_uint(log, oauth2_nv_list_get(log, params, "expiry"),
 			      OAUTH2_CFG_VERIFY_RESULT_CACHE_DEFAULT);

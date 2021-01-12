@@ -7,18 +7,28 @@ call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliar
 
 @echo cd to vcpkg
 cd vcpkg
-call bootstrap-vcpkg.bat
+REM call bootstrap-vcpkg.bat
 
-.\vcpkg install pcre:x64-windows
-.\vcpkg install pcre:x86-windows
-.\vcpkg install apr:x64-windows
-.\vcpkg install apr:x86-windows
-.\vcpkg install curl:x64-windows
-.\vcpkg install curl:x86-windows
+REM .\vcpkg install pcre:x64-windows
+REM .\vcpkg install pcre:x86-windows
+REM .\vcpkg install apr:x64-windows
+REM .\vcpkg install apr:x86-windows
+
+
 .\vcpkg install openssl:x64-windows
-.\vcpkg install openssl:x86-windows
+REM .\vcpkg install openssl:x86-windows
+
+.\vcpkg install curl:x64-windows
+REM .\vcpkg install curl:x86-windows
+
 .\vcpkg install jansson:x64-windows
-.\vcpkg install jansson:x86-windows
+REM .\vcpkg install jansson:x86-windows
+
+.\vcpkg install cjose:x64-windows
+REM .\vcpkg install cjose:x86-windows
+
+
+
 REM .\vcpkg integrate install
 
 REM Please Note:  The paths to the vcpkg builds are set in the VS project files.  I couldn't get the 32bit and 64 bit to work correctly.  

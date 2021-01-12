@@ -30,3 +30,5 @@
 /autom4te.cache/
 .vs/libauth2/v16
 x64
+target
+.vs/libauth2/v15

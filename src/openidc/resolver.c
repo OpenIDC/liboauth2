@@ -107,11 +107,13 @@ bool _oauth2_openidc_provider_resolve(oauth2_log_t *log,
 		goto end;
 	}
 
+#ifdef AUTH2_CACHE_ENABLED
 	if ((issuer) && (cfg->provider_resolver->cache)) {
 
 		oauth2_cache_get(log, cfg->provider_resolver->cache, issuer,
 				 &s_json);
 	}
+#endif
 
 	if (s_json == NULL) {
 
@@ -134,13 +136,14 @@ bool _oauth2_openidc_provider_resolve(oauth2_log_t *log,
 		goto end;
 
 	// TODO: cache expiry configuration option
+#ifdef AUTH2_CACHE_ENABLED
 	if (cfg->provider_resolver->cache) {
 		oauth2_cache_set(
 		    log, cfg->provider_resolver->cache,
 		    oauth2_openidc_provider_issuer_get(log, *provider), s_json,
 		    OAUTH_OPENIDC_PROVIDER_CACHE_EXPIRY_DEFAULT);
 	}
-
+#endif
 	rc = true;
 
 end:
@@ -209,8 +212,12 @@ static char *_oauth2_cfg_openidc_provider_resolver_file_set_options(
 		cfg->provider_resolver->ctx->ptr;
 	ctx->filename = oauth2_strdup(value);
 
-	cfg->provider_resolver->cache =
-	    oauth2_cache_obtain(log, oauth2_nv_list_get(log, params, "cache"));
+#ifdef AUTH2_CACHE_ENABLED
+	 cfg->provider_resolver->cache =
+	    oauth2_cache_obtain(log, oauth2_nv_list_get(log, params,
+	    "cache"));
+#endif
+
 
 	return NULL;
 }

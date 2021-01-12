@@ -25,6 +25,11 @@
 #include "cfg_int.h"
 #include "openidc_int.h"
 
+#if defined(_WIN32) || defined(_WIN64)
+	/* We are on Windows */
+	#define strtok_r strtok_s
+#endif
+
 typedef struct oauth2_openidc_proto_state_t {
 	json_t *state;
 } oauth2_openidc_proto_state_t;

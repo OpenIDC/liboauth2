@@ -695,6 +695,7 @@ bool oauth2_token_verify(oauth2_log_t *log, oauth2_http_request_t *request,
 	ptr = verify;
 	while (ptr && ptr->callback) {
 
+#ifdef AUTH2_CACHE_ENABLED
 		oauth2_cache_get(log, ptr->cache, token, &s_payload);
 		if ((s_payload) &&
 		    (oauth2_json_decode_object(log, s_payload, json_payload))) {
@@ -708,6 +709,7 @@ bool oauth2_token_verify(oauth2_log_t *log, oauth2_http_request_t *request,
 			rc = true;
 			break;
 		}
+#endif
 
 		ptr = ptr->next;
 	}
