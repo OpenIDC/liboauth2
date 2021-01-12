@@ -42,8 +42,8 @@ bool oauth2_ipc_sema_trywait(oauth2_log_t *log, oauth2_ipc_sema_t *sema);
 
 typedef struct oauth2_ipc_shm_t oauth2_ipc_shm_t;
 oauth2_ipc_shm_t *oauth2_ipc_shm_init(oauth2_log_t *log, size_t size);
-void oauth2_ipc_shm_free(oauth2_log_t *, oauth2_ipc_shm_t *);
-bool oauth2_ipc_shm_post_config(oauth2_log_t *log, oauth2_ipc_shm_t *shm);
+//void oauth2_ipc_shm_free(oauth2_log_t *, oauth2_ipc_shm_t *);
+//bool oauth2_ipc_shm_post_config(oauth2_log_t *log, oauth2_ipc_shm_t *shm);
 bool oauth2_ipc_shm_child_init(oauth2_log_t *log, oauth2_ipc_shm_t *shm);
 void *oauth2_ipc_shm_get(oauth2_log_t *log, oauth2_ipc_shm_t *s);
 

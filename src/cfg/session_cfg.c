@@ -220,8 +220,10 @@ _OAUTH_CFG_CTX_CALLBACK(oauth2_cfg_session_set_options_cache)
 	cfg->load_callback = oauth2_session_load_cache;
 	cfg->save_callback = oauth2_session_save_cache;
 
+#ifdef AUTH2_CACHE_ENABLED
 	cfg->cache =
 	    oauth2_cache_obtain(log, oauth2_nv_list_get(log, params, "cache"));
+#endif
 
 	oauth2_debug(log, "leave: %s", rv);
 

@@ -54,6 +54,9 @@
     <ClCompile Include="src\cfg\session_cfg.c">
       <Filter>cfg</Filter>
     </ClCompile>
+    <ClCompile Include="src\semaphore.c" />
+    <ClCompile Include="src\ipc.c" />
+    <ClCompile Include="src\mmap-windows.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\cache_int.h" />
@@ -109,6 +112,7 @@
     <ClInclude Include="include\oauth2\version.h">
       <Filter>oauth2</Filter>
     </ClInclude>
+    <ClInclude Include="src\mmap-windows.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="cfg">

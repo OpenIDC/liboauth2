@@ -170,6 +170,7 @@
     <ClInclude Include="src\cache_int.h" />
     <ClInclude Include="src\cfg_int.h" />
     <ClInclude Include="src\jose_int.h" />
+    <ClInclude Include="src\mmap-windows.h" />
     <ClInclude Include="src\oauth2_int.h" />
     <ClInclude Include="src\openidc_int.h" />
     <ClInclude Include="src\util_int.h" />
@@ -185,11 +186,14 @@
     <ClCompile Include="src\cfg\source.c" />
     <ClCompile Include="src\cfg\target.c" />
     <ClCompile Include="src\cfg\verify.c" />
+    <ClCompile Include="src\ipc.c" />
+    <ClCompile Include="src\mmap-windows.c" />
     <ClCompile Include="src\openidc\client.c" />
     <ClCompile Include="src\openidc\openidc.c" />
     <ClCompile Include="src\openidc\provider.c" />
     <ClCompile Include="src\openidc\resolver.c" />
     <ClCompile Include="src\openidc\state.c" />
+    <ClCompile Include="src\semaphore.c" />
     <ClCompile Include="src\server\apache.c" />
     <ClCompile Include="src\dpop.c" />
     <ClCompile Include="src\http.c" />

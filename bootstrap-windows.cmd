@@ -1,33 +1,22 @@
 @echo Requires git installed and an account on github
 @set STARTTIME=%time% 
 
-git submodule update --init --recursive
+rem BDS git submodule update --init --recursive
 
-call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+call "C:\Progra~2\Micros~3\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
 
 @echo cd to vcpkg
 cd vcpkg
-REM call bootstrap-vcpkg.bat
+call bootstrap-vcpkg.bat
 
-REM .\vcpkg install pcre:x64-windows
-REM .\vcpkg install pcre:x86-windows
-REM .\vcpkg install apr:x64-windows
-REM .\vcpkg install apr:x86-windows
+.\vcpkg install pcre:x64-windows
+.\vcpkg install apr:x64-windows
 
 
 .\vcpkg install openssl:x64-windows
-REM .\vcpkg install openssl:x86-windows
-
+REM .\vcpkg install openssl-windows:x64-windows
 .\vcpkg install curl:x64-windows
-REM .\vcpkg install curl:x86-windows
-
 .\vcpkg install jansson:x64-windows
-REM .\vcpkg install jansson:x86-windows
-
-.\vcpkg install cjose:x64-windows
-REM .\vcpkg install cjose:x86-windows
-
-
 
 REM .\vcpkg integrate install
 
