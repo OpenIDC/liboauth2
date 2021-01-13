@@ -18,6 +18,7 @@
  * @Author: Hans Zandbelt - hans.zandbelt@zmartzone.eu
  *
  **************************************************************************/
+#ifdef LIBAUTH2_CACHE_REDIS_ENABLED
 
 #include <string.h>
 
@@ -387,3 +388,4 @@ end:
 }
 
 OAUTH2_CACHE_TYPE_DECLARE(redis, true)
+#endif

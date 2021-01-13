@@ -321,98 +321,105 @@ oauth2_ipc_shm_t *oauth2_ipc_shm_init(oauth2_log_t *log, size_t size)
 	return shm;
 }
 
-//void oauth2_ipc_shm_free(oauth2_log_t *log, oauth2_ipc_shm_t *shm)
-//{
-//	bool rc = false;
-//	int rv = 0;
-//
-//	if (shm == NULL)
-//		goto end;
-//
-//	if (shm->mutex)
-//		oauth2_ipc_mutex_free(log, shm->mutex);
-//	shm->mutex = NULL;
-//
-//	if (shm->ptr) {
-//		if (munmap(shm->ptr, shm->size) < 0)
-//			oauth2_error(log, "munmap() failed: %s",
-//				     strerror(errno));
-//		shm->ptr = NULL;
-//	}
-//
-//	if (shm->num) {
-//		// if we cannot lock it, it is 0
-//		// TODO: isn't close enough?
-//		rc = oauth2_ipc_sema_trywait(log, shm->num);
-//		if (rc == false) {
-//			rv = shm_unlink(shm->name);
-//			oauth2_error(log, "shm_unlink() failed: %s (%d)",
-//				     strerror(errno), rv);
-//		}
-//		oauth2_ipc_sema_free(log, shm->num);
-//		shm->num = NULL;
-//		oauth2_debug(log, "destroyed shm with name: %s", shm->name);
-//	}
-//
-//	if (shm->name)
-//		oauth2_mem_free(shm->name);
-//
-//	oauth2_mem_free(shm);
-//
-//end:
-//
-//	return;
-//}
+void oauth2_ipc_shm_free(oauth2_log_t *log, oauth2_ipc_shm_t *shm)
+{
+	bool rc = false;
+	int rv = 0;
 
-//bool oauth2_ipc_shm_post_config(oauth2_log_t *log, oauth2_ipc_shm_t *shm)
-//{
-//	bool rc = false;
-//	int fd = -1;
-//
-//	if (shm == NULL)
-//		goto end;
-//
-//	rc = oauth2_ipc_sema_post_config(log, shm->num);
-//	if (rc == false)
-//		goto end;
-//
-//	rc = oauth2_ipc_mutex_post_config(log, shm->mutex);
-//	if (rc == false)
-//		goto end;
-//
-//	shm->name = _oauth2_ipc_get_name(log, "shm", shm);
-//	if (shm->name == NULL)
-//		goto end;
-//
-//	oauth2_debug(log, "creating shm with name: %s", shm->name);
-//
-//	fd = shm_open(shm->name, O_CREAT | O_RDWR, 0666);
-//	if (fd == -1) {
-//		oauth2_error(log, "shm_open() failed: %s", strerror(errno));
-//		goto end;
-//	}
-//
-//	if (ftruncate(fd, shm->size) != 0) {
-//		oauth2_error(log, "ftruncate() failed: %s", strerror(errno));
-//		//goto end;
-//	}
-//
-//	shm->ptr =
-//	    mmap(0, shm->size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1 /*fd*/, 0);
-//	if (shm->ptr == MAP_FAILED) {
-//		oauth2_error(log, "mmap() failed: %s", strerror(errno));
-//		goto end;
-//	}
-//
-//	rc = oauth2_ipc_sema_post(log, shm->num);
-//
-//end:
-//
-//	if (fd != -1)
-//		close(fd);
-//
-//	return rc;
-//}
+	if (shm == NULL)
+		goto end;
+
+	if (shm->mutex)
+		oauth2_ipc_mutex_free(log, shm->mutex);
+	shm->mutex = NULL;
+
+
+	if (shm->ptr) {
+		if (munmap(shm->ptr, shm->size) < 0)
+			oauth2_error(log, "munmap() failed: %s",
+				     strerror(errno));
+		shm->ptr = NULL;
+	}
+
+#ifdef ENABLE_SHM
+	if (shm->num) {
+		// if we cannot lock it, it is 0
+		// TODO: isn't close enough?
+		rc = oauth2_ipc_sema_trywait(log, shm->num);
+		if (rc == false) {
+			rv = shm_unlink(shm->name);
+			oauth2_error(log, "shm_unlink() failed: %s (%d)",
+				     strerror(errno), rv);
+		}
+		oauth2_ipc_sema_free(log, shm->num);
+		shm->num = NULL;
+		oauth2_debug(log, "destroyed shm with name: %s", shm->name);
+	}
+#endif
+
+	if (shm->name)
+		oauth2_mem_free(shm->name);
+
+	oauth2_mem_free(shm);
+
+end:
+
+	return;
+}
+
+bool oauth2_ipc_shm_post_config(oauth2_log_t *log, oauth2_ipc_shm_t *shm)
+{
+	bool rc = false;
+#ifdef ENABLE_SHM
+	int fd = -1;
+#endif
+	if (shm == NULL)
+		goto end;
+
+	rc = oauth2_ipc_sema_post_config(log, shm->num);
+	if (rc == false)
+		goto end;
+
+	rc = oauth2_ipc_mutex_post_config(log, shm->mutex);
+	if (rc == false)
+		goto end;
+
+	shm->name = _oauth2_ipc_get_name(log, "shm", shm);
+	if (shm->name == NULL)
+		goto end;
+
+	oauth2_debug(log, "creating shm with name: %s", shm->name);
+
+#ifdef ENABLE_SHM
+	fd = shm_open(shm->name, O_CREAT | O_RDWR, 0666);
+	if (fd == -1) {
+		oauth2_error(log, "shm_open() failed: %s", strerror(errno));
+		goto end;
+	}
+
+	if (ftruncate(fd, shm->size) != 0) {
+		oauth2_error(log, "ftruncate() failed: %s", strerror(errno));
+		//goto end;
+	}
+#endif
+	shm->ptr =
+	    mmap(0, shm->size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1 /*fd*/, 0);
+	if (shm->ptr == MAP_FAILED) {
+		oauth2_error(log, "mmap() failed: %s", strerror(errno));
+		goto end;
+	}
+
+	rc = oauth2_ipc_sema_post(log, shm->num);
+
+end:
+
+#ifdef ENABLE_SHM
+	 if (fd != -1)
+		close(fd);
+#endif
+
+	return rc;
+}
 
 bool oauth2_ipc_shm_child_init(oauth2_log_t *log, oauth2_ipc_shm_t *shm)
 {

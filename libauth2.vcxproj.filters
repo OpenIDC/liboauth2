@@ -57,6 +57,22 @@
     <ClCompile Include="src\semaphore.c" />
     <ClCompile Include="src\ipc.c" />
     <ClCompile Include="src\mmap-windows.c" />
+    <ClCompile Include="src\cfg\cache_cfg.c">
+      <Filter>cfg</Filter>
+    </ClCompile>
+    <ClCompile Include="src\cache.c" />
+    <ClCompile Include="src\cache\file.c">
+      <Filter>cache</Filter>
+    </ClCompile>
+    <ClCompile Include="src\cache\memcache.c">
+      <Filter>cache</Filter>
+    </ClCompile>
+    <ClCompile Include="src\cache\redis.c">
+      <Filter>cache</Filter>
+    </ClCompile>
+    <ClCompile Include="src\cache\shm.c">
+      <Filter>cache</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\cache_int.h" />
@@ -113,6 +129,7 @@
       <Filter>oauth2</Filter>
     </ClInclude>
     <ClInclude Include="src\mmap-windows.h" />
+    <ClInclude Include="src\dirent.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="cfg">
@@ -129,6 +146,9 @@
     </Filter>
     <Filter Include="oauth2">
       <UniqueIdentifier>{716efd19-1f55-4e64-998e-564ec783e7da}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="cache">
+      <UniqueIdentifier>{536765aa-b89a-48df-ae14-4d3abd9e8ebd}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
