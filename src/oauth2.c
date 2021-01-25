@@ -681,8 +681,6 @@ end:
 	return rv;
 }
 
-#define OAUTH2_TB_CFG_FINGERPRINT_ENV_VAR_NAME "TB_SSL_CLIENT_CERT_FINGERPRINT"
-
 static const char *
 oauth2_mtls_verify_policy2str(const oauth2_cfg_mtls_verify_policy_t policy)
 {

@@ -113,6 +113,8 @@ oauth2_cfg_token_verify_clone(oauth2_log_t *log,
 	dst->dpop.iat_slack_after = src->dpop.iat_slack_after;
 	dst->dpop.iat_slack_before = src->dpop.iat_slack_before;
 	dst->dpop.iat_validate = src->dpop.iat_validate;
+	dst->mtls.env_var_name = oauth2_strdup(src->mtls.env_var_name);
+	dst->mtls.policy = src->mtls.policy;
 	dst->ctx = oauth2_cfg_ctx_clone(log, src->ctx);
 	dst->next = oauth2_cfg_token_verify_clone(NULL, src->next);
 
@@ -236,15 +238,22 @@ _oauth2_cfg_token_verify_options_mtls_set(oauth2_log_t *log,
 	    oauth2_strdup(oauth2_nv_list_get(log, params, "mtls.env_var_name"));
 
 	policy = oauth2_nv_list_get(log, params, "mtls.policy");
-	if (strcmp(policy, "disabled") == 0)
-		verify->mtls.policy = OAUTH2_MTLS_VERIFY_POLICY_DISABLED;
-	else if (strcmp(policy, "optional") == 0)
-		verify->mtls.policy = OAUTH2_MTLS_VERIFY_POLICY_OPTIONAL;
-	else if (strcmp(policy, "required") == 0)
+	if (policy != NULL) {
+		if (strcmp(policy, "disabled") == 0)
+			verify->mtls.policy =
+			    OAUTH2_MTLS_VERIFY_POLICY_DISABLED;
+		else if (strcmp(policy, "optional") == 0)
+			verify->mtls.policy =
+			    OAUTH2_MTLS_VERIFY_POLICY_OPTIONAL;
+		else if (strcmp(policy, "required") == 0)
+			verify->mtls.policy =
+			    OAUTH2_MTLS_VERIFY_POLICY_REQUIRED;
+		else if (strcmp(policy, "enforced") == 0)
+			verify->mtls.policy =
+			    OAUTH2_MTLS_VERIFY_POLICY_ENFORCED;
+	} else {
 		verify->mtls.policy = OAUTH2_MTLS_VERIFY_POLICY_REQUIRED;
-	else if (strcmp(policy, "enforced") == 0)
-		verify->mtls.policy = OAUTH2_MTLS_VERIFY_POLICY_ENFORCED;
-
+	}
 	return rv;
 }
 
