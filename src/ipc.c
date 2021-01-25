@@ -341,21 +341,24 @@ void oauth2_ipc_shm_free(oauth2_log_t *log, oauth2_ipc_shm_t *shm)
 		shm->ptr = NULL;
 	}
 
-#ifdef ENABLE_SHM
 	if (shm->num) {
 		// if we cannot lock it, it is 0
 		// TODO: isn't close enough?
 		rc = oauth2_ipc_sema_trywait(log, shm->num);
 		if (rc == false) {
+#ifdef _WIN32
+			CloseHandle(shm->name);
+#else
 			rv = shm_unlink(shm->name);
 			oauth2_error(log, "shm_unlink() failed: %s (%d)",
 				     strerror(errno), rv);
+#endif
+
 		}
 		oauth2_ipc_sema_free(log, shm->num);
 		shm->num = NULL;
 		oauth2_debug(log, "destroyed shm with name: %s", shm->name);
 	}
-#endif
 
 	if (shm->name)
 		oauth2_mem_free(shm->name);
@@ -370,9 +373,12 @@ end:
 bool oauth2_ipc_shm_post_config(oauth2_log_t *log, oauth2_ipc_shm_t *shm)
 {
 	bool rc = false;
-#ifdef ENABLE_SHM
+#ifdef _WIN32
+	HANDLE fd = -1;
+#else
 	int fd = -1;
 #endif
+
 	if (shm == NULL)
 		goto end;
 
@@ -390,30 +396,45 @@ bool oauth2_ipc_shm_post_config(oauth2_log_t *log, oauth2_ipc_shm_t *shm)
 
 	oauth2_debug(log, "creating shm with name: %s", shm->name);
 
-#ifdef ENABLE_SHM
+#ifdef _WIN32
+	fd = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0,
+			       shm->size, shm->name);
+
+	shm->ptr = MapViewOfFile(fd,  // handle to mapping object
+				 FILE_MAP_ALL_ACCESS, // read/write
+				 0,		      // high-order 32 bits of file offset
+				 0,           // low-order 32 bits of file offset
+				 shm->size);  // number of bytes to map
+
+#else
 	fd = shm_open(shm->name, O_CREAT | O_RDWR, 0666);
 	if (fd == -1) {
 		oauth2_error(log, "shm_open() failed: %s", strerror(errno));
 		goto end;
+
 	}
 
 	if (ftruncate(fd, shm->size) != 0) {
 		oauth2_error(log, "ftruncate() failed: %s", strerror(errno));
-		//goto end;
+		// goto end;
 	}
-#endif
-	shm->ptr =
-	    mmap(0, shm->size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1 /*fd*/, 0);
+
+	shm->ptr = mmap(0, shm->size, PROT_READ | PROT_WRITE,
+			MAP_SHARED | MAP_ANONYMOUS, -1 /*fd*/, 0);
 	if (shm->ptr == MAP_FAILED) {
 		oauth2_error(log, "mmap() failed: %s", strerror(errno));
 		goto end;
 	}
+#endif
 
 	rc = oauth2_ipc_sema_post(log, shm->num);
 
 end:
 
-#ifdef ENABLE_SHM
+#ifndef _WIN32
+	//if (fd != NULL)
+	//	CloseHandle(fd);
+//#else
 	 if (fd != -1)
 		close(fd);
 #endif

@@ -18,9 +18,6 @@
  * @Author: Hans Zandbelt - hans.zandbelt@zmartzone.eu
  *
  **************************************************************************/
-#define LIBAUTH2_CACHE_SHM_ENABLED
-#ifdef LIBAUTH2_CACHE_SHM_ENABLED
-
 #include <oauth2/cache.h>
 #include <oauth2/ipc.h>
 #include <oauth2/mem.h>
@@ -452,4 +449,3 @@ end:
 }
 
 OAUTH2_CACHE_TYPE_DECLARE(shm, false)
-#endif
