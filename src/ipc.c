@@ -50,8 +50,9 @@ static char *_oauth2_ipc_get_name(oauth2_log_t *log, const char *type,
 	rv = oauth2_mem_alloc(_OAUTH2_IPC_NAME_MAX);
 	// oauth2_snprintf(rv, _OAUTH2_IPC_NAME_MAX, "/zzo-%s-%ld.%p", type,
 	//		(long int)getpid(), ptr);
-	oauth2_snprintf(rv, _OAUTH2_IPC_NAME_MAX, "/zzo-%s-%p", type, ptr ? ptr : 0);
-	//oauth2_snprintf(rv, _OAUTH2_IPC_NAME_MAX, "/zzo-%s", type);
+	oauth2_snprintf(rv, _OAUTH2_IPC_NAME_MAX, "/zzo-%s-%p", type,
+			ptr ? ptr : 0);
+	// oauth2_snprintf(rv, _OAUTH2_IPC_NAME_MAX, "/zzo-%s", type);
 	return rv;
 }
 
@@ -394,11 +395,11 @@ bool oauth2_ipc_shm_post_config(oauth2_log_t *log, oauth2_ipc_shm_t *shm)
 
 	if (ftruncate(fd, shm->size) != 0) {
 		oauth2_error(log, "ftruncate() failed: %s", strerror(errno));
-		//goto end;
+		// goto end;
 	}
 
-	shm->ptr =
-	    mmap(0, shm->size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1 /*fd*/, 0);
+	shm->ptr = mmap(0, shm->size, PROT_READ | PROT_WRITE,
+			MAP_SHARED | MAP_ANONYMOUS, -1 /*fd*/, 0);
 	if (shm->ptr == MAP_FAILED) {
 		oauth2_error(log, "mmap() failed: %s", strerror(errno));
 		goto end;

@@ -77,6 +77,8 @@ bool oauth2_http_ctx_auth_add(oauth2_log_t *log, oauth2_http_call_ctx_t *ctx,
 
 bool oauth2_token_verify(oauth2_log_t *log, oauth2_http_request_t *request,
 			 oauth2_cfg_token_verify_t *verify, const char *token,
-			 json_t **json_payload);
+			 json_t **json_payload,
+			 oauth2_cfg_server_callback_funcs_t *srv_cb,
+			 void *srv_cb_ctx);
 
 #endif /* _OAUTH2_H_ */

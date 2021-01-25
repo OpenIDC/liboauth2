@@ -1,3 +1,7 @@
+01/25/2020
+- add support for RFC 8705 OAuth 2.0 Mutual-TLS Certificate-Bound Access Tokens
+  https://tools.ietf.org/html/rfc8705; thanks @vdzhuvinov
+ 
 12/23/2020
 - use per-process semaphore locking to prevent multi-process issue; see #18
 - release 1.4.0.1

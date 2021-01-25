@@ -33,6 +33,9 @@
 
 #include <cjose/cjose.h>
 
+#include <openssl/evp.h>
+#include <openssl/ssl.h>
+
 /*
  * auth
  */
@@ -678,9 +681,196 @@ end:
 	return rv;
 }
 
+#define OAUTH2_TB_CFG_FINGERPRINT_ENV_VAR_NAME "TB_SSL_CLIENT_CERT_FINGERPRINT"
+
+static const char *
+oauth2_mtls_verify_policy2str(const oauth2_cfg_mtls_verify_policy_t policy)
+{
+	if (policy == OAUTH2_MTLS_VERIFY_POLICY_DISABLED)
+		return "disabled";
+	if (policy == OAUTH2_MTLS_VERIFY_POLICY_OPTIONAL)
+		return "optional";
+	if (policy == OAUTH2_MTLS_VERIFY_POLICY_REQUIRED)
+		return "required";
+	if (policy == OAUTH2_MTLS_VERIFY_POLICY_ENFORCED)
+		return "enforced";
+	return "unset";
+}
+
+#define OAUTH2_MTLS_CERT_ENV_VAR_NAME "SSL_CLIENT_CERT"
+
+static char *oauth2_mtls_client_cert_fingerprint(
+    oauth2_log_t *log, oauth2_cfg_mtls_verify_t *mtls_verify,
+    oauth2_cfg_server_callback_funcs_t *srv_cb, void *srv_cb_ctx)
+{
+	BIO *input = NULL;
+	X509 *x509 = NULL;
+	unsigned char md[EVP_MAX_MD_SIZE];
+	unsigned int md_len;
+	char *fingerprint = NULL;
+	const char *env_var = NULL;
+	char *cert_pem = NULL;
+
+	if ((srv_cb == NULL) || (srv_cb->get == NULL) || (mtls_verify == NULL))
+		goto end;
+
+	env_var = (mtls_verify->env_var_name != NULL)
+		      ? mtls_verify->env_var_name
+		      : OAUTH2_MTLS_CERT_ENV_VAR_NAME;
+
+	srv_cb->get(log, srv_cb_ctx, env_var, &cert_pem);
+
+	oauth2_debug(log, "environment variable: %s=%s", env_var, cert_pem);
+	if (cert_pem == NULL)
+		goto end;
+
+	input = BIO_new(BIO_s_mem());
+	if (input == NULL) {
+		oauth2_error(log, "memory allocation BIO_new/BIO_s_mem");
+		goto end;
+	}
+
+	if (BIO_puts(input, cert_pem) <= 0) {
+		oauth2_error(log, "memory allocation BIO_new/BIO_s_mem");
+		goto end;
+	}
+
+	x509 = PEM_read_bio_X509_AUX(input, NULL, NULL, NULL);
+	if (x509 == NULL) {
+		oauth2_error(log, "could not decode x509 cert from presumably "
+				  "PEM encoded env var value");
+		goto end;
+	}
+
+	if (!X509_digest(x509, EVP_sha256(), md, &md_len)) {
+		oauth2_error(log, "X509_digest failed");
+		goto end;
+	}
+
+	oauth2_base64url_encode(log, md, md_len, &fingerprint);
+
+end:
+
+	if (input)
+		BIO_free(input);
+	if (cert_pem)
+		oauth2_mem_free(cert_pem);
+	if (x509)
+		X509_free(x509);
+
+	return fingerprint;
+}
+
+static bool oauth2_mtls_validate_cnf_x5t_s256(
+    oauth2_log_t *log, oauth2_cfg_mtls_verify_t *mtls_verify,
+    const char *x5t_256_str, oauth2_cfg_server_callback_funcs_t *srv_cb,
+    void *srv_cb_ctx)
+{
+	bool rc = false;
+	char *fingerprint = NULL;
+
+	fingerprint = oauth2_mtls_client_cert_fingerprint(log, mtls_verify,
+							  srv_cb, srv_cb_ctx);
+	if (fingerprint == NULL) {
+		oauth2_debug(log, "no certificate (fingerprint) provided");
+		goto err;
+	}
+
+	if (strcmp(fingerprint, x5t_256_str) != 0) {
+		oauth2_warn(log,
+			    "fingerprint of provided cert (%s) does not match "
+			    "cnf[\"x5t#S256\"] (%s)",
+			    fingerprint, x5t_256_str);
+		goto err;
+	}
+
+	oauth2_debug(
+	    log, "fingerprint of provided cert (%s) matches cnf[\"x5t#S256\"]",
+	    fingerprint);
+
+	rc = true;
+
+	goto end;
+
+err:
+
+	if (mtls_verify->policy == OAUTH2_MTLS_VERIFY_POLICY_OPTIONAL)
+		rc = true;
+	else if (mtls_verify->policy == OAUTH2_MTLS_VERIFY_POLICY_ENFORCED)
+		rc = false;
+	else
+		// mtls->verify_policy == OAUTH2_MTLS_VERIFY_POLICY_REQUIRED
+		rc = (fingerprint == NULL);
+
+end:
+
+	if (fingerprint)
+		oauth2_mem_free(fingerprint);
+
+	return rc;
+}
+
+#define OAUTH2_CLAIM_CNF "cnf"
+#define OAUTH2_CLAIM_CNF_X5T_S256 "x5t#S256"
+
+static bool oauth2_mtls_token_validate(
+    oauth2_log_t *log, oauth2_cfg_mtls_verify_t *mtls_verify, json_t *jwt,
+    oauth2_cfg_server_callback_funcs_t *srv_cb, void *srv_cb_ctx)
+{
+	bool rc = false;
+	char *cnf_x5t_s256_str = NULL;
+
+	oauth2_debug(log, "enter: policy=%s",
+		     oauth2_mtls_verify_policy2str(mtls_verify->policy));
+
+	if (mtls_verify->policy == OAUTH2_MTLS_VERIFY_POLICY_DISABLED)
+		goto end;
+
+	json_t *cnf = json_object_get(jwt, OAUTH2_CLAIM_CNF);
+	if (cnf == NULL) {
+		oauth2_debug(log, "no \"%s\" claim found in the token",
+			     OAUTH2_CLAIM_CNF);
+		goto err;
+	}
+
+	oauth2_json_string_get(log, cnf, OAUTH2_CLAIM_CNF_X5T_S256,
+			       &cnf_x5t_s256_str, NULL);
+	if (cnf_x5t_s256_str == NULL) {
+		oauth2_debug(log,
+			     " \"%s\" claim found in the token but no \"%s\" "
+			     "key found inside",
+			     OAUTH2_CLAIM_CNF, OAUTH2_CLAIM_CNF_X5T_S256);
+		goto err;
+	}
+
+	rc = oauth2_mtls_validate_cnf_x5t_s256(
+	    log, mtls_verify, cnf_x5t_s256_str, srv_cb, srv_cb_ctx);
+
+	goto end;
+
+err:
+
+	if (mtls_verify->policy == OAUTH2_MTLS_VERIFY_POLICY_OPTIONAL)
+		rc = true;
+	else if (mtls_verify->policy == OAUTH2_MTLS_VERIFY_POLICY_ENFORCED)
+		rc = false;
+
+	// token_binding_policy == OAUTH2_MTLS_VERIFY_POLICY_REQUIRED
+	// TODO: we don't know which token binding the client supports, do we ?
+
+end:
+
+	if (cnf_x5t_s256_str != NULL)
+		oauth2_mem_free(cnf_x5t_s256_str);
+
+	return rc;
+}
+
 bool oauth2_token_verify(oauth2_log_t *log, oauth2_http_request_t *request,
 			 oauth2_cfg_token_verify_t *verify, const char *token,
-			 json_t **json_payload)
+			 json_t **json_payload,
+			 oauth2_cfg_server_callback_funcs_t *srv_cb,
+			 void *srv_cb_ctx)
 {
 
 	bool rc = false;
@@ -712,9 +902,15 @@ bool oauth2_token_verify(oauth2_log_t *log, oauth2_http_request_t *request,
 		ptr = ptr->next;
 	}
 
-	if ((rc) && (ptr->type == OAUTH2_TOKEN_VERIFY_DPOP)) {
-		rc = oauth2_dpop_token_verify(log, &verify->dpop, request,
-					      *json_payload);
+	if (rc == true) {
+		if (ptr->type == OAUTH2_TOKEN_VERIFY_DPOP) {
+			rc = oauth2_dpop_token_verify(log, &verify->dpop,
+						      request, *json_payload);
+		} else if (ptr->type == OAUTH2_TOKEN_VERIFY_MTLS) {
+			rc = oauth2_mtls_token_validate(log, &verify->mtls,
+							*json_payload, srv_cb,
+							srv_cb_ctx);
+		}
 	}
 
 end:
