@@ -18,6 +18,8 @@
  * @Author: Hans Zandbelt - hans.zandbelt@zmartzone.eu
  *
  **************************************************************************/
+#define LIBAUTH2_CACHE_FILE_ENABLED
+#ifdef LIBAUTH2_CACHE_FILE_ENABLED
 
 #include <dirent.h>
 #include <errno.h>
@@ -538,3 +540,4 @@ end:
 }
 
 OAUTH2_CACHE_TYPE_DECLARE(file, true)
+#endif

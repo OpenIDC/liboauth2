@@ -1595,9 +1595,9 @@ char *oauth2_jose_options_uri_ctx(oauth2_log_t *log, const char *value,
 	ctx->cache =
 	    oauth2_cache_obtain(log, oauth2_nv_list_get(log, params, key));
 	oauth2_mem_free(key);
+// TODO -- This needs to be double checked
 	if (ctx->cache == NULL)
 		rv = oauth2_strdup("cache could not be found");
-
 	key = oauth2_stradd(NULL, prefix, ".", "expiry");
 	ctx->expiry_s =
 	    oauth2_parse_uint(log, oauth2_nv_list_get(log, params, key),

@@ -252,7 +252,6 @@ bool oauth2_session_save_cache(oauth2_log_t *log,
 		oauth2_error(log, "could not store session in cache");
 		goto end;
 	}
-
 	name = oauth2_cfg_session_cookie_name_get(log, cfg);
 	path = oauth2_cfg_session_cookie_path_get(log, cfg);
 

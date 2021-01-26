@@ -18,7 +18,6 @@
  * @Author: Hans Zandbelt - hans.zandbelt@zmartzone.eu
  *
  **************************************************************************/
-
 #include <oauth2/cache.h>
 #include <oauth2/ipc.h>
 #include <oauth2/mem.h>

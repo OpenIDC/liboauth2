@@ -140,7 +140,6 @@ bool _oauth2_openidc_provider_resolve(oauth2_log_t *log,
 		    oauth2_openidc_provider_issuer_get(log, *provider), s_json,
 		    OAUTH_OPENIDC_PROVIDER_CACHE_EXPIRY_DEFAULT);
 	}
-
 	rc = true;
 
 end:
@@ -209,8 +208,9 @@ static char *_oauth2_cfg_openidc_provider_resolver_file_set_options(
 		cfg->provider_resolver->ctx->ptr;
 	ctx->filename = oauth2_strdup(value);
 
-	cfg->provider_resolver->cache =
-	    oauth2_cache_obtain(log, oauth2_nv_list_get(log, params, "cache"));
+	 cfg->provider_resolver->cache =
+	    oauth2_cache_obtain(log, oauth2_nv_list_get(log, params,
+	    "cache"));
 
 	return NULL;
 }

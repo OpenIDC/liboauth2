@@ -18,6 +18,9 @@
  * @Author: Hans Zandbelt - hans.zandbelt@zmartzone.eu
  *
  **************************************************************************/
+// https://github.com/memcached/memcached
+ //#define LIBAUTH2_CACHE_MEMCACHE_ENABLED
+#ifdef LIBAUTH2_CACHE_MEMCACHE_ENABLED
 
 #include <string.h>
 
@@ -213,3 +216,5 @@ end:
 }
 
 OAUTH2_CACHE_TYPE_DECLARE(memcache, true)
+
+#endif
