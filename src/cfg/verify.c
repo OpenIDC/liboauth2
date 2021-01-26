@@ -208,10 +208,8 @@ _oauth2_cfg_token_verify_options_dpop_set(oauth2_log_t *log,
 {
 	char *rv = NULL;
 
-#ifdef AUTH2_CACHE_ENABLED
 	verify->dpop.cache = oauth2_cache_obtain(
 	    log, oauth2_nv_list_get(log, params, "dpop.cache"));
-#endif
 
 	verify->dpop.expiry_s = oauth2_parse_uint(
 	    log, oauth2_nv_list_get(log, params, "dpop.expiry"),
@@ -252,10 +250,8 @@ char *oauth2_cfg_token_verify_add_options(oauth2_log_t *log,
 
 	v = _oauth2_cfg_token_verify_add(log, verify);
 
-#ifdef AUTH2_CACHE_ENABLED
 	v->cache = oauth2_cache_obtain(
 	    log, oauth2_nv_list_get(log, params, "verify.cache"));
-#endif
 	v->expiry_s =
 	    oauth2_parse_uint(log, oauth2_nv_list_get(log, params, "expiry"),
 			      OAUTH2_CFG_VERIFY_RESULT_CACHE_DEFAULT);

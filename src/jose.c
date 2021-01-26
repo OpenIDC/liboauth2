@@ -1592,16 +1592,12 @@ char *oauth2_jose_options_uri_ctx(oauth2_log_t *log, const char *value,
 	rv = oauth2_cfg_set_endpoint(log, ctx->endpoint, value, params, prefix);
 
 	key = oauth2_stradd(NULL, prefix, ".", "cache");
-#ifdef AUTH2_CACHE_ENABLED
 	ctx->cache =
 	    oauth2_cache_obtain(log, oauth2_nv_list_get(log, params, key));
-#endif
 	oauth2_mem_free(key);
-#ifdef AUTH2_CACHE_ENABLED
 // TODO -- This needs to be double checked
 	if (ctx->cache == NULL)
 		rv = oauth2_strdup("cache could not be found");
-#endif
 	key = oauth2_stradd(NULL, prefix, ".", "expiry");
 	ctx->expiry_s =
 	    oauth2_parse_uint(log, oauth2_nv_list_get(log, params, key),
@@ -1865,11 +1861,9 @@ char *oauth2_jose_resolve_from_uri(oauth2_log_t *log, oauth2_uri_ctx_t *uri_ctx,
 
 	if (*refresh == false) {
 
-#ifdef AUTH2_CACHE_ENABLED
 		oauth2_cache_get(log, uri_ctx->cache,
 				 oauth2_cfg_endpoint_get_url(uri_ctx->endpoint),
 				 &response);
-#endif
 	}
 
 	if (response == NULL) {
@@ -1892,11 +1886,9 @@ char *oauth2_jose_resolve_from_uri(oauth2_log_t *log, oauth2_uri_ctx_t *uri_ctx,
 			goto end;
 		}
 
-#ifdef AUTH2_CACHE_ENABLED
 		oauth2_cache_set(log, uri_ctx->cache,
 				 oauth2_cfg_endpoint_get_url(uri_ctx->endpoint),
 				 response, uri_ctx->expiry_s);
-#endif
 	}
 
 end:

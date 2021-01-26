@@ -307,7 +307,6 @@ static bool _oauth2_dpop_jti_validate(oauth2_log_t *log,
 	bool rc = false;
 	char *s_value = NULL;
 
-#ifdef AUTH2_CACHE_ENABLED
 	oauth2_cache_get(log, verify->cache, clm_jti, &s_value);
 	if (s_value != NULL) {
 		oauth2_error(log, "a token with the same JTI \"%s\" exists in "
@@ -316,7 +315,7 @@ static bool _oauth2_dpop_jti_validate(oauth2_log_t *log,
 	}
 
 	oauth2_cache_set(log, verify->cache, clm_jti, s_dpop, verify->expiry_s);
-#endif
+
 	rc = true;
 
 end:
