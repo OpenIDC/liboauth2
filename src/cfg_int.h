@@ -174,10 +174,8 @@ typedef struct oauth2_cfg_dpop_verify_t {
 } oauth2_cfg_dpop_verify_t;
 
 typedef enum oauth2_cfg_mtls_verify_policy_t {
-	OAUTH2_MTLS_VERIFY_POLICY_DISABLED,
 	OAUTH2_MTLS_VERIFY_POLICY_OPTIONAL,
 	OAUTH2_MTLS_VERIFY_POLICY_REQUIRED,
-	OAUTH2_MTLS_VERIFY_POLICY_ENFORCED,
 } oauth2_cfg_mtls_verify_policy_t;
 
 typedef struct oauth2_cfg_mtls_verify_t {

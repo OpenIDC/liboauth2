@@ -44,6 +44,7 @@ typedef struct oauth2_http_request_t {
 	char *query;
 	oauth2_nv_list_t *_parsed_query;
 	oauth2_nv_list_t *_parsed_cookies;
+	oauth2_nv_list_t *_context;
 } oauth2_http_request_t;
 
 // TODO: provide scheme as part of init?
@@ -67,6 +68,8 @@ oauth2_http_request_t *oauth2_http_request_init(oauth2_log_t *log)
 
 	request->_parsed_query = NULL;
 	request->_parsed_cookies = NULL;
+	request->_context = oauth2_nv_list_init(log);
+	;
 
 end:
 
@@ -78,6 +81,7 @@ void oauth2_http_request_free(oauth2_log_t *log, oauth2_http_request_t *request)
 	if (request == NULL)
 		goto end;
 
+	oauth2_nv_list_free(log, request->_context);
 	oauth2_nv_list_free(log, request->_parsed_query);
 	oauth2_nv_list_free(log, request->_parsed_cookies);
 
@@ -161,6 +165,37 @@ end:
 		oauth2_mem_free(s_value);
 
 	return rc;
+}
+
+bool oauth2_http_request_context_set(oauth2_log_t *log,
+				     oauth2_http_request_t *request,
+				     const char *name, const char *value)
+{
+	bool rc = false;
+
+	if (request == NULL)
+		goto end;
+
+	rc = oauth2_nv_list_set(log, request->_context, name, value);
+
+end:
+
+	return rc;
+}
+
+const char *oauth2_http_request_context_get(
+    oauth2_log_t *log, const oauth2_http_request_t *request, const char *name)
+{
+	const char *rv = NULL;
+
+	if (request == NULL)
+		goto end;
+
+	rv = oauth2_nv_list_get(log, request->_context, name);
+
+end:
+
+	return rv;
 }
 
 bool oauth2_http_request_header_set(oauth2_log_t *log,

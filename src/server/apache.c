@@ -31,6 +31,8 @@
 
 #include <apr_strings.h>
 
+#include <mod_ssl.h>
+
 // clang-format off
 oauth2_uint_t log_level_apache2oauth2[] = {
     OAUTH2_LOG_ERROR,
@@ -162,6 +164,21 @@ apr_status_t oauth2_apache_parent_cleanup(void *data, module *m,
 	return APR_SUCCESS;
 }
 
+APR_DECLARE_OPTIONAL_FN(char *, ssl_var_lookup,
+			(apr_pool_t *, server_rec *, conn_rec *, request_rec *,
+			 char *));
+static APR_OPTIONAL_FN_TYPE(ssl_var_lookup) *_oauth2_ssl_var_lookup = NULL;
+
+static const char *oauth2_apache_ssl_var_lookup(apr_pool_t *p, server_rec *s,
+						conn_rec *c, request_rec *r,
+						const char *var)
+{
+	return (_oauth2_ssl_var_lookup != NULL)
+		   ? (const char *)_oauth2_ssl_var_lookup(p, s, c, r,
+							  (char *)var)
+		   : NULL;
+}
+
 /*
  * post config
  */
@@ -200,6 +217,8 @@ int oauth2_apache_post_config(apr_pool_t *pool, apr_pool_t *p1, apr_pool_t *p2,
 	}
 
 	apr_pool_cleanup_register(pool, s, parent_cleanup, child_cleanup);
+
+	_oauth2_ssl_var_lookup = APR_RETRIEVE_OPTIONAL_FN(ssl_var_lookup);
 
 	cfg = (oauth2_apache_cfg_srv_t *)ap_get_module_config(s->module_config,
 							      m);
@@ -276,6 +295,15 @@ oauth2_apache_request_context_init(request_rec *r,
 
 	apr_table_do(oauth2_apache_http_request_hdr_add, ctx, r->headers_in,
 		     NULL);
+
+	/*
+	 * a workaround since mod_ssl's CGI envvar setting happens
+	 * only in the fixup handler phase
+	 */
+	oauth2_http_request_context_set(
+	    ctx->log, ctx->request, OAUTH2_TLS_CERT_VAR_NAME,
+	    oauth2_apache_ssl_var_lookup(r->pool, r->server, r->connection, r,
+					 "SSL_CLIENT_CERT"));
 
 	oauth2_debug(ctx->log, "created request context: %p", ctx);
 

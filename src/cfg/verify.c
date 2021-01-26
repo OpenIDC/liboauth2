@@ -239,20 +239,12 @@ _oauth2_cfg_token_verify_options_mtls_set(oauth2_log_t *log,
 
 	policy = oauth2_nv_list_get(log, params, "mtls.policy");
 	if (policy != NULL) {
-		if (strcmp(policy, "disabled") == 0)
-			verify->mtls.policy =
-			    OAUTH2_MTLS_VERIFY_POLICY_DISABLED;
-		else if (strcmp(policy, "optional") == 0)
+		if (strcmp(policy, "optional") == 0)
 			verify->mtls.policy =
 			    OAUTH2_MTLS_VERIFY_POLICY_OPTIONAL;
 		else if (strcmp(policy, "required") == 0)
 			verify->mtls.policy =
 			    OAUTH2_MTLS_VERIFY_POLICY_REQUIRED;
-		else if (strcmp(policy, "enforced") == 0)
-			verify->mtls.policy =
-			    OAUTH2_MTLS_VERIFY_POLICY_ENFORCED;
-	} else {
-		verify->mtls.policy = OAUTH2_MTLS_VERIFY_POLICY_REQUIRED;
 	}
 	return rv;
 }
