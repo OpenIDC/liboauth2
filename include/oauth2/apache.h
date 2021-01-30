@@ -101,6 +101,9 @@ apr_status_t oauth2_apache_child_cleanup(void *data, module *m,
 #define OAUTH2_APACHE_CHILD_CLEANUP(foo)                                       \
 	static apr_status_t foo##_child_cleanup(void *data)                    \
 	{                                                                      \
+		ap_log_error(APLOG_MARK, APLOG_WARNING, 0,                     \
+			     (const server_rec *)data, "%s: %s", __FUNCTION__, \
+			     "enter");                                         \
 		return oauth2_apache_child_cleanup(                            \
 		    data, &foo##_module, OAUTH2_PACKAGE_NAME_VERSION);         \
 	}
@@ -111,6 +114,9 @@ apr_status_t oauth2_apache_parent_cleanup(void *data, module *m,
 #define OAUTH2_APACHE_PARENT_CLEANUP(foo)                                      \
 	static apr_status_t foo##_parent_cleanup(void *data)                   \
 	{                                                                      \
+		ap_log_error(APLOG_MARK, APLOG_WARNING, 0,                     \
+			     (const server_rec *)data, "%s: %s", __FUNCTION__, \
+			     "enter");                                         \
 		return oauth2_apache_parent_cleanup(                           \
 		    data, &foo##_module, OAUTH2_PACKAGE_NAME_VERSION);         \
 	}
@@ -119,13 +125,11 @@ apr_status_t oauth2_apache_parent_cleanup(void *data, module *m,
  * post config
  */
 
-typedef apr_status_t(apache_cleanup_handler_t)(void *);
-
 int oauth2_apache_post_config(apr_pool_t *pool, apr_pool_t *p1, apr_pool_t *p2,
 			      server_rec *s, module *m,
 			      const char *package_name_version,
-			      apache_cleanup_handler_t parent_cleanup,
-			      apache_cleanup_handler_t child_cleanup);
+			      apr_status_t (*parent_cleanup)(void *),
+			      apr_status_t (*child_cleanup)(void *));
 
 #define OAUTH2_APACHE_POST_CONFIG(foo) foo##_post_config
 
@@ -134,6 +138,9 @@ int oauth2_apache_post_config(apr_pool_t *pool, apr_pool_t *p1, apr_pool_t *p2,
 	    apr_pool_t * pool, apr_pool_t * p1, apr_pool_t * p2,               \
 	    server_rec * s)                                                    \
 	{                                                                      \
+		ap_log_error(APLOG_MARK, APLOG_WARNING, 0,                     \
+			     (const server_rec *)s, "%s: %s", __FUNCTION__,    \
+			     "enter");                                         \
 		return oauth2_apache_post_config(                              \
 		    pool, p1, p2, s, &foo##_module,                            \
 		    OAUTH2_PACKAGE_NAME_VERSION, foo##_parent_cleanup,         \

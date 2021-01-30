@@ -98,6 +98,12 @@ oauth2_http_method_t request_method_apache2oauth2[] = {
 static apr_status_t oauth2_apache_cfg_srv_free(void *data)
 {
 	oauth2_apache_cfg_srv_t *cfg = (oauth2_apache_cfg_srv_t *)data;
+
+	//	ap_log_error(APLOG_MARK, APLOG_WARNING, 0,
+	//		     (const server_rec
+	//*)oauth2_log_sink_ctx_get(cfg->sink),
+	//		     "%s: %s: %pp", __FUNCTION__, "free", cfg);
+
 	if (cfg) {
 		if (cfg->log)
 			oauth2_log_free(cfg->log);
@@ -121,6 +127,16 @@ void *oauth2_apache_cfg_srv_create(apr_pool_t *pool, server_rec *s,
 	cfg->sink = oauth2_log_sink_create(level, server_log_cb, s);
 	cfg->log = oauth2_log_init(level, cfg->sink);
 
+	//	ap_log_error(APLOG_MARK, APLOG_WARNING, 0,
+	//		     (const server_rec
+	//*)oauth2_log_sink_ctx_get(cfg->sink),
+	//		     "%s: %s: %pp", __FUNCTION__, "create", cfg);
+
+	// note: cleanup as part of oauth2_apache_child_cleanup does not work
+	//       with multiple modules loaded
+	apr_pool_cleanup_register(pool, cfg, oauth2_apache_cfg_srv_free,
+				  oauth2_apache_cfg_srv_free);
+
 	return cfg;
 }
 
@@ -130,6 +146,12 @@ void *oauth2_apache_cfg_srv_merge(apr_pool_t *pool, void *b, void *a)
 	oauth2_apache_cfg_srv_t *cfg = oauth2_apache_cfg_srv_create(
 	    pool, (server_rec *)oauth2_log_sink_ctx_get(add->sink),
 	    oauth2_log_sink_ctx_get(add->sink));
+
+	//	ap_log_error(APLOG_MARK, APLOG_WARNING, 0,
+	//		     (const server_rec
+	//*)oauth2_log_sink_ctx_get(cfg->sink),
+	//		     "%s: %s: %pp", __FUNCTION__, "merge", cfg);
+
 	return cfg;
 }
 
@@ -140,13 +162,6 @@ void *oauth2_apache_cfg_srv_merge(apr_pool_t *pool, void *b, void *a)
 apr_status_t oauth2_apache_child_cleanup(void *data, module *m,
 					 const char *package_name_version)
 {
-	oauth2_apache_cfg_srv_t *cfg = NULL;
-	server_rec *sp = NULL;
-	for (sp = (server_rec *)data; sp; sp = sp->next) {
-		cfg = (oauth2_apache_cfg_srv_t *)ap_get_module_config(
-		    sp->module_config, m);
-		oauth2_apache_cfg_srv_free(cfg);
-	}
 	oauth2_shutdown(NULL);
 	return APR_SUCCESS;
 }
@@ -160,7 +175,7 @@ apr_status_t oauth2_apache_parent_cleanup(void *data, module *m,
 							    m);
 	oauth2_info(cfg->log, "%s-%s - shutdown", package_name_version,
 		    oauth2_package_string());
-	oauth2_apache_child_cleanup(cfg, m, package_name_version);
+	oauth2_apache_child_cleanup(s, m, package_name_version);
 	return APR_SUCCESS;
 }
 
@@ -186,8 +201,8 @@ static const char *oauth2_apache_ssl_var_lookup(apr_pool_t *p, server_rec *s,
 int oauth2_apache_post_config(apr_pool_t *pool, apr_pool_t *p1, apr_pool_t *p2,
 			      server_rec *s, module *m,
 			      const char *package_name_version,
-			      apache_cleanup_handler_t parent_cleanup,
-			      apache_cleanup_handler_t child_cleanup)
+			      apr_status_t (*parent_cleanup)(void *),
+			      apr_status_t (*child_cleanup)(void *))
 {
 	void *data = NULL;
 	oauth2_log_t *p = NULL;
