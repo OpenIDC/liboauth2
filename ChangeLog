@@ -1,3 +1,7 @@
+02/02/2021
+- avoid creating files for anonymous shared memory segments; see #18
+- release 1.4.1
+
 01/30/2021
 - fix Apache cleanup routines; see zmartzone/liboauth2#18 and zmartzone/mod_oauth2#7
 
