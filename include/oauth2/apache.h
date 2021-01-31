@@ -101,7 +101,7 @@ apr_status_t oauth2_apache_child_cleanup(void *data, module *m,
 #define OAUTH2_APACHE_CHILD_CLEANUP(foo)                                       \
 	static apr_status_t foo##_child_cleanup(void *data)                    \
 	{                                                                      \
-		ap_log_error(APLOG_MARK, APLOG_WARNING, 0,                     \
+		ap_log_error(APLOG_MARK, APLOG_DEBUG, 0,                       \
 			     (const server_rec *)data, "%s: %s", __FUNCTION__, \
 			     "enter");                                         \
 		return oauth2_apache_child_cleanup(                            \
@@ -114,7 +114,7 @@ apr_status_t oauth2_apache_parent_cleanup(void *data, module *m,
 #define OAUTH2_APACHE_PARENT_CLEANUP(foo)                                      \
 	static apr_status_t foo##_parent_cleanup(void *data)                   \
 	{                                                                      \
-		ap_log_error(APLOG_MARK, APLOG_WARNING, 0,                     \
+		ap_log_error(APLOG_MARK, APLOG_DEBUG, 0,                       \
 			     (const server_rec *)data, "%s: %s", __FUNCTION__, \
 			     "enter");                                         \
 		return oauth2_apache_parent_cleanup(                           \
@@ -138,7 +138,7 @@ int oauth2_apache_post_config(apr_pool_t *pool, apr_pool_t *p1, apr_pool_t *p2,
 	    apr_pool_t * pool, apr_pool_t * p1, apr_pool_t * p2,               \
 	    server_rec * s)                                                    \
 	{                                                                      \
-		ap_log_error(APLOG_MARK, APLOG_WARNING, 0,                     \
+		ap_log_error(APLOG_MARK, APLOG_DEBUG, 0,                       \
 			     (const server_rec *)s, "%s: %s", __FUNCTION__,    \
 			     "enter");                                         \
 		return oauth2_apache_post_config(                              \
