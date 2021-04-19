@@ -51,12 +51,22 @@ fi
 AC_SUBST(HIREDIS_PC)
 
 AC_ARG_WITH([apache], AS_HELP_STRING([--with-apache], [build with Apache support [default=autodetect]]),)
+AC_ARG_WITH([apxs],
+    [AS_HELP_STRING([--with-apxs=PATH/NAME],[path to the apxs binary for Apache [[apxs]]])],
+    [AC_SUBST(APXS, $with_apxs)],
+    [AC_PATH_PROGS(APXS, [apxs2 apxs])])
 if test "x$with_apache" != "xno"; then
 	PKG_CHECK_MODULES([APR], [apr-1, apr-util-1], [have_apache="yes"], [have_apache="no"])
+
+	AS_IF([test "x${APXS}" != "x" -a -x "${APXS}"],
+	      [AC_MSG_NOTICE([apxs found at $APXS])],
+	      [AC_MSG_FAILURE(["apxs not found. Use --with-apxs"])])
+
+	APACHE_CFLAGS="`${APXS} -q CFLAGS` `${APXS} -q EXTRA_CPPFLAGS` -I`${APXS} -q INCLUDEDIR` ${APR_CFLAGS}"
 fi
 AM_CONDITIONAL(HAVE_APACHE, [test x"$have_apache" = "xyes"])
-AC_SUBST(APR_CFLAGS)
 AC_SUBST(APR_LIBS)
+AC_SUBST(APACHE_CFLAGS)
 
 AC_ARG_WITH([nginx], AS_HELP_STRING([--with-nginx=DIR], [build with NGINX support [default=no]]), [have_nginx="yes"], [have_nginx="no"])
 if test x"$have_nginx" = "xyes" ; then
