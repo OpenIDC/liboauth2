@@ -1,3 +1,10 @@
+05/25/2021
+- set memory alignment of shm cache structs to 64 bytes; see #21 and $24
+
+04/19/2021
+- apache: use include directory from APXS; thanks @abbra
+- pass missing argument to oauth2_error in _oauth2_dpop_jti_validate; thanks @abbra
+
 02/02/2021
 - avoid creating files for anonymous shared memory segments; see #18
 - release 1.4.1

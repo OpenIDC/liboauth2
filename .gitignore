@@ -28,3 +28,6 @@
 /ChangeLog.org
 /.settings/
 /autom4te.cache/
+/config.guess~
+/config.sub~
+/configure~
