@@ -1,5 +1,6 @@
 05/25/2021
-- set memory alignment of shm cache structs to 64 bytes; see #21 and $24
+- set memory alignment of shm cache structs to 64 bytes; see #21 and #24
+- release 1.4.2
 
 04/19/2021
 - apache: use include directory from APXS; thanks @abbra
