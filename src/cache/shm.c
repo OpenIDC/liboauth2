@@ -36,7 +36,7 @@ typedef struct oauth2_cache_impl_shm_t {
 	oauth2_uint_t max_entries;
 } oauth2_cache_impl_shm_t;
 
-typedef __attribute__ ((aligned(64))) struct oauth2_cache_shm_entry_t {
+typedef __attribute__((aligned(64))) struct oauth2_cache_shm_entry_t {
 	oauth2_time_t access_s;
 	oauth2_time_t expires_s;
 	uint8_t key_and_value[];
@@ -51,7 +51,7 @@ typedef __attribute__ ((aligned(64))) struct oauth2_cache_shm_entry_t {
 	(sizeof(oauth2_cache_shm_entry_t) + impl->max_key_size +               \
 	 impl->max_val_size)
 
-#define OAUTH2_CACHE_SHM_ADD_OFFSET(ptr, impl)                                \
+#define OAUTH2_CACHE_SHM_ADD_OFFSET(ptr, impl)                                 \
 	ptr = (oauth2_cache_shm_entry_t *)((uint8_t *)ptr +                    \
 					   OAUTH2_CACHE_SHM_SLOT_SIZE(impl))
 

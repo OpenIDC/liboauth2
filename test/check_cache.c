@@ -139,8 +139,11 @@ START_TEST(test_cache_shm)
 	rc = oauth2_cache_set(_log, c, "hans", "zandbelt", 1);
 	ck_assert_int_eq(rc, true);
 
-	rc = oauth2_cache_set(_log, c, "key_too_long_1234567890123456789012345678901234567890123456789012345678901234567890", "12345678901234567890",
-			      1);
+	rc = oauth2_cache_set(_log, c,
+			      "key_too_long_"
+			      "123456789012345678901234567890123456789012345678"
+			      "9012345678901234567890",
+			      "12345678901234567890", 1);
 	ck_assert_int_eq(rc, false);
 }
 END_TEST
