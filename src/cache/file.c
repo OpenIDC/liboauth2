@@ -427,7 +427,7 @@ static void _oauth2_cache_files_clean(oauth2_log_t *log,
 		rc = _oauth2_cache_file_read(log, f, &info,
 					     sizeof(oauth2_cache_file_info_t));
 
-		if ((rc = false) || (oauth2_time_now_sec() < info.expire)) {
+		if ((rc == false) || (oauth2_time_now_sec() < info.expire)) {
 			oauth2_debug(
 			    log,
 			    "cache entry (%s) expired, removing file \"%s\")",

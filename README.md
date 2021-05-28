@@ -1,4 +1,6 @@
 [![Build Status](https://travis-ci.com/zmartzone/liboauth2.svg?branch=master)](https://travis-ci.com/zmartzone/liboauth2)
+[![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/zmartzone/liboauth2.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/zmartzone/liboauth2/context:cpp)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/zmartzone/liboauth2.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/zmartzone/liboauth2/alerts/)
 
 # liboauth2
 Generic library that can be used to build OAuth 2.x and OpenID Connect C-based servers and clients e.g. web-server plugins.

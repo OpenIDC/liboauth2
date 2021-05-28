@@ -749,7 +749,7 @@ end:
 	return fingerprint;
 }
 
-const oauth2_cfg_mtls_verify_policy_t
+oauth2_cfg_mtls_verify_policy_t
 oauth2_mtls_verify_policy_get(const oauth2_cfg_mtls_verify_t *mtls_verify)
 {
 	if ((mtls_verify == NULL) ||

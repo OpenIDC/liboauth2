@@ -354,7 +354,7 @@ static bool oauth2_cache_redis_set(oauth2_log_t *log, oauth2_cache_t *cache,
 	if (value) {
 
 		oauth2_snprintf(s_timeout, OAUTH2_UINT_MAX_STR,
-				"" OAUTH2_UINT_FORMAT "", ttl_s);
+				"" OAUTH2_TIME_T_FORMAT "", ttl_s);
 		cmd = oauth2_strdup("SETEX ");
 		cmd = oauth2_stradd(cmd, key, " ", s_timeout);
 		cmd = oauth2_stradd(cmd, " ", value, NULL);

@@ -1014,7 +1014,7 @@ bool oauth2_jose_jwt_validate_iat(oauth2_log_t *log, const json_t *json_payload,
 
 	now = oauth2_time_now_sec();
 
-	if ((slack_before >= 0) && ((now - slack_before) > iat)) {
+	if ((slack_before > 0) && ((now - slack_before) > iat)) {
 		oauth2_error(log,
 			     "\"%s\" validation failure (%ld): JWT was issued "
 			     "more than %d seconds ago",
@@ -1022,7 +1022,7 @@ bool oauth2_jose_jwt_validate_iat(oauth2_log_t *log, const json_t *json_payload,
 		goto end;
 	}
 
-	if ((slack_after >= 0) && ((now + slack_after) < iat)) {
+	if ((slack_after > 0) && ((now + slack_after) < iat)) {
 		oauth2_error(log,
 			     "\"%s\" validation failure (%ld): JWT was issued "
 			     "more than %d seconds in the future",
