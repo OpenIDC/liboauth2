@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/zmartzone/liboauth2.svg?branch=master)](https://travis-ci.com/zmartzone/liboauth2)
+
 # liboauth2
 Generic library that can be used to build OAuth 2.x and OpenID Connect C-based servers and clients e.g. web-server plugins.
 
