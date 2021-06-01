@@ -9,7 +9,6 @@ addons:
     - libcurl4-openssl-dev
     - libjansson-dev
     - libhiredis-dev
-    - libcjose-dev
     - apache2-dev
     - check
     - memcached
@@ -20,11 +19,12 @@ arch:
   - ppc64le
   - arm64
   - arm64-graviton2
+  - s390x
 
-#  - s390x does not have libcjose-dev
 os: linux
 
 env:
+  CJOSE_VERSION=0.6.1.5
   NGINX_VERSION=1.14.0
 
 services:
@@ -32,6 +32,13 @@ services:
     - redis-server
 
 install:
+  - wget https://github.com/zmartzone/cjose/archive/refs/tags/v${CJOSE_VERSION}.tar.gz
+  - tar zxvf v${CJOSE_VERSION}.tar.gz
+  - cd cjose-${CJOSE_VERSION}
+  - ./configure --prefix=/usr
+  - make test || cat test/test-suite.log
+  - sudo make install
+  - cd -
   - wget https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz
   - tar zxvf nginx-${NGINX_VERSION}.tar.gz
   - ln -s nginx-${NGINX_VERSION} nginx
