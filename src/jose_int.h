@@ -112,4 +112,9 @@ bool oauth2_jose_jwt_validate_iat(oauth2_log_t *log, const json_t *json_payload,
 				  oauth2_uint_t slack_before,
 				  oauth2_uint_t slack_after);
 
+char *oauth2_jwt_create(oauth2_log_t *log, cjose_jwk_t *jwk, const char *alg,
+			const char *iss, const char *sub, const char *client_id,
+			const char *aud, oauth2_uint_t exp, bool include_iat,
+			bool include_jti);
+
 #endif /* _OAUTH2_JOSE_INT_H_ */

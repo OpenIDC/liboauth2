@@ -444,6 +444,99 @@ end:
 	return rv;
 }
 
+#define OAUTH2_JTI_LENGTH 16
+
+char *oauth2_jwt_create(oauth2_log_t *log, cjose_jwk_t *jwk, const char *alg,
+			const char *iss, const char *sub, const char *client_id,
+			const char *aud, oauth2_uint_t exp, bool include_iat,
+			bool include_jti)
+{
+	char *rv = NULL;
+	char *payload = NULL;
+	json_t *assertion = NULL;
+	cjose_header_t *hdr = NULL;
+	cjose_jws_t *jws = NULL;
+	const char *jwt = NULL;
+	cjose_err err;
+	char *jti = NULL;
+
+	oauth2_debug(log, "enter");
+
+	if (jwk == NULL)
+		goto end;
+
+	assertion = json_object();
+	if (include_jti) {
+		jti = oauth2_rand_str(log, OAUTH2_JTI_LENGTH);
+		json_object_set_new(assertion, OAUTH2_CLAIM_JTI,
+				    json_string(jti));
+	}
+	if (iss)
+		json_object_set_new(assertion, OAUTH2_CLAIM_ISS,
+				    json_string(iss));
+	if (sub)
+		json_object_set_new(assertion, OAUTH2_CLAIM_SUB,
+				    json_string(sub));
+	if (aud)
+		json_object_set_new(assertion, OAUTH2_CLAIM_AUD,
+				    json_string(aud));
+	json_object_set_new(assertion, OAUTH2_CLAIM_EXP,
+			    json_integer(oauth2_time_now_sec() + exp));
+	if (include_iat)
+		json_object_set_new(assertion, OAUTH2_CLAIM_IAT,
+				    json_integer(oauth2_time_now_sec()));
+	payload = json_dumps(assertion, JSON_PRESERVE_ORDER | JSON_COMPACT);
+
+	hdr = cjose_header_new(&err);
+	if (hdr == NULL) {
+		oauth2_error(log, "cjose_header_new failed: %s", err.message);
+		goto end;
+	}
+	if (cjose_header_set(hdr, CJOSE_HDR_ALG, alg, &err) == false) {
+		oauth2_error(log, "cjose_header_set %s:%s failed: %s",
+			     CJOSE_HDR_ALG, alg, err.message);
+		goto end;
+	}
+	if (cjose_header_set(hdr, OAUTH2_JOSE_HDR_TYP, OAUTH2_JOSE_HDR_TYP_JWT,
+			     &err) == false) {
+		oauth2_error(log, "cjose_header_set %s:%s failed: %s",
+			     OAUTH2_JOSE_HDR_TYP, OAUTH2_JOSE_HDR_TYP_JWT,
+			     err.message);
+		goto end;
+	}
+
+	jws = cjose_jws_sign(jwk, hdr, (const uint8_t *)payload,
+			     strlen(payload), &err);
+	if (jws == NULL) {
+		oauth2_error(log, "cjose_jws_sign failed: %s", err.message);
+		goto end;
+	}
+
+	if (cjose_jws_export(jws, &jwt, &err) == false) {
+		oauth2_error(log, "cjose_jws_export failed: %s", err.message);
+		goto end;
+	}
+
+	rv = oauth2_strndup(jwt, strlen(jwt));
+
+end:
+
+	if (jti)
+		oauth2_mem_free(jti);
+	if (assertion)
+		json_decref(assertion);
+	if (payload)
+		free(payload);
+	if (hdr)
+		cjose_header_release(hdr);
+	if (jws)
+		cjose_jws_release(jws);
+
+	oauth2_debug(log, "leave");
+
+	return rv;
+}
+
 bool oauth2_jose_hash2s(oauth2_log_t *log, const char *digest, const char *src,
 			char **dst)
 {
@@ -1094,6 +1187,9 @@ bool oauth2_jose_jwt_verify(oauth2_log_t *log,
 
 	peek = oauth2_jose_jwt_header_peek(log, token, NULL);
 	oauth2_debug(log, "enter: JWT token header=%s", peek);
+
+	if (token == NULL)
+		goto end;
 
 	/*
 	 * TODO: resolve the shared secret(s) and the private key(s) for

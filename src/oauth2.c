@@ -45,67 +45,20 @@
 #define OAUTH2_CLIENT_ASSERTION_TYPE_JWT_BEARER                                \
 	"urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
 
-#define OAUTH2_JTI_LENGTH 16
-
 static bool _oauth2_add_signed_jwt(oauth2_log_t *log, cjose_jwk_t *jwk,
 				   const char *alg, const char *client_id,
 				   const char *aud, oauth2_nv_list_t *params)
 {
 
 	bool rc = false;
-	char *payload = NULL;
-	json_t *assertion = NULL;
-	cjose_header_t *hdr = NULL;
-	cjose_jws_t *jws = NULL;
-	const char *jwt = NULL;
-	cjose_err err;
-	char *jti = NULL;
+	char *jwt = NULL;
 
 	oauth2_debug(log, "enter");
 
-	assertion = json_object();
-	jti = oauth2_rand_str(log, OAUTH2_JTI_LENGTH);
-	json_object_set_new(assertion, OAUTH2_CLAIM_JTI, json_string(jti));
-	json_object_set_new(assertion, OAUTH2_CLAIM_ISS,
-			    json_string(client_id));
-	json_object_set_new(assertion, OAUTH2_CLAIM_SUB,
-			    json_string(client_id));
-	json_object_set_new(assertion, OAUTH2_CLAIM_AUD, json_string(aud));
-	json_object_set_new(assertion, OAUTH2_CLAIM_EXP,
-			    json_integer(oauth2_time_now_sec() + 60));
-	json_object_set_new(assertion, OAUTH2_CLAIM_IAT,
-			    json_integer(oauth2_time_now_sec()));
-	payload = json_dumps(assertion, JSON_PRESERVE_ORDER | JSON_COMPACT);
-
-	hdr = cjose_header_new(&err);
-	if (hdr == NULL) {
-		oauth2_error(log, "cjose_header_new failed: %s", err.message);
+	jwt = oauth2_jwt_create(log, jwk, alg, client_id, client_id, client_id,
+				aud, 60, true, true);
+	if (jwt == NULL)
 		goto end;
-	}
-	if (cjose_header_set(hdr, CJOSE_HDR_ALG, alg, &err) == false) {
-		oauth2_error(log, "cjose_header_set %s:%s failed: %s",
-			     CJOSE_HDR_ALG, alg, err.message);
-		goto end;
-	}
-	if (cjose_header_set(hdr, OAUTH2_JOSE_HDR_TYP, OAUTH2_JOSE_HDR_TYP_JWT,
-			     &err) == false) {
-		oauth2_error(log, "cjose_header_set %s:%s failed: %s",
-			     OAUTH2_JOSE_HDR_TYP, OAUTH2_JOSE_HDR_TYP_JWT,
-			     err.message);
-		goto end;
-	}
-
-	jws = cjose_jws_sign(jwk, hdr, (const uint8_t *)payload,
-			     strlen(payload), &err);
-	if (jws == NULL) {
-		oauth2_error(log, "cjose_jws_sign failed: %s", err.message);
-		goto end;
-	}
-
-	if (cjose_jws_export(jws, &jwt, &err) == false) {
-		oauth2_error(log, "cjose_jws_export failed: %s", err.message);
-		goto end;
-	}
 
 	oauth2_nv_list_set(log, params, OAUTH2_CLIENT_ASSERTION_TYPE,
 			   OAUTH2_CLIENT_ASSERTION_TYPE_JWT_BEARER);
@@ -115,18 +68,10 @@ static bool _oauth2_add_signed_jwt(oauth2_log_t *log, cjose_jwk_t *jwk,
 
 end:
 
-	oauth2_debug(log, "leave");
+	if (jwt)
+		oauth2_mem_free(jwt);
 
-	if (jti)
-		oauth2_mem_free(jti);
-	if (assertion)
-		json_decref(assertion);
-	if (payload)
-		free(payload);
-	if (hdr)
-		cjose_header_release(hdr);
-	if (jws)
-		cjose_jws_release(jws);
+	oauth2_debug(log, "leave");
 
 	return rc;
 }
