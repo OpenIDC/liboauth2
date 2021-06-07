@@ -833,17 +833,16 @@ bool oauth2_jose_jwt_verify_set_options(
 	jwt_verify->iat_validate = oauth2_parse_validate_claim_option(
 	    log, oauth2_nv_list_get(log, params, OAUTH2_JOSE_JWT_IAT_VALIDATE),
 	    OAUTH2_JOSE_JWT_VALIDATE_CLAIM_OPTIONAL);
-	;
+	// TODO: this is probably different (default -1) for id_token's
+	//       would we need to pass all flags explicitly in init?
 	jwt_verify->iat_slack_before = oauth2_parse_uint(
 	    log,
 	    oauth2_nv_list_get(log, params, OAUTH2_JOSE_JWT_IAT_SLACK_BEFORE),
-	    OAUTH2_JOSE_JWT_IAT_SLACK_DEFAULT);
-	// TODO: this is probably different (default -1) for id_token's
-	//       would we need to pass all flags explicitly in init?
+	    OAUTH2_CFG_UINT_UNSET);
 	jwt_verify->iat_slack_after = oauth2_parse_uint(
 	    log,
 	    oauth2_nv_list_get(log, params, OAUTH2_JOSE_JWT_IAT_SLACK_AFTER),
-	    OAUTH2_CFG_UINT_UNSET);
+	    OAUTH2_JOSE_JWT_IAT_SLACK_DEFAULT);
 
 	// TODO: calculate rc based on previous calls
 	return true;
@@ -1107,7 +1106,8 @@ bool oauth2_jose_jwt_validate_iat(oauth2_log_t *log, const json_t *json_payload,
 
 	now = oauth2_time_now_sec();
 
-	if ((slack_before > 0) && ((now - slack_before) > iat)) {
+	if ((slack_before != OAUTH2_CFG_UINT_UNSET) &&
+	    ((now - slack_before) > iat)) {
 		oauth2_error(log,
 			     "\"%s\" validation failure (%ld): JWT was issued "
 			     "more than %d seconds ago",
@@ -1115,7 +1115,8 @@ bool oauth2_jose_jwt_validate_iat(oauth2_log_t *log, const json_t *json_payload,
 		goto end;
 	}
 
-	if ((slack_after > 0) && ((now + slack_after) < iat)) {
+	if ((slack_after != OAUTH2_CFG_UINT_UNSET) &&
+	    ((now + slack_after) < iat)) {
 		oauth2_error(log,
 			     "\"%s\" validation failure (%ld): JWT was issued "
 			     "more than %d seconds in the future",

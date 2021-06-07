@@ -1,3 +1,8 @@
+06/07/2021
+- correct iat slack validation defaults, see https://github.com/zmartzone/mod_oauth2/discussions/20
+  thanks @DrakezulsMinimalism
+- release 1.4.2.1
+
 05/28/2021
 - add Travis and LGTM
 
