@@ -1297,13 +1297,21 @@ bool oauth2_jose_jwt_verify(oauth2_log_t *log,
 	oauth2_debug(log, "got plaintext (len=%lu): %s", plaintext_len,
 		     *s_payload);
 
-	if (oauth2_json_decode_object(log, *s_payload, json_payload) == false)
+	if (oauth2_json_decode_object(log, *s_payload, json_payload) == false) {
+		oauth2_mem_free(*s_payload);
+		*s_payload = NULL;
 		goto end;
+	}
 
 	if (jwt_verify_ctx) {
 		if (_oauth2_jose_jwt_payload_validate(
-			log, jwt_verify_ctx, *json_payload, NULL) == false)
+			log, jwt_verify_ctx, *json_payload, NULL) == false) {
+			json_decref(*json_payload);
+			*json_payload = NULL;
+			oauth2_mem_free(*s_payload);
+			*s_payload = NULL;
 			goto end;
+		}
 	}
 
 	rc = true;

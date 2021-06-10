@@ -1,6 +1,7 @@
 06/10/2021
 - use encrypted JWTs for storing encrypted cache contents and avoid using static AAD/IV
   closes #26; thanks @niebardzo
+- avoid memory leaks on JWT validation errors
 - release 1.4.3
 
 06/07/2021

@@ -455,6 +455,8 @@ START_TEST(test_jwt_verify)
 	ck_assert_int_eq(rc, false);
 	oauth2_cfg_token_verify_free(_log, verify);
 	verify = NULL;
+
+	oauth2_mem_free(jwt);
 }
 END_TEST
 

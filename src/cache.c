@@ -314,6 +314,7 @@ bool oauth2_cache_get(oauth2_log_t *log, oauth2_cache_t *cache, const char *key,
 {
 	bool rc = false;
 	char *hashed_key = NULL;
+	char *encrypted_value = NULL;
 
 	oauth2_debug(log, "enter: key=%s, type=%s, decrypt=%d", key,
 		     cache && cache->type ? cache->type->name : "<n/a>",
@@ -330,9 +331,16 @@ bool oauth2_cache_get(oauth2_log_t *log, oauth2_cache_t *cache, const char *key,
 	if (cache->type->get(log, cache, hashed_key, value) == false)
 		goto end;
 
-	if ((cache->encrypt) && (*value))
-		if (oauth2_cache_decrypt(log, cache, *value, value) < 0)
+	if ((cache->encrypt) && (*value)) {
+		if (oauth2_cache_decrypt(log, cache, *value, &encrypted_value) <
+		    0) {
+			oauth2_mem_free(*value);
+			*value = NULL;
 			goto end;
+		}
+		oauth2_mem_free(*value);
+		*value = encrypted_value;
+	}
 
 	rc = true;
 
