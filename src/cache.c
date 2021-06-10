@@ -252,8 +252,62 @@ end:
 	return rc;
 }
 
+static const unsigned char *_oauth_cache_get_enc_key(oauth2_log_t *log,
+						     oauth2_cache_t *cache)
+{
+
+	const char *passphrase = NULL, *passphrase_hash_algo = NULL;
+	unsigned int enc_key_len = -1;
+
+	if (cache->enc_key != NULL)
+		goto end;
+
+	passphrase = oauth2_crypto_passphrase_get(log);
+	if (passphrase == NULL)
+		goto end;
+
+	passphrase_hash_algo = cache->passphrase_hash_algo
+				   ? passphrase_hash_algo
+				   : OAUTH2_JOSE_OPENSSL_ALG_SHA256;
+
+	if (strcmp(passphrase_hash_algo, "none") == 0) {
+		cache->enc_key = (unsigned char *)oauth2_strdup(passphrase);
+	} else {
+		if (oauth2_jose_hash_bytes(log, passphrase_hash_algo,
+					   (const unsigned char *)passphrase,
+					   strlen(passphrase), &cache->enc_key,
+					   &enc_key_len) == false) {
+			oauth2_error(
+			    log, "could not hash cache encryption passphrase");
+			goto end;
+		}
+	}
+
+end:
+
+	return cache->enc_key;
+}
+
 static int oauth2_cache_decrypt(oauth2_log_t *log, oauth2_cache_t *cache,
-				const char *value, unsigned char **plaintext);
+				const char *value, char **plaintext)
+{
+	int len = -1;
+
+	oauth2_debug(log, "enter");
+
+	if (oauth2_jose_decrypt(
+		log, (const char *)_oauth_cache_get_enc_key(log, cache), value,
+		plaintext) == false)
+		goto end;
+
+	len = strlen(*plaintext);
+
+end:
+
+	oauth2_debug(log, "leave: len=%d", len);
+
+	return len;
+}
 
 bool oauth2_cache_get(oauth2_log_t *log, oauth2_cache_t *cache, const char *key,
 		      char **value)
@@ -277,8 +331,7 @@ bool oauth2_cache_get(oauth2_log_t *log, oauth2_cache_t *cache, const char *key,
 		goto end;
 
 	if ((cache->encrypt) && (*value))
-		if (oauth2_cache_decrypt(log, cache, *value,
-					 (unsigned char **)value) < 0)
+		if (oauth2_cache_decrypt(log, cache, *value, value) < 0)
 			goto end;
 
 	rc = true;
@@ -296,7 +349,25 @@ end:
 }
 
 static int oauth2_cache_encrypt(oauth2_log_t *log, oauth2_cache_t *cache,
-				const char *plaintext, char **result);
+				const char *plaintext, char **result)
+{
+	int len = -1;
+
+	oauth2_debug(log, "enter: %s", plaintext);
+
+	if (oauth2_jose_encrypt(
+		log, (const char *)_oauth_cache_get_enc_key(log, cache),
+		plaintext, result) == false)
+		goto end;
+
+	len = strlen(*result);
+
+end:
+
+	oauth2_debug(log, "leave: len=%d", (int)len);
+
+	return len;
+}
 
 bool oauth2_cache_set(oauth2_log_t *log, oauth2_cache_t *cache, const char *key,
 		      const char *value, oauth2_time_t ttl_s)
@@ -345,290 +416,4 @@ end:
 		oauth2_error(log, "leave: could NOT store: %s", key);
 
 	return rc;
-}
-
-#define OAUTH2_CACHE_CIPHER EVP_aes_256_gcm()
-#define OAUTH2_CACHE_TAG_LEN 16
-
-#if (OPENSSL_VERSION_NUMBER >= 0x10100005L && !defined(LIBRESSL_VERSION_NUMBER))
-#define OAUTH2_CACHE_CRYPTO_GET_TAG EVP_CTRL_AEAD_GET_TAG
-#define OAUTH2_CACHE_CRYPTO_SET_TAG EVP_CTRL_AEAD_SET_TAG
-#define OAUTH2_CACHE_CRYPTO_SET_IVLEN EVP_CTRL_AEAD_SET_IVLEN
-#else
-#define OAUTH2_CACHE_CRYPTO_GET_TAG EVP_CTRL_GCM_GET_TAG
-#define OAUTH2_CACHE_CRYPTO_SET_TAG EVP_CTRL_GCM_SET_TAG
-#define OAUTH2_CACHE_CRYPTO_SET_IVLEN EVP_CTRL_GCM_SET_IVLEN
-#endif
-
-static const unsigned char OAUTH2_CACHE_CRYPTO_GCM_AAD[] = {
-    0x4d, 0x23, 0xc3, 0xce, 0xc3, 0x34, 0xb4, 0x9b,
-    0xdb, 0x37, 0x0c, 0x43, 0x7f, 0xec, 0x78, 0xde};
-static const unsigned char OAUTH2_CACHE_CRYPTO_GCM_IV[] = {
-    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-    0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
-
-// TODO: static encryption/decryption context?
-
-const unsigned char *_oauth_cache_get_enc_key(oauth2_log_t *log,
-					      oauth2_cache_t *cache)
-{
-
-	const char *passphrase = NULL, *passphrase_hash_algo = NULL;
-	unsigned int enc_key_len = -1;
-
-	if (cache->enc_key != NULL)
-		goto end;
-
-	passphrase = oauth2_crypto_passphrase_get(log);
-	if (passphrase == NULL)
-		goto end;
-
-	passphrase_hash_algo = cache->passphrase_hash_algo
-				   ? passphrase_hash_algo
-				   : OAUTH2_JOSE_OPENSSL_ALG_SHA256;
-
-	if (strcmp(passphrase_hash_algo, "none") == 0) {
-		cache->enc_key = (unsigned char *)oauth2_strdup(passphrase);
-	} else {
-		if (oauth2_jose_hash_bytes(log, passphrase_hash_algo,
-					   (const unsigned char *)passphrase,
-					   strlen(passphrase), &cache->enc_key,
-					   &enc_key_len) == false) {
-			oauth2_error(
-			    log, "could not hash cache encryption passphrase");
-			goto end;
-		}
-	}
-
-end:
-
-	return cache->enc_key;
-}
-
-static int _oauth2_cache_encrypt_impl(oauth2_log_t *log, oauth2_cache_t *cache,
-				      unsigned char *plaintext,
-				      int plaintext_len,
-				      const unsigned char *aad, int aad_len,
-				      const unsigned char *iv, int iv_len,
-				      unsigned char *ciphertext,
-				      const unsigned char *tag, int tag_len)
-{
-
-	int ciphertext_len = 0;
-	int len = -1;
-	EVP_CIPHER_CTX *ctx = NULL;
-
-	if (!(ctx = EVP_CIPHER_CTX_new())) {
-		oauth2_error(log, "EVP_CIPHER_CTX_new failed: %s",
-			     _OAUTH2_CACHE_OPENSSL_ERR);
-		goto end;
-	}
-
-	if (!EVP_EncryptInit_ex(ctx, OAUTH2_CACHE_CIPHER, NULL, NULL, NULL)) {
-		oauth2_error(log, "EVP_EncryptInit_ex failed: %s",
-			     _OAUTH2_CACHE_OPENSSL_ERR);
-		goto end;
-	}
-
-	if (!EVP_CIPHER_CTX_ctrl(ctx, OAUTH2_CACHE_CRYPTO_SET_IVLEN, iv_len,
-				 NULL)) {
-		oauth2_error(log, "EVP_CIPHER_CTX_ctrl failed: %s",
-			     _OAUTH2_CACHE_OPENSSL_ERR);
-		goto end;
-	}
-
-	if (!EVP_EncryptInit_ex(ctx, NULL, NULL,
-				_oauth_cache_get_enc_key(log, cache), iv)) {
-		oauth2_error(log, "EVP_EncryptInit_ex failed: %s",
-			     _OAUTH2_CACHE_OPENSSL_ERR);
-		goto end;
-	}
-
-	if (!EVP_EncryptUpdate(ctx, NULL, &len, aad, aad_len)) {
-		oauth2_error(log, "EVP_EncryptUpdate aad failed aad_len=%d: %s",
-			     aad_len, _OAUTH2_CACHE_OPENSSL_ERR);
-		goto end;
-	}
-
-	if (!EVP_EncryptUpdate(ctx, ciphertext, &len, plaintext,
-			       plaintext_len)) {
-		oauth2_error(log, "EVP_EncryptUpdate ciphertext failed: %s",
-			     _OAUTH2_CACHE_OPENSSL_ERR);
-		goto end;
-	}
-	ciphertext_len = len;
-
-	if (!EVP_EncryptFinal_ex(ctx, ciphertext + len, &len)) {
-		oauth2_error(log, "EVP_EncryptFinal_ex failed: %s",
-			     _OAUTH2_CACHE_OPENSSL_ERR);
-		goto end;
-	}
-	ciphertext_len += len;
-
-	if (!EVP_CIPHER_CTX_ctrl(ctx, OAUTH2_CACHE_CRYPTO_GET_TAG, tag_len,
-				 (void *)tag)) {
-		oauth2_error(log, "EVP_CIPHER_CTX_ctrl failed: %s",
-			     _OAUTH2_CACHE_OPENSSL_ERR);
-		goto end;
-	}
-
-end:
-
-	if (ctx)
-		EVP_CIPHER_CTX_free(ctx);
-
-	return ciphertext_len;
-}
-
-static int oauth2_cache_encrypt(oauth2_log_t *log, oauth2_cache_t *cache,
-				const char *plaintext, char **result)
-{
-	int ciphertext_len = -1;
-	size_t len = -1;
-	uint8_t *buf = NULL;
-
-	oauth2_debug(log, "enter: %s", plaintext);
-
-	len = strlen(plaintext);
-	buf = oauth2_mem_alloc(OAUTH2_CACHE_TAG_LEN + len +
-			       EVP_CIPHER_block_size(OAUTH2_CACHE_CIPHER));
-	if (buf == NULL)
-		goto end;
-
-	ciphertext_len = _oauth2_cache_encrypt_impl(
-	    log, cache, (unsigned char *)plaintext, len,
-	    OAUTH2_CACHE_CRYPTO_GCM_AAD, sizeof(OAUTH2_CACHE_CRYPTO_GCM_AAD),
-	    OAUTH2_CACHE_CRYPTO_GCM_IV, sizeof(OAUTH2_CACHE_CRYPTO_GCM_IV),
-	    buf + OAUTH2_CACHE_TAG_LEN, buf, OAUTH2_CACHE_TAG_LEN);
-
-	len = oauth2_base64_encode(
-	    log, buf, OAUTH2_CACHE_TAG_LEN + ciphertext_len, result);
-
-end:
-
-	if (buf)
-		oauth2_mem_free(buf);
-
-	oauth2_debug(log, "leave: len=%d", (int)len);
-
-	return len;
-}
-
-static int _oauth2_cache_decrypt_impl(oauth2_log_t *log, oauth2_cache_t *cache,
-				      unsigned char *ciphertext,
-				      int ciphertext_len,
-				      const unsigned char *aad, int aad_len,
-				      const unsigned char *tag, int tag_len,
-				      const unsigned char *iv, int iv_len,
-				      unsigned char *plaintext)
-{
-
-	int plaintext_len = -1;
-	int len = 0;
-	EVP_CIPHER_CTX *ctx = NULL;
-
-	if (!(ctx = EVP_CIPHER_CTX_new())) {
-		oauth2_error(log, "EVP_CIPHER_CTX_new failed: %s",
-			     _OAUTH2_CACHE_OPENSSL_ERR);
-		goto end;
-	}
-
-	if (!EVP_DecryptInit_ex(ctx, OAUTH2_CACHE_CIPHER, NULL, NULL, NULL)) {
-		oauth2_error(log, "EVP_DecryptInit_ex failed: %s",
-			     _OAUTH2_CACHE_OPENSSL_ERR);
-		goto end;
-	}
-
-	if (!EVP_CIPHER_CTX_ctrl(ctx, OAUTH2_CACHE_CRYPTO_SET_IVLEN, iv_len,
-				 NULL)) {
-		oauth2_error(log, "EVP_CIPHER_CTX_ctrl failed: %s",
-			     _OAUTH2_CACHE_OPENSSL_ERR);
-		goto end;
-	}
-
-	if (!EVP_DecryptInit_ex(ctx, NULL, NULL,
-				_oauth_cache_get_enc_key(log, cache), iv)) {
-		oauth2_error(log, "EVP_DecryptInit_ex failed: %s",
-			     _OAUTH2_CACHE_OPENSSL_ERR);
-		goto end;
-	}
-
-	if (!EVP_DecryptUpdate(ctx, NULL, &len, aad, aad_len)) {
-		oauth2_error(log, "EVP_DecryptUpdate aad failed aad_len=%d: %s",
-			     aad_len, _OAUTH2_CACHE_OPENSSL_ERR);
-		goto end;
-	}
-
-	if (!EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext,
-			       ciphertext_len)) {
-		oauth2_error(log, "EVP_DecryptUpdate ciphertext failed: %s",
-			     _OAUTH2_CACHE_OPENSSL_ERR);
-		goto end;
-	}
-	plaintext_len = len;
-
-	if (!EVP_CIPHER_CTX_ctrl(ctx, OAUTH2_CACHE_CRYPTO_SET_TAG, tag_len,
-				 (void *)tag)) {
-		oauth2_error(log, "EVP_CIPHER_CTX_ctrl failed: %s",
-			     _OAUTH2_CACHE_OPENSSL_ERR);
-		goto end;
-	}
-
-	if (!EVP_DecryptFinal_ex(ctx, plaintext + len, &len)) {
-		oauth2_error(log, "EVP_DecryptFinal_ex failed: %s",
-			     _OAUTH2_CACHE_OPENSSL_ERR);
-		goto end;
-	}
-	plaintext_len += len;
-
-end:
-
-	if (ctx)
-		EVP_CIPHER_CTX_free(ctx);
-
-	return plaintext_len;
-}
-
-static int oauth2_cache_decrypt(oauth2_log_t *log, oauth2_cache_t *cache,
-				const char *value, unsigned char **plaintext)
-{
-	int len = -1;
-	uint8_t *buf = NULL;
-	size_t buf_len = -1;
-	unsigned char *rv = NULL;
-
-	oauth2_debug(log, "enter");
-
-	if (oauth2_base64_decode(log, value, &buf, &buf_len) == false)
-		goto end;
-
-	len = buf_len - OAUTH2_CACHE_TAG_LEN;
-	rv = oauth2_mem_alloc(len + EVP_CIPHER_block_size(OAUTH2_CACHE_CIPHER));
-
-	len = _oauth2_cache_decrypt_impl(
-	    log, cache, (unsigned char *)(buf + OAUTH2_CACHE_TAG_LEN), len,
-	    OAUTH2_CACHE_CRYPTO_GCM_AAD, sizeof(OAUTH2_CACHE_CRYPTO_GCM_AAD),
-	    (unsigned char *)buf, OAUTH2_CACHE_TAG_LEN,
-	    OAUTH2_CACHE_CRYPTO_GCM_IV, sizeof(OAUTH2_CACHE_CRYPTO_GCM_IV), rv);
-
-	if (len <= 0) {
-		oauth2_mem_free(rv);
-		goto end;
-	}
-
-	rv[len] = '\0';
-
-	// because we passed in the value buffer itself to avoid memory copies
-	if (*plaintext)
-		oauth2_mem_free(*plaintext);
-	*plaintext = rv;
-
-end:
-
-	if (buf)
-		oauth2_mem_free(buf);
-
-	oauth2_debug(log, "leave: len=%d", len);
-
-	return len;
 }

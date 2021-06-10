@@ -1,3 +1,8 @@
+06/10/2021
+- use encrypted JWTs for storing encrypted cache contents and avoid using static AAD/IV
+  closes #26; thanks @niebardzo
+- release 1.4.3
+
 06/07/2021
 - correct iat slack validation defaults, see https://github.com/zmartzone/mod_oauth2/discussions/20
   thanks @DrakezulsMinimalism

@@ -215,8 +215,8 @@ end:
 	return rv;
 }
 
-bool oauth2_jose_jwt_encrypt(oauth2_log_t *log, const char *secret,
-			     json_t *payload, char **cser)
+bool oauth2_jose_encrypt(oauth2_log_t *log, const char *secret,
+			 const char *s_sig_payload, char **cser)
 {
 	bool rv = false, rc = false;
 	cjose_err err;
@@ -225,17 +225,12 @@ bool oauth2_jose_jwt_encrypt(oauth2_log_t *log, const char *secret,
 	cjose_jws_t *jwt = NULL;
 	cjose_jwe_t *jwe = NULL;
 	cjose_header_t *sig_hdr = NULL, *enc_hdr = NULL;
-	char *s_sig_payload = NULL, *s_enc_payload = NULL;
+	char *s_enc_payload = NULL;
 
 	oauth2_debug(log, "enter");
 
 	if (cser == NULL)
 		goto end;
-
-	s_sig_payload =
-	    payload ? json_dumps(payload, JSON_PRESERVE_ORDER | JSON_COMPACT)
-		    : NULL;
-	oauth2_trace1(log, "JSON payload serialized: %s", s_sig_payload);
 
 	if (oauth2_jose_jwk_create_symmetric(
 		log, secret, OAUTH2_JOSE_OPENSSL_ALG_SHA256, &jwk) == false) {
@@ -325,9 +320,6 @@ bool oauth2_jose_jwt_encrypt(oauth2_log_t *log, const char *secret,
 
 end:
 
-	if (s_sig_payload)
-		oauth2_mem_free(s_sig_payload);
-
 	if (jwe)
 		cjose_jwe_release(jwe);
 	if (jwk)
@@ -344,10 +336,38 @@ end:
 	return rv;
 }
 
-bool oauth2_jose_jwt_decrypt(oauth2_log_t *log, const char *secret,
-			     const char *cser, json_t **result)
+bool oauth2_jose_jwt_encrypt(oauth2_log_t *log, const char *secret,
+			     json_t *payload, char **cser)
 {
+	bool rc = false;
 
+	char *s_sig_payload = NULL;
+
+	oauth2_debug(log, "enter");
+
+	if (cser == NULL)
+		goto end;
+
+	s_sig_payload =
+	    payload ? json_dumps(payload, JSON_PRESERVE_ORDER | JSON_COMPACT)
+		    : NULL;
+	oauth2_trace1(log, "JSON payload serialized: %s", s_sig_payload);
+
+	rc = oauth2_jose_encrypt(log, secret, s_sig_payload, cser);
+
+end:
+
+	if (s_sig_payload)
+		oauth2_mem_free(s_sig_payload);
+
+	oauth2_debug(log, "leave");
+
+	return rc;
+}
+
+bool oauth2_jose_decrypt(oauth2_log_t *log, const char *secret,
+			 const char *cser, char **result)
+{
 	//	oauth2_debug(log, "enter: JWT header=%s",
 	//			oidc_proto_peek_jwt_header(log, cser, NULL));
 
@@ -360,9 +380,6 @@ bool oauth2_jose_jwt_decrypt(oauth2_log_t *log, const char *secret,
 
 	uint8_t *s_decrypted = NULL, *s_payload = NULL;
 	size_t dec_len, payload_len;
-
-	char *payload = NULL;
-	json_error_t json_error;
 
 	oauth2_debug(log, "enter");
 
@@ -411,24 +428,15 @@ bool oauth2_jose_jwt_decrypt(oauth2_log_t *log, const char *secret,
 	}
 	oauth2_trace1(log, "plaintext retrieved");
 
-	payload = oauth2_mem_alloc(payload_len + 1);
-	strncpy(payload, (const char *)s_payload, payload_len);
-	payload[payload_len] = '\0';
+	*result = oauth2_mem_alloc(payload_len + 1);
+	strncpy(*result, (const char *)s_payload, payload_len);
+	(*result)[payload_len] = '\0';
 	oauth2_trace1(log, "plaintext copied");
-
-	*result = json_loads(payload, 0, &json_error);
-	if (*result == NULL) {
-		_OAUTH2_JOSE_JANSSON_ERR_LOG(log, "json_loads", json_error);
-		goto end;
-	}
-	oauth2_trace1(log, "payload parsed to JSON");
 
 	rv = true;
 
 end:
 
-	if (payload)
-		oauth2_mem_free(payload);
 	if (s_decrypted)
 		oauth2_mem_free(s_decrypted);
 
@@ -442,6 +450,41 @@ end:
 	oauth2_debug(log, "leave");
 
 	return rv;
+}
+
+bool oauth2_jose_jwt_decrypt(oauth2_log_t *log, const char *secret,
+			     const char *cser, json_t **result)
+{
+
+	bool rc = false;
+	char *payload = NULL;
+	json_error_t json_error;
+
+	oauth2_debug(log, "enter");
+
+	if ((secret == NULL) || (cser == NULL) || (result == NULL))
+		goto end;
+
+	if (oauth2_jose_decrypt(log, secret, cser, &payload) == false)
+		goto end;
+
+	*result = json_loads(payload, 0, &json_error);
+	if (*result == NULL) {
+		_OAUTH2_JOSE_JANSSON_ERR_LOG(log, "json_loads", json_error);
+		goto end;
+	}
+	oauth2_trace1(log, "payload parsed to JSON");
+
+	rc = true;
+
+end:
+
+	if (payload)
+		oauth2_mem_free(payload);
+
+	oauth2_debug(log, "leave");
+
+	return rc;
 }
 
 #define OAUTH2_JTI_LENGTH 16

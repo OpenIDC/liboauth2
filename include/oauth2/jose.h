@@ -59,8 +59,12 @@ bool oauth2_jose_jwk_create_symmetric(oauth2_log_t *log,
 				      const char *hash_algo,
 				      oauth2_jose_jwk_t **jwk);
 
+bool oauth2_jose_encrypt(oauth2_log_t *log, const char *secret,
+			 const char *s_sig_payload, char **cser);
 bool oauth2_jose_jwt_encrypt(oauth2_log_t *log, const char *secret,
 			     json_t *payload, char **cser);
+bool oauth2_jose_decrypt(oauth2_log_t *log, const char *secret,
+			 const char *cser, char **result);
 bool oauth2_jose_jwt_decrypt(oauth2_log_t *log, const char *secret,
 			     const char *cser, json_t **result);
 
