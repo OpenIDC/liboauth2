@@ -721,7 +721,9 @@ bool oauth2_apache_set_request_user(oauth2_cfg_target_pass_t *target_pass,
 
 	remote_user = json_object_get(json_token, claim);
 	if ((remote_user == NULL) || (!json_is_string(remote_user))) {
-		oauth2_error(ctx->log, "remote user claim could not be found");
+		oauth2_error(ctx->log,
+			     "remote user claim \"%s\" could not be found",
+			     claim);
 		goto end;
 	}
 

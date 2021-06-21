@@ -1,3 +1,6 @@
+06/21/2021
+- printout remote username claim when not found, for debugging purposes
+
 06/10/2021
 - use encrypted JWTs for storing encrypted cache contents and avoid using static AAD/IV
   closes #26; thanks @niebardzo
