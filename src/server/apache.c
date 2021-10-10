@@ -731,7 +731,7 @@ bool oauth2_apache_set_request_user(oauth2_cfg_target_pass_t *target_pass,
 	    apr_pstrdup(ctx->r->pool, json_string_value(remote_user));
 
 	oauth2_debug(ctx->log, "set user to \"%s\" based on claim: %s=%s",
-		     ctx->r->user, claim, remote_user);
+		     ctx->r->user, claim, json_string_value(remote_user));
 
 	// TODO: more flexibility and or regular expressions?
 
