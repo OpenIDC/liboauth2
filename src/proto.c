@@ -468,6 +468,12 @@ bool oauth2_ropc_exec(oauth2_log_t *log, oauth2_cfg_ropc_t *cfg,
 	if (ctx == NULL)
 		goto end;
 
+	oauth2_http_call_ctx_ssl_verify_set(
+	    log, ctx,
+	    oauth2_cfg_endpoint_get_ssl_verify(token_endpoint));
+	oauth2_http_call_ctx_outgoing_proxy_set(
+	    log, ctx, oauth2_cfg_endpoint_get_outgoing_proxy(token_endpoint));
+
 	if (oauth2_http_ctx_auth_add(
 		log, ctx, oauth2_cfg_endpoint_get_auth(token_endpoint),
 		params) == false)

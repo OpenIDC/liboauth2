@@ -606,14 +606,12 @@ end:
 
 _OAUTH2_CFG_CTX_INIT_START(oauth2_uri_ctx)
 ctx->endpoint = NULL;
-ctx->outgoing_proxy = NULL;
 ctx->cache = NULL;
 ctx->expiry_s = OAUTH2_CFG_UINT_UNSET;
 _OAUTH2_CFG_CTX_INIT_END
 
 _OAUTH2_CFG_CTX_CLONE_START(oauth2_uri_ctx)
 dst->endpoint = oauth2_cfg_endpoint_clone(log, src->endpoint);
-dst->outgoing_proxy = oauth2_strdup(src->outgoing_proxy);
 dst->cache = src->cache;
 dst->expiry_s = src->expiry_s;
 _OAUTH2_CFG_CTX_CLONE_END
@@ -1741,11 +1739,6 @@ char *oauth2_jose_options_uri_ctx(oauth2_log_t *log, const char *value,
 	ctx->endpoint = oauth2_cfg_endpoint_init(log);
 	rv = oauth2_cfg_set_endpoint(log, ctx->endpoint, value, params, prefix);
 
-	key = oauth2_stradd(NULL, prefix, ".", "outgoing_proxy");
-	ctx->outgoing_proxy =
-	    oauth2_strdup(oauth2_nv_list_get(log, params, key));
-	oauth2_mem_free(key);
-
 	key = oauth2_stradd(NULL, prefix, ".", "cache");
 	ctx->cache =
 	    oauth2_cache_obtain(log, oauth2_nv_list_get(log, params, key));
@@ -2030,7 +2023,7 @@ char *oauth2_jose_resolve_from_uri(oauth2_log_t *log, oauth2_uri_ctx_t *uri_ctx,
 		    log, ctx,
 		    oauth2_cfg_endpoint_get_ssl_verify(uri_ctx->endpoint));
 		oauth2_http_call_ctx_outgoing_proxy_set(
-		    log, ctx, uri_ctx->outgoing_proxy);
+		    log, ctx, oauth2_cfg_endpoint_get_outgoing_proxy(uri_ctx->endpoint));
 
 		rc = oauth2_http_get(
 		    log, oauth2_cfg_endpoint_get_url(uri_ctx->endpoint), NULL,

@@ -1,4 +1,7 @@
-10/21/2021
+10/12/2021
+- make outgoing_proxy an endpoint property
+
+10/11/2021
 - add outgoing_proxy option to verify context
 - correct remote_user debug printout
 - release 1.4.3.1

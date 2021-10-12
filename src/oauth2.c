@@ -319,6 +319,8 @@ static bool _oauth2_introspect_verify(oauth2_log_t *log,
 		log, http_ctx,
 		oauth2_cfg_endpoint_get_ssl_verify(ctx->endpoint)) == false)
 		goto end;
+	oauth2_http_call_ctx_outgoing_proxy_set(
+	    log, http_ctx, oauth2_cfg_endpoint_get_outgoing_proxy(ctx->endpoint));
 
 	params = oauth2_nv_list_init(log);
 	if (params == NULL)
