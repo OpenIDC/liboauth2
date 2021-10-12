@@ -1,5 +1,7 @@
 10/12/2021
 - make outgoing_proxy an endpoint property
+- accommodate for NULL key in oauth2_cache_get and oauth2_cache_set
+- release 1.4.3.2
 
 10/11/2021
 - add outgoing_proxy option to verify context

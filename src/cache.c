@@ -316,7 +316,8 @@ bool oauth2_cache_get(oauth2_log_t *log, oauth2_cache_t *cache, const char *key,
 	char *hashed_key = NULL;
 	char *encrypted_value = NULL;
 
-	oauth2_debug(log, "enter: key=%s, type=%s, decrypt=%d", key,
+	oauth2_debug(log, "enter: key=%s, type=%s, decrypt=%d",
+		     key ? key : "<null>",
 		     cache && cache->type ? cache->type->name : "<n/a>",
 		     cache ? cache->encrypt : -1);
 
@@ -350,7 +351,8 @@ end:
 		oauth2_mem_free(hashed_key);
 
 	oauth2_debug(log, "leave: cache %s for key: %s return: %lu bytes",
-		     rc ? (*value ? "hit" : "miss") : "error", key,
+		     rc ? (*value ? "hit" : "miss") : "error",
+		     key ? key : "<null>",
 		     *value ? (unsigned long)strlen(*value) : 0);
 
 	return rc;
@@ -388,7 +390,8 @@ bool oauth2_cache_set(oauth2_log_t *log, oauth2_cache_t *cache, const char *key,
 	oauth2_debug(log,
 		     "enter: key=%s, len=%lu, ttl(s)=" OAUTH2_TIME_T_FORMAT
 		     ", type=%s, encrypt=%d",
-		     key, value ? (unsigned long)strlen(value) : 0, ttl_s,
+		     key ? key : "<null>",
+		     value ? (unsigned long)strlen(value) : 0, ttl_s,
 		     (cache && cache->type) ? cache->type->name : "<n/a>",
 		     cache ? cache->encrypt : -1);
 
@@ -419,9 +422,11 @@ end:
 		oauth2_mem_free(encrypted);
 
 	if (rc)
-		oauth2_debug(log, "leave: successfully stored: %s", key);
+		oauth2_debug(log, "leave: successfully stored: %s",
+			     key ? key : "<null>");
 	else
-		oauth2_error(log, "leave: could NOT store: %s", key);
+		oauth2_error(log, "leave: could NOT store: %s",
+			     key ? key : "<null>");
 
 	return rc;
 }
