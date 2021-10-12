@@ -146,7 +146,8 @@ char *oauth2_cfg_set_endpoint(oauth2_log_t *log, oauth2_cfg_endpoint_t *cfg,
 	value = oauth2_nv_list_get(log, params, key);
 	if (value) {
 		rv = oauth2_strdup(oauth2_cfg_set_str_slot(
-		    cfg, offsetof(oauth2_cfg_endpoint_t, outgoing_proxy), value));
+		    cfg, offsetof(oauth2_cfg_endpoint_t, outgoing_proxy),
+		    value));
 		if (rv)
 			goto end;
 	}
@@ -198,7 +199,8 @@ oauth2_cfg_endpoint_get_http_timeout(const oauth2_cfg_endpoint_t *cfg)
 	return cfg->http_timeout;
 }
 
-const char *oauth2_cfg_endpoint_get_outgoing_proxy(const oauth2_cfg_endpoint_t *cfg)
+const char *
+oauth2_cfg_endpoint_get_outgoing_proxy(const oauth2_cfg_endpoint_t *cfg)
 {
 	return cfg ? cfg->outgoing_proxy : NULL;
 }

@@ -2023,7 +2023,8 @@ char *oauth2_jose_resolve_from_uri(oauth2_log_t *log, oauth2_uri_ctx_t *uri_ctx,
 		    log, ctx,
 		    oauth2_cfg_endpoint_get_ssl_verify(uri_ctx->endpoint));
 		oauth2_http_call_ctx_outgoing_proxy_set(
-		    log, ctx, oauth2_cfg_endpoint_get_outgoing_proxy(uri_ctx->endpoint));
+		    log, ctx,
+		    oauth2_cfg_endpoint_get_outgoing_proxy(uri_ctx->endpoint));
 
 		rc = oauth2_http_get(
 		    log, oauth2_cfg_endpoint_get_url(uri_ctx->endpoint), NULL,
