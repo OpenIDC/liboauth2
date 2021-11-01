@@ -3,7 +3,7 @@
 
 /***************************************************************************
  *
- * Copyright (C) 2018-2020 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2021 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -49,6 +49,7 @@ typedef struct oauth2_cfg_endpoint_t {
 	oauth2_cfg_endpoint_auth_t *auth;
 	oauth2_flag_t ssl_verify;
 	oauth2_uint_t http_timeout;
+	char *outgoing_proxy;
 } oauth2_cfg_endpoint_t;
 
 /*
@@ -163,6 +164,7 @@ void oauth2_cfg_ctx_free(oauth2_log_t *log, oauth2_cfg_ctx_t *ctx);
 
 #define OAUTH2_TOKEN_VERIFY_BEARER_STR "bearer"
 #define OAUTH2_TOKEN_VERIFY_DPOP_STR "dpop"
+#define OAUTH2_TOKEN_VERIFY_MTLS_STR "mtls"
 
 typedef struct oauth2_cfg_dpop_verify_t {
 	oauth2_cache_t *cache;
@@ -172,6 +174,16 @@ typedef struct oauth2_cfg_dpop_verify_t {
 	oauth2_uint_t iat_slack_after;
 } oauth2_cfg_dpop_verify_t;
 
+typedef enum oauth2_cfg_mtls_verify_policy_t {
+	OAUTH2_MTLS_VERIFY_POLICY_OPTIONAL,
+	OAUTH2_MTLS_VERIFY_POLICY_REQUIRED,
+} oauth2_cfg_mtls_verify_policy_t;
+
+typedef struct oauth2_cfg_mtls_verify_t {
+	char *env_var_name;
+	oauth2_cfg_mtls_verify_policy_t policy;
+} oauth2_cfg_mtls_verify_t;
+
 typedef struct oauth2_cfg_token_verify_t {
 	oauth2_cfg_token_verify_cb_t *callback;
 	oauth2_cfg_ctx_t *ctx;
@@ -179,6 +191,7 @@ typedef struct oauth2_cfg_token_verify_t {
 	oauth2_time_t expiry_s;
 	oauth2_cfg_token_verify_type_t type;
 	oauth2_cfg_dpop_verify_t dpop;
+	oauth2_cfg_mtls_verify_t mtls;
 	struct oauth2_cfg_token_verify_t *next;
 } oauth2_cfg_token_verify_t;
 

@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2020 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2021 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -35,7 +35,7 @@ typedef struct oauth2_cache_impl_shm_t {
 	oauth2_uint_t max_entries;
 } oauth2_cache_impl_shm_t;
 
-typedef struct oauth2_cache_shm_entry_t {
+typedef __attribute__((aligned(64))) struct oauth2_cache_shm_entry_t {
 	oauth2_time_t access_s;
 	oauth2_time_t expires_s;
 	uint8_t key_and_value[];
@@ -50,7 +50,7 @@ typedef struct oauth2_cache_shm_entry_t {
 	(sizeof(oauth2_cache_shm_entry_t) + impl->max_key_size +               \
 	 impl->max_val_size)
 
-#define OAUTH2_CACHE_SHM_ADD_OFFSET(ptr, implv)                                \
+#define OAUTH2_CACHE_SHM_ADD_OFFSET(ptr, impl)                                 \
 	ptr = (oauth2_cache_shm_entry_t *)((uint8_t *)ptr +                    \
 					   OAUTH2_CACHE_SHM_SLOT_SIZE(impl))
 
@@ -58,8 +58,8 @@ typedef struct oauth2_cache_shm_entry_t {
 #define OAUTH2_CACHE_SHM_MAX_VALUE_SIZE "max_val_size"
 #define OAUTH2_CACHE_SHM_MAX_ENTRIES "max_entries"
 
-#define OAUTH2_CACHE_SHM_MAX_KEY_SIZE_DEFAULT 65
-#define OAUTH2_CACHE_SHM_MAX_VALUE_SIZE_DEFAULT 8193
+#define OAUTH2_CACHE_SHM_MAX_KEY_SIZE_DEFAULT 64
+#define OAUTH2_CACHE_SHM_MAX_VALUE_SIZE_DEFAULT 8192
 #define OAUTH2_CACHE_SHM_MAX_ENTRIES_DEFAULT 1000
 
 oauth2_cache_type_t oauth2_cache_shm;
@@ -69,6 +69,7 @@ static bool oauth2_cache_shm_init(oauth2_log_t *log, oauth2_cache_t *cache,
 {
 	bool rc = false;
 	oauth2_cache_impl_shm_t *impl = NULL;
+	oauth2_uint_t n = 0;
 
 	oauth2_debug(log, "enter");
 
@@ -83,10 +84,12 @@ static bool oauth2_cache_shm_init(oauth2_log_t *log, oauth2_cache_t *cache,
 	if (impl->mutex == NULL)
 		goto end;
 
-	impl->max_key_size = oauth2_parse_uint(
+	n = oauth2_parse_uint(
 	    log,
 	    oauth2_nv_list_get(log, options, OAUTH2_CACHE_SHM_MAX_KEY_SIZE),
 	    OAUTH2_CACHE_SHM_MAX_KEY_SIZE_DEFAULT);
+	impl->max_key_size = (n / 64 + 1) * 64;
+
 	impl->max_val_size = oauth2_parse_uint(
 	    log,
 	    oauth2_nv_list_get(log, options, OAUTH2_CACHE_SHM_MAX_VALUE_SIZE),
@@ -225,10 +228,10 @@ static bool oauth2_cache_shm_check_key(oauth2_log_t *log,
 				       const char *key)
 {
 	bool rc = true;
-	if (strlen(key) >= impl->max_key_size) {
+	if (strlen(key) > impl->max_key_size) {
 		oauth2_error(log,
 			     "could not construct cache key since key size is "
-			     "too large (%lu >= " OAUTH2_UINT_FORMAT ") : %s",
+			     "too large (%lu > " OAUTH2_UINT_FORMAT ") : %s",
 			     (unsigned long)strlen(key), impl->max_key_size,
 			     key);
 		rc = false;

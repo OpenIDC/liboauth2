@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2020 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2021 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -30,6 +30,8 @@
 #include <http_request.h>
 
 #include <apr_strings.h>
+
+#include <mod_ssl.h>
 
 // clang-format off
 oauth2_uint_t log_level_apache2oauth2[] = {
@@ -96,6 +98,12 @@ oauth2_http_method_t request_method_apache2oauth2[] = {
 static apr_status_t oauth2_apache_cfg_srv_free(void *data)
 {
 	oauth2_apache_cfg_srv_t *cfg = (oauth2_apache_cfg_srv_t *)data;
+
+	//	ap_log_error(APLOG_MARK, APLOG_WARNING, 0,
+	//		     (const server_rec
+	//*)oauth2_log_sink_ctx_get(cfg->sink),
+	//		     "%s: %s: %pp", __FUNCTION__, "free", cfg);
+
 	if (cfg) {
 		if (cfg->log)
 			oauth2_log_free(cfg->log);
@@ -119,6 +127,16 @@ void *oauth2_apache_cfg_srv_create(apr_pool_t *pool, server_rec *s,
 	cfg->sink = oauth2_log_sink_create(level, server_log_cb, s);
 	cfg->log = oauth2_log_init(level, cfg->sink);
 
+	//	ap_log_error(APLOG_MARK, APLOG_WARNING, 0,
+	//		     (const server_rec
+	//*)oauth2_log_sink_ctx_get(cfg->sink),
+	//		     "%s: %s: %pp", __FUNCTION__, "create", cfg);
+
+	// note: cleanup as part of oauth2_apache_child_cleanup does not work
+	//       with multiple modules loaded
+	apr_pool_cleanup_register(pool, cfg, oauth2_apache_cfg_srv_free,
+				  oauth2_apache_cfg_srv_free);
+
 	return cfg;
 }
 
@@ -128,6 +146,12 @@ void *oauth2_apache_cfg_srv_merge(apr_pool_t *pool, void *b, void *a)
 	oauth2_apache_cfg_srv_t *cfg = oauth2_apache_cfg_srv_create(
 	    pool, (server_rec *)oauth2_log_sink_ctx_get(add->sink),
 	    oauth2_log_sink_ctx_get(add->sink));
+
+	//	ap_log_error(APLOG_MARK, APLOG_WARNING, 0,
+	//		     (const server_rec
+	//*)oauth2_log_sink_ctx_get(cfg->sink),
+	//		     "%s: %s: %pp", __FUNCTION__, "merge", cfg);
+
 	return cfg;
 }
 
@@ -138,13 +162,6 @@ void *oauth2_apache_cfg_srv_merge(apr_pool_t *pool, void *b, void *a)
 apr_status_t oauth2_apache_child_cleanup(void *data, module *m,
 					 const char *package_name_version)
 {
-	oauth2_apache_cfg_srv_t *cfg = NULL;
-	server_rec *sp = NULL;
-	for (sp = (server_rec *)data; sp; sp = sp->next) {
-		cfg = (oauth2_apache_cfg_srv_t *)ap_get_module_config(
-		    sp->module_config, m);
-		oauth2_apache_cfg_srv_free(cfg);
-	}
 	oauth2_shutdown(NULL);
 	return APR_SUCCESS;
 }
@@ -158,8 +175,23 @@ apr_status_t oauth2_apache_parent_cleanup(void *data, module *m,
 							    m);
 	oauth2_info(cfg->log, "%s-%s - shutdown", package_name_version,
 		    oauth2_package_string());
-	oauth2_apache_child_cleanup(cfg, m, package_name_version);
+	oauth2_apache_child_cleanup(s, m, package_name_version);
 	return APR_SUCCESS;
+}
+
+APR_DECLARE_OPTIONAL_FN(char *, ssl_var_lookup,
+			(apr_pool_t *, server_rec *, conn_rec *, request_rec *,
+			 char *));
+static APR_OPTIONAL_FN_TYPE(ssl_var_lookup) *_oauth2_ssl_var_lookup = NULL;
+
+static const char *oauth2_apache_ssl_var_lookup(apr_pool_t *p, server_rec *s,
+						conn_rec *c, request_rec *r,
+						const char *var)
+{
+	return (_oauth2_ssl_var_lookup != NULL)
+		   ? (const char *)_oauth2_ssl_var_lookup(p, s, c, r,
+							  (char *)var)
+		   : NULL;
 }
 
 /*
@@ -169,8 +201,8 @@ apr_status_t oauth2_apache_parent_cleanup(void *data, module *m,
 int oauth2_apache_post_config(apr_pool_t *pool, apr_pool_t *p1, apr_pool_t *p2,
 			      server_rec *s, module *m,
 			      const char *package_name_version,
-			      apache_cleanup_handler_t parent_cleanup,
-			      apache_cleanup_handler_t child_cleanup)
+			      apr_status_t (*parent_cleanup)(void *),
+			      apr_status_t (*child_cleanup)(void *))
 {
 	void *data = NULL;
 	oauth2_log_t *p = NULL;
@@ -200,6 +232,8 @@ int oauth2_apache_post_config(apr_pool_t *pool, apr_pool_t *p1, apr_pool_t *p2,
 	}
 
 	apr_pool_cleanup_register(pool, s, parent_cleanup, child_cleanup);
+
+	_oauth2_ssl_var_lookup = APR_RETRIEVE_OPTIONAL_FN(ssl_var_lookup);
 
 	cfg = (oauth2_apache_cfg_srv_t *)ap_get_module_config(s->module_config,
 							      m);
@@ -276,6 +310,15 @@ oauth2_apache_request_context_init(request_rec *r,
 
 	apr_table_do(oauth2_apache_http_request_hdr_add, ctx, r->headers_in,
 		     NULL);
+
+	/*
+	 * a workaround since mod_ssl's CGI envvar setting happens
+	 * only in the fixup handler phase
+	 */
+	oauth2_http_request_context_set(
+	    ctx->log, ctx->request, OAUTH2_TLS_CERT_VAR_NAME,
+	    oauth2_apache_ssl_var_lookup(r->pool, r->server, r->connection, r,
+					 "SSL_CLIENT_CERT"));
 
 	oauth2_debug(ctx->log, "created request context: %p", ctx);
 
@@ -678,7 +721,9 @@ bool oauth2_apache_set_request_user(oauth2_cfg_target_pass_t *target_pass,
 
 	remote_user = json_object_get(json_token, claim);
 	if ((remote_user == NULL) || (!json_is_string(remote_user))) {
-		oauth2_error(ctx->log, "remote user claim could not be found");
+		oauth2_error(ctx->log,
+			     "remote user claim \"%s\" could not be found",
+			     claim);
 		goto end;
 	}
 
@@ -686,7 +731,7 @@ bool oauth2_apache_set_request_user(oauth2_cfg_target_pass_t *target_pass,
 	    apr_pstrdup(ctx->r->pool, json_string_value(remote_user));
 
 	oauth2_debug(ctx->log, "set user to \"%s\" based on claim: %s=%s",
-		     ctx->r->user, claim, remote_user);
+		     ctx->r->user, claim, json_string_value(remote_user));
 
 	// TODO: more flexibility and or regular expressions?
 

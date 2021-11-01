@@ -3,7 +3,7 @@
 
 /***************************************************************************
  *
- * Copyright (C) 2018-2020 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2021 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -111,5 +111,10 @@ bool oauth2_jose_jwt_validate_iat(oauth2_log_t *log, const json_t *json_payload,
 				  oauth2_jose_jwt_validate_claim_t validate,
 				  oauth2_uint_t slack_before,
 				  oauth2_uint_t slack_after);
+
+char *oauth2_jwt_create(oauth2_log_t *log, cjose_jwk_t *jwk, const char *alg,
+			const char *iss, const char *sub, const char *client_id,
+			const char *aud, oauth2_uint_t exp, bool include_iat,
+			bool include_jti);
 
 #endif /* _OAUTH2_JOSE_INT_H_ */

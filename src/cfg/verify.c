@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2020 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2021 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -87,6 +87,8 @@ oauth2_cfg_token_verify_t *oauth2_cfg_token_verify_init(oauth2_log_t *log)
 	verify->dpop.iat_slack_after = OAUTH2_CFG_UINT_UNSET;
 	verify->dpop.iat_slack_before = OAUTH2_CFG_UINT_UNSET;
 	verify->expiry_s = OAUTH2_CFG_UINT_UNSET;
+	verify->mtls.env_var_name = NULL;
+	verify->mtls.policy = OAUTH2_CFG_UINT_UNSET;
 	verify->next = NULL;
 	return verify;
 }
@@ -97,6 +99,8 @@ void oauth2_cfg_token_verify_free(oauth2_log_t *log,
 	oauth2_cfg_token_verify_t *ptr = verify;
 	while (ptr) {
 		verify = verify->next;
+		if (ptr->mtls.env_var_name != NULL)
+			oauth2_mem_free(ptr->mtls.env_var_name);
 		if (ptr->ctx)
 			oauth2_cfg_ctx_free(log, ptr->ctx);
 		oauth2_mem_free(ptr);
@@ -124,6 +128,8 @@ oauth2_cfg_token_verify_clone(oauth2_log_t *log,
 	dst->dpop.iat_slack_after = src->dpop.iat_slack_after;
 	dst->dpop.iat_slack_before = src->dpop.iat_slack_before;
 	dst->dpop.iat_validate = src->dpop.iat_validate;
+	dst->mtls.env_var_name = oauth2_strdup(src->mtls.env_var_name);
+	dst->mtls.policy = src->mtls.policy;
 	dst->ctx = oauth2_cfg_ctx_clone(log, src->ctx);
 	dst->next = oauth2_cfg_token_verify_clone(NULL, src->next);
 
@@ -188,10 +194,15 @@ _oauth2_cfg_token_verify_type_set(oauth2_log_t *log,
 		goto end;
 	}
 
+	if (strcasecmp(v, OAUTH2_TOKEN_VERIFY_MTLS_STR) == 0) {
+		verify->type = OAUTH2_TOKEN_VERIFY_MTLS;
+		goto end;
+	}
+
 	rv = oauth2_strdup("Invalid value, must be one of: \"");
-	rv =
-	    oauth2_stradd(rv, OAUTH2_TOKEN_VERIFY_BEARER_STR, "\" or \"", NULL);
-	rv = oauth2_stradd(rv, OAUTH2_TOKEN_VERIFY_DPOP_STR, "\".", NULL);
+	rv = oauth2_stradd(rv, OAUTH2_TOKEN_VERIFY_BEARER_STR, "\", \"", NULL);
+	rv = oauth2_stradd(rv, OAUTH2_TOKEN_VERIFY_DPOP_STR, "\" or \"", NULL);
+	rv = oauth2_stradd(rv, OAUTH2_TOKEN_VERIFY_MTLS_STR, "\".", NULL);
 
 end:
 
@@ -230,6 +241,29 @@ _oauth2_cfg_token_verify_options_dpop_set(oauth2_log_t *log,
 	return rv;
 }
 
+static char *
+_oauth2_cfg_token_verify_options_mtls_set(oauth2_log_t *log,
+					  oauth2_cfg_token_verify_t *verify,
+					  oauth2_nv_list_t *params)
+{
+	char *rv = NULL;
+	const char *policy = NULL;
+
+	verify->mtls.env_var_name =
+	    oauth2_strdup(oauth2_nv_list_get(log, params, "mtls.env_var_name"));
+
+	policy = oauth2_nv_list_get(log, params, "mtls.policy");
+	if (policy != NULL) {
+		if (strcmp(policy, "optional") == 0)
+			verify->mtls.policy =
+			    OAUTH2_MTLS_VERIFY_POLICY_OPTIONAL;
+		else if (strcmp(policy, "required") == 0)
+			verify->mtls.policy =
+			    OAUTH2_MTLS_VERIFY_POLICY_REQUIRED;
+	}
+	return rv;
+}
+
 #define OAUTH2_CFG_VERIFY_RESULT_CACHE_DEFAULT 300
 
 char *oauth2_cfg_token_verify_add_options(oauth2_log_t *log,
@@ -262,6 +296,10 @@ char *oauth2_cfg_token_verify_add_options(oauth2_log_t *log,
 
 	if (v->type == OAUTH2_TOKEN_VERIFY_DPOP) {
 		rv = _oauth2_cfg_token_verify_options_dpop_set(log, v, params);
+		if (rv != NULL)
+			goto end;
+	} else if (v->type == OAUTH2_TOKEN_VERIFY_MTLS) {
+		rv = _oauth2_cfg_token_verify_options_mtls_set(log, v, params);
 		if (rv != NULL)
 			goto end;
 	}

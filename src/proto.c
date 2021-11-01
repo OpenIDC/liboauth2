@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2020 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2021 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -467,6 +467,11 @@ bool oauth2_ropc_exec(oauth2_log_t *log, oauth2_cfg_ropc_t *cfg,
 	ctx = oauth2_http_call_ctx_init(log);
 	if (ctx == NULL)
 		goto end;
+
+	oauth2_http_call_ctx_ssl_verify_set(
+	    log, ctx, oauth2_cfg_endpoint_get_ssl_verify(token_endpoint));
+	oauth2_http_call_ctx_outgoing_proxy_set(
+	    log, ctx, oauth2_cfg_endpoint_get_outgoing_proxy(token_endpoint));
 
 	if (oauth2_http_ctx_auth_add(
 		log, ctx, oauth2_cfg_endpoint_get_auth(token_endpoint),

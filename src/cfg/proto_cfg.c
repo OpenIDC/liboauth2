@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2020 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2021 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -37,6 +37,7 @@ oauth2_cfg_endpoint_t *oauth2_cfg_endpoint_init(oauth2_log_t *log)
 	endpoint->auth = NULL;
 	endpoint->ssl_verify = OAUTH2_CFG_FLAG_UNSET;
 	endpoint->http_timeout = OAUTH2_CFG_UINT_UNSET;
+	endpoint->outgoing_proxy = NULL;
 
 end:
 
@@ -53,6 +54,8 @@ void oauth2_cfg_endpoint_free(oauth2_log_t *log,
 		oauth2_mem_free(endpoint->url);
 	if (endpoint->auth)
 		oauth2_cfg_endpoint_auth_free(log, endpoint->auth);
+	if (endpoint->outgoing_proxy)
+		oauth2_mem_free(endpoint->outgoing_proxy);
 
 	oauth2_mem_free(endpoint);
 
@@ -74,6 +77,7 @@ oauth2_cfg_endpoint_clone(oauth2_log_t *log, const oauth2_cfg_endpoint_t *src)
 	dst->auth = oauth2_cfg_endpoint_auth_clone(log, src->auth);
 	dst->ssl_verify = src->ssl_verify;
 	dst->http_timeout = src->http_timeout;
+	dst->outgoing_proxy = oauth2_strdup(src->outgoing_proxy);
 
 end:
 	return dst;
@@ -135,8 +139,20 @@ char *oauth2_cfg_set_endpoint(oauth2_log_t *log, oauth2_cfg_endpoint_t *cfg,
 		if (rv)
 			goto end;
 	}
-
 	oauth2_mem_free(key);
+
+	key = oauth2_stradd(NULL, prefix ? prefix : NULL, prefix ? "." : NULL,
+			    "outgoing_proxy");
+	value = oauth2_nv_list_get(log, params, key);
+	if (value) {
+		rv = oauth2_strdup(oauth2_cfg_set_str_slot(
+		    cfg, offsetof(oauth2_cfg_endpoint_t, outgoing_proxy),
+		    value));
+		if (rv)
+			goto end;
+	}
+	oauth2_mem_free(key);
+
 	key = NULL;
 
 end:
@@ -181,6 +197,12 @@ oauth2_cfg_endpoint_get_http_timeout(const oauth2_cfg_endpoint_t *cfg)
 	if ((cfg == NULL) || (cfg->http_timeout == OAUTH2_CFG_UINT_UNSET))
 		return OAUTH2_CFG_ENDPOINT_HTTP_TIMEOUT_DEFAULT;
 	return cfg->http_timeout;
+}
+
+const char *
+oauth2_cfg_endpoint_get_outgoing_proxy(const oauth2_cfg_endpoint_t *cfg)
+{
+	return cfg ? cfg->outgoing_proxy : NULL;
 }
 
 #define OAUTH2_CFG_ROPC_CLIENT_ID_DEFAULT NULL

@@ -1,3 +1,49 @@
+10/12/2021
+- make outgoing_proxy an endpoint property
+- accommodate for NULL key in oauth2_cache_get and oauth2_cache_set
+- release 1.4.3.2
+
+10/11/2021
+- add outgoing_proxy option to verify context
+- correct remote_user debug printout
+- release 1.4.3.1
+
+06/21/2021
+- printout remote username claim when not found, for debugging purposes
+
+06/10/2021
+- use encrypted JWTs for storing encrypted cache contents and avoid using static AAD/IV
+  closes #26; thanks @niebardzo
+- avoid memory leaks on JWT validation errors
+- release 1.4.3
+
+06/07/2021
+- correct iat slack validation defaults, see https://github.com/zmartzone/mod_oauth2/discussions/20
+  thanks @DrakezulsMinimalism
+- release 1.4.2.1
+
+05/28/2021
+- add Travis and LGTM
+
+05/25/2021
+- set memory alignment of shm cache structs to 64 bytes; see #21 and #24
+- release 1.4.2
+
+04/19/2021
+- apache: use include directory from APXS; thanks @abbra
+- pass missing argument to oauth2_error in _oauth2_dpop_jti_validate; thanks @abbra
+
+02/02/2021
+- avoid creating files for anonymous shared memory segments; see #18
+- release 1.4.1
+
+01/30/2021
+- fix Apache cleanup routines; see zmartzone/liboauth2#18 and zmartzone/mod_oauth2#7
+
+01/26/2021
+- add support for RFC 8705 OAuth 2.0 Mutual-TLS Certificate-Bound Access Tokens
+  https://tools.ietf.org/html/rfc8705; thanks @vdzhuvinov
+ 
 12/23/2020
 - use per-process semaphore locking to prevent multi-process issue; see #18
 - release 1.4.0.1

@@ -3,7 +3,7 @@
 
 /***************************************************************************
  *
- * Copyright (C) 2018-2020 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2021 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -134,6 +134,8 @@ oauth2_flag_t
 oauth2_cfg_endpoint_get_ssl_verify(const oauth2_cfg_endpoint_t *cfg);
 oauth2_uint_t
 oauth2_cfg_endpoint_get_http_timeout(const oauth2_cfg_endpoint_t *cfg);
+const char *
+oauth2_cfg_endpoint_get_outgoing_proxy(const oauth2_cfg_endpoint_t *cfg);
 
 /*
  * token verify
@@ -141,7 +143,8 @@ oauth2_cfg_endpoint_get_http_timeout(const oauth2_cfg_endpoint_t *cfg);
 
 typedef enum oauth2_cfg_token_verify_type_t {
 	OAUTH2_TOKEN_VERIFY_BEARER,
-	OAUTH2_TOKEN_VERIFY_DPOP
+	OAUTH2_TOKEN_VERIFY_DPOP,
+	OAUTH2_TOKEN_VERIFY_MTLS
 } oauth2_cfg_token_verify_type_t;
 
 /*

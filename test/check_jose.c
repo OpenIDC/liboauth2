@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2020 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2021 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -24,6 +24,7 @@
 #include "oauth2/util.h"
 #include <check.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "check_liboauth2.h"
 #include "jose_int.h"
@@ -398,6 +399,67 @@ START_TEST(test_jwk_resolve_plain)
 }
 END_TEST
 
+START_TEST(test_jwt_verify)
+{
+	bool rc = false;
+	json_t *json_payload = NULL;
+	char *s_payload = NULL;
+	char *jwt = NULL;
+	oauth2_jose_jwk_t *jwk = NULL;
+	char *rv = NULL;
+	oauth2_cfg_token_verify_t *verify = NULL;
+
+	rc = oauth2_jose_jwt_verify(_log, NULL, jwt, &json_payload, &s_payload);
+
+	ck_assert_int_eq(rc, false);
+	ck_assert_ptr_eq(json_payload, NULL);
+	ck_assert_ptr_eq(s_payload, NULL);
+
+	rc = oauth2_jose_jwk_create_symmetric(_log, "my_good_secret", NULL,
+					      &jwk);
+	ck_assert_int_eq(rc, true);
+
+	jwt = oauth2_jwt_create(_log, jwk->jwk, CJOSE_HDR_ALG_HS256, "my_iss",
+				"my_sub", "my_client_id", "my_aud", 60, true,
+				true);
+	ck_assert_ptr_ne(jwt, NULL);
+	oauth2_jose_jwk_release(jwk);
+
+	rv = oauth2_cfg_token_verify_add_options(
+	    _log, &verify, "plain", "my_wrong_secret", "kid=my_wrong_kid1");
+	ck_assert_ptr_eq(rv, NULL);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
+	ck_assert_int_eq(rc, false);
+	oauth2_cfg_token_verify_free(_log, verify);
+	verify = NULL;
+
+	rv = oauth2_cfg_token_verify_add_options(
+	    _log, &verify, "plain", "my_good_secret",
+	    "kid=my_good_kid&expiry=1&verify.iat=required");
+	ck_assert_ptr_eq(rv, NULL);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
+	ck_assert_int_eq(rc, true);
+	ck_assert_ptr_ne(json_payload, NULL);
+	json_decref(json_payload);
+	oauth2_cfg_token_verify_free(_log, verify);
+	verify = NULL;
+
+	sleep(3);
+
+	rv = oauth2_cfg_token_verify_add_options(
+	    _log, &verify, "plain", "my_good_secret",
+	    "kid=my_good_kid&expiry=1&verify.iat=required&verify.iat.slack_"
+	    "before=2");
+	ck_assert_ptr_eq(rv, NULL);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
+	ck_assert_int_eq(rc, false);
+	oauth2_cfg_token_verify_free(_log, verify);
+	verify = NULL;
+
+	oauth2_mem_free(jwt);
+}
+END_TEST
+
 Suite *oauth2_check_jose_suite()
 {
 	Suite *s = suite_create("jose");
@@ -414,6 +476,7 @@ Suite *oauth2_check_jose_suite()
 	tcase_add_test(c, test_jwt_decrypt);
 	tcase_add_test(c, test_jwks_resolve_uri);
 	tcase_add_test(c, test_jwk_resolve_plain);
+	tcase_add_test(c, test_jwt_verify);
 
 	suite_add_tcase(s, c);
 

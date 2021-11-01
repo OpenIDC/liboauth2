@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2020 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2021 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -66,7 +66,7 @@ static void _test_basic_cache(oauth2_cache_t *c)
 	ck_assert_str_eq(value, "klaas");
 	oauth2_mem_free(value);
 
-	sleep(1);
+	sleep(2);
 
 	value = NULL;
 	rc = oauth2_cache_get(_log, c, "piet", &value);
@@ -139,8 +139,11 @@ START_TEST(test_cache_shm)
 	rc = oauth2_cache_set(_log, c, "hans", "zandbelt", 1);
 	ck_assert_int_eq(rc, true);
 
-	rc = oauth2_cache_set(_log, c, "key_too_long", "12345678901234567890",
-			      1);
+	rc = oauth2_cache_set(_log, c,
+			      "key_too_long_"
+			      "123456789012345678901234567890123456789012345678"
+			      "9012345678901234567890",
+			      "12345678901234567890", 1);
 	ck_assert_int_eq(rc, false);
 }
 END_TEST

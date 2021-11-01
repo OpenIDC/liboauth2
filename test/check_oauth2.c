@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2020 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2021 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -1055,6 +1055,70 @@ START_TEST(test_oauth2_verify_token_metadata)
 }
 END_TEST
 
+START_TEST(test_oauth2_verify_jwk_mtls)
+{
+	bool rc = false;
+	oauth2_cfg_token_verify_t *verify = NULL;
+	char *jwt =
+	    "eyJhbGciOiAiUlMyNTYifQ."
+	    "ewogICJpc3MiOiAiaHR0cHM6Ly9zZXJ2ZXIuZXhhbXBsZS5jb20iLAogICJzdWIiOi"
+	    "AidHkud2ViYkBleGFtcGxlLmNvbSIsCiAgImV4cCI6IDE0OTM3MjY0MDAsCiAgIm5i"
+	    "ZiI6IDE0OTM3MjI4MDAsCiAgImNuZiI6eyJ4NXQjUzI1NiI6IkE0RHRMMkptVU1oQX"
+	    "N2Smo1dEt5bjY0U3F6bXVYYk1ySmEwbjc2MXk1djAifQp9.K5g_"
+	    "fMQkl6g9qo2uGDYDLrlQaTk_aEmP3601IYeVWrezftobh5IClflB-"
+	    "9YYvIU1O4Bswpl5bvBdkN7G7UXCwrzI6fFSVMvYqTxe0WlmLAnVH_RPqZ6Gxw_"
+	    "SpgemmXg8EPfDwa-14H5O-4S9a0JIE7Q1PBLsvqMhmO2WhpQFCvxnXJ1ho0m_"
+	    "dDH95y3ukJqvTe1mWwdd7K79GRnf4oFIi_"
+	    "Xm7iHOYYwEXwA1XNQgLcxbaGUKaA8N4yVLj2Q43JtxN7AUDQyfEhfzx5JhcQQ4t8gU"
+	    "GhovGvHh7LAYwpY8Ea6r3y2LSazhTm8cFFix1L6T5vFNH3MUFn2ouR8UDGA87Q";
+	char *jwk = "{\"kty\":\"RSA\",\"kid\":\"k1\",\"use\":\"sig\",\"n\":"
+		    "\"ym7jipmB37CgdonwGFVRuZmRfCl3lVh91fmm5CXHcNlUFZNR3D6Q9r63"
+		    "PpGRnfSsX3dOweh8BXd2AJ3mxvcE4z9xH--tA5EaOGI7IVF0Ip_"
+		    "i3flGg85xOADlb8rX3ez1NqkqMVJeeJypKhCCDNfvu_"
+		    "MXSdPLglU969YQF5xKAK8VFRfI6EfxxrZ_3Dvt2CKDV4LTPPJe9KI2_"
+		    "LuLQFBJ3MzlCTVxY6gyaljrWaDq7q5Lt3GB1KYS0Yd8COEQwsclOLm0Tdd"
+		    "hg4cle-DfaTMi7xsTZsPKyac5x17Y4N4isHhZULuWHX7o1bs809xcj-_-"
+		    "YCRq6C61je_mzFhuF4pczw\",\"e\":\"AQAB\"}";
+	json_t *json_payload = NULL;
+	oauth2_http_request_t *request = NULL;
+	const char *rv = NULL;
+	rv = oauth2_cfg_token_verify_add_options(
+	    _log, &verify, "jwk", jwk,
+	    "verify.exp=skip&type=mtls&mtls.policy=required");
+	ck_assert_ptr_eq(rv, NULL);
+
+	request = oauth2_http_request_init(_log);
+	oauth2_http_request_scheme_set(_log, request, "https");
+	oauth2_http_request_hostname_set(_log, request, "resource.example.org");
+	// oauth2_http_request_port_set();
+	oauth2_http_request_path_set(_log, request, "/protectedresource");
+	oauth2_http_request_method_set(_log, request, OAUTH2_HTTP_METHOD_GET);
+
+	oauth2_http_request_context_set(
+	    _log, request, OAUTH2_TLS_CERT_VAR_NAME,
+	    "-----BEGIN "
+	    "CERTIFICATE-----"
+	    "\nMIIBBjCBrAIBAjAKBggqhkjOPQQDAjAPMQ0wCwYDVQQDDARtdGxzMB4X"
+	    "DTE4MTAxODEyMzcwOVoXDTIyMDUwMjEyMzcwOVowDzENMAsGA1UEAwwEbX"
+	    "RsczBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABNcnyxwqV6hY8QnhxxzF"
+	    "Q03C7HKW9OylMbnQZjjJ/Au08/"
+	    "coZwxS7LfA4vOLS9WuneIXhbGGWvsDSb0tH6IxLm8wCgYIKoZIzj0EAwID"
+	    "SQAwRgIhAP0RC1E+vwJD/D1AGHGzuri+hlV/"
+	    "PpQEKTWUVeORWz83AiEA5x2eXZOVbUlJSGQgjwD5vaUaKlLR50Q2DmFfQj"
+	    "1L+SY=\n-----END CERTIFICATE-----");
+
+	rc = oauth2_token_verify(_log, request, verify, jwt, &json_payload);
+	ck_assert_int_eq(rc, true);
+
+	oauth2_http_request_free(_log, request);
+	oauth2_cfg_token_verify_free(_log, verify);
+	json_decref(json_payload);
+	/*
+	oauth2_nv_list_free(_log, params);
+	*/
+}
+END_TEST
+
 Suite *oauth2_check_oauth2_suite()
 {
 	Suite *s = suite_create("oauth2");
@@ -1086,6 +1150,7 @@ Suite *oauth2_check_oauth2_suite()
 	tcase_add_test(c, test_oauth2_verify_token_pem);
 	tcase_add_test(c, test_oauth2_verify_token_pubkey);
 	tcase_add_test(c, test_oauth2_verify_token_metadata);
+	tcase_add_test(c, test_oauth2_verify_jwk_mtls);
 
 	suite_add_tcase(s, c);
 
