@@ -35,7 +35,14 @@ typedef struct oauth2_cache_impl_shm_t {
 	oauth2_uint_t max_entries;
 } oauth2_cache_impl_shm_t;
 
+
+#ifdef _WIN32
+typedef __declspec(align(64)) struct oauth2_cache_shm_entry_t {
+#else
 typedef __attribute__((aligned(64))) struct oauth2_cache_shm_entry_t {
+#endif
+
+//typedef __attribute__((aligned(64))) struct oauth2_cache_shm_entry_t {
 	oauth2_time_t access_s;
 	oauth2_time_t expires_s;
 	uint8_t key_and_value[];
