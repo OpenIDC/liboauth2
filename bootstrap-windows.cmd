@@ -8,7 +8,6 @@ cd vcpkg
 call bootstrap-vcpkg.bat
 
 .\vcpkg install pcre:x64-windows
-.\vcpkg install apr:x64-windows
 .\vcpkg install openssl:x64-windows
 .\vcpkg install curl:x64-windows
 .\vcpkg install jansson:x64-windows

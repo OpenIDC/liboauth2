@@ -84,7 +84,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(ProjectDir)target\httpd-2.4.46-win64-VS16\Apache24\include;$(ProjectDir)cjose\include;$(ProjectDir)vcpkg\installed\x64-windows\include;$(ProjectDir)include;$(ProjectDir)src;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)target\httpd-2.4.51-win64-VS16\Apache24\include;$(ProjectDir)cjose\include;$(ProjectDir)vcpkg\installed\x64-windows\include;$(ProjectDir)include;$(ProjectDir)src;$(IncludePath)</IncludePath>
     <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
