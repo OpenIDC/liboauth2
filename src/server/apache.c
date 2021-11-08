@@ -179,10 +179,17 @@ apr_status_t oauth2_apache_parent_cleanup(void *data, module *m,
 	return APR_SUCCESS;
 }
 
+#ifdef WIN32
+// We had issue with the name of the function, and it not building. So we just rename it
+typedef char *(win_apr_OFN_ssl_var_lookup_t)(apr_pool_t *, server_rec *, conn_rec *, request_rec *, char *);
+static win_apr_OFN_ssl_var_lookup_t *_oauth2_ssl_var_lookup = NULL;
+
+#else
 APR_DECLARE_OPTIONAL_FN(char *, ssl_var_lookup,
 			(apr_pool_t *, server_rec *, conn_rec *, request_rec *,
 			 char *));
 static APR_OPTIONAL_FN_TYPE(ssl_var_lookup) *_oauth2_ssl_var_lookup = NULL;
+#endif
 
 static const char *oauth2_apache_ssl_var_lookup(apr_pool_t *p, server_rec *s,
 						conn_rec *c, request_rec *r,
