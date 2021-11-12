@@ -23,8 +23,6 @@
 #ifndef _WIN32
 #include <sys/mman.h>
 #include <unistd.h>
-#else
-#include "mmap-windows.h"
 #ifdef _MSC_VER
 #define _unlink unlink
 #endif
@@ -305,9 +303,17 @@ void oauth2_ipc_shm_free(oauth2_log_t *log, oauth2_ipc_shm_t *shm)
 
 
 	if (shm->ptr) {
+#ifdef WIN32
+		free(shm->ptr);
+
+		if (shm->ptr != NULL)
+			oauth2_error(log, "free() failed: %s", strerror(errno));
+
+#else
 		if (munmap(shm->ptr, shm->size) < 0)
 			oauth2_error(log, "munmap() failed: %s",
 				     strerror(errno));
+#endif
 		shm->ptr = NULL;
 	}
 
@@ -340,12 +346,23 @@ bool oauth2_ipc_shm_post_config(oauth2_log_t *log, oauth2_ipc_shm_t *shm)
 
 	oauth2_debug(log, "creating anonymous shm");
 
+#ifdef WIN32
+	shm->ptr = malloc(shm->size);
+
+	if (shm->ptr == NULL) {
+		oauth2_error(log, "malloc() failed: %s", strerror(errno));
+		goto end;
+	}
+#else
 	shm->ptr = mmap(0, shm->size, PROT_READ | PROT_WRITE,
 			MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+
 	if (shm->ptr == MAP_FAILED) {
 		oauth2_error(log, "mmap() failed: %s", strerror(errno));
 		goto end;
 	}
+
+#endif
 
 	rc = oauth2_ipc_sema_post(log, shm->num);
 

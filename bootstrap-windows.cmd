@@ -46,15 +46,11 @@ set ERROR_CODE=1
 @ECHO Over changes to cjose and mod_auth_openidc so they compile on windows
 xcopy changes\*.* /r /q /y /s
 
-pause
-
 @ECHO Downloading Apache http x64 zip files.
 
 if exist ".\target\httpd-2.4.51-win64-VS16" goto APACHE_DOWNLOADED
 
 powershell .\download.ps1
-
-pause
 
 :APACHE_DOWNLOADED
 

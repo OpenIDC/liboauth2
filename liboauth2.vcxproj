@@ -172,7 +172,6 @@
     <ClInclude Include="src\cfg_int.h" />
     <ClInclude Include="src\dirent.h" />
     <ClInclude Include="src\jose_int.h" />
-    <ClInclude Include="src\mmap-windows.h" />
     <ClInclude Include="src\oauth2_int.h" />
     <ClInclude Include="src\openidc_int.h" />
     <ClInclude Include="src\util_int.h" />
@@ -195,7 +194,6 @@
     <ClCompile Include="src\cfg\target.c" />
     <ClCompile Include="src\cfg\verify.c" />
     <ClCompile Include="src\ipc.c" />
-    <ClCompile Include="src\mmap-windows.c" />
     <ClCompile Include="src\openidc\client.c" />
     <ClCompile Include="src\openidc\openidc.c" />
     <ClCompile Include="src\openidc\provider.c" />
