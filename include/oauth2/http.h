@@ -3,7 +3,7 @@
 
 /***************************************************************************
  *
- * Copyright (C) 2018-2020 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2021 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -99,6 +99,11 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(http, request, method, oauth2_http_method_t)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(http, request, query, char *)
 const char *oauth2_http_request_method_get_str(oauth2_log_t *,
 					       oauth2_http_request_t *);
+bool oauth2_http_request_context_set(oauth2_log_t *log,
+				     oauth2_http_request_t *request,
+				     const char *name, const char *value);
+const char *oauth2_http_request_context_get(
+    oauth2_log_t *log, const oauth2_http_request_t *request, const char *name);
 
 OAUTH2_TYPE_DECLARE(http, response)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(http, response, headers, oauth2_nv_list_t *)

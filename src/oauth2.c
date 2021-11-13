@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2020 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2021 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -33,6 +33,9 @@
 
 #include <cjose/cjose.h>
 
+#include <openssl/evp.h>
+#include <openssl/ssl.h>
+
 /*
  * auth
  */
@@ -42,67 +45,20 @@
 #define OAUTH2_CLIENT_ASSERTION_TYPE_JWT_BEARER                                \
 	"urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
 
-#define OAUTH2_JTI_LENGTH 16
-
 static bool _oauth2_add_signed_jwt(oauth2_log_t *log, cjose_jwk_t *jwk,
 				   const char *alg, const char *client_id,
 				   const char *aud, oauth2_nv_list_t *params)
 {
 
 	bool rc = false;
-	char *payload = NULL;
-	json_t *assertion = NULL;
-	cjose_header_t *hdr = NULL;
-	cjose_jws_t *jws = NULL;
-	const char *jwt = NULL;
-	cjose_err err;
-	char *jti = NULL;
+	char *jwt = NULL;
 
 	oauth2_debug(log, "enter");
 
-	assertion = json_object();
-	jti = oauth2_rand_str(log, OAUTH2_JTI_LENGTH);
-	json_object_set_new(assertion, OAUTH2_CLAIM_JTI, json_string(jti));
-	json_object_set_new(assertion, OAUTH2_CLAIM_ISS,
-			    json_string(client_id));
-	json_object_set_new(assertion, OAUTH2_CLAIM_SUB,
-			    json_string(client_id));
-	json_object_set_new(assertion, OAUTH2_CLAIM_AUD, json_string(aud));
-	json_object_set_new(assertion, OAUTH2_CLAIM_EXP,
-			    json_integer(oauth2_time_now_sec() + 60));
-	json_object_set_new(assertion, OAUTH2_CLAIM_IAT,
-			    json_integer(oauth2_time_now_sec()));
-	payload = json_dumps(assertion, JSON_PRESERVE_ORDER | JSON_COMPACT);
-
-	hdr = cjose_header_new(&err);
-	if (hdr == NULL) {
-		oauth2_error(log, "cjose_header_new failed: %s", err.message);
+	jwt = oauth2_jwt_create(log, jwk, alg, client_id, client_id, client_id,
+				aud, 60, true, true);
+	if (jwt == NULL)
 		goto end;
-	}
-	if (cjose_header_set(hdr, CJOSE_HDR_ALG, alg, &err) == false) {
-		oauth2_error(log, "cjose_header_set %s:%s failed: %s",
-			     CJOSE_HDR_ALG, alg, err.message);
-		goto end;
-	}
-	if (cjose_header_set(hdr, OAUTH2_JOSE_HDR_TYP, OAUTH2_JOSE_HDR_TYP_JWT,
-			     &err) == false) {
-		oauth2_error(log, "cjose_header_set %s:%s failed: %s",
-			     OAUTH2_JOSE_HDR_TYP, OAUTH2_JOSE_HDR_TYP_JWT,
-			     err.message);
-		goto end;
-	}
-
-	jws = cjose_jws_sign(jwk, hdr, (const uint8_t *)payload,
-			     strlen(payload), &err);
-	if (jws == NULL) {
-		oauth2_error(log, "cjose_jws_sign failed: %s", err.message);
-		goto end;
-	}
-
-	if (cjose_jws_export(jws, &jwt, &err) == false) {
-		oauth2_error(log, "cjose_jws_export failed: %s", err.message);
-		goto end;
-	}
 
 	oauth2_nv_list_set(log, params, OAUTH2_CLIENT_ASSERTION_TYPE,
 			   OAUTH2_CLIENT_ASSERTION_TYPE_JWT_BEARER);
@@ -112,18 +68,10 @@ static bool _oauth2_add_signed_jwt(oauth2_log_t *log, cjose_jwk_t *jwk,
 
 end:
 
-	oauth2_debug(log, "leave");
+	if (jwt)
+		oauth2_mem_free(jwt);
 
-	if (jti)
-		oauth2_mem_free(jti);
-	if (assertion)
-		json_decref(assertion);
-	if (payload)
-		free(payload);
-	if (hdr)
-		cjose_header_release(hdr);
-	if (jws)
-		cjose_jws_release(jws);
+	oauth2_debug(log, "leave");
 
 	return rc;
 }
@@ -371,6 +319,9 @@ static bool _oauth2_introspect_verify(oauth2_log_t *log,
 		log, http_ctx,
 		oauth2_cfg_endpoint_get_ssl_verify(ctx->endpoint)) == false)
 		goto end;
+	oauth2_http_call_ctx_outgoing_proxy_set(
+	    log, http_ctx,
+	    oauth2_cfg_endpoint_get_outgoing_proxy(ctx->endpoint));
 
 	params = oauth2_nv_list_init(log);
 	if (params == NULL)
@@ -678,6 +629,173 @@ end:
 	return rv;
 }
 
+static const char *
+oauth2_mtls_verify_policy2str(const oauth2_cfg_mtls_verify_policy_t policy)
+{
+	if (policy == OAUTH2_MTLS_VERIFY_POLICY_OPTIONAL)
+		return "optional";
+	if (policy == OAUTH2_MTLS_VERIFY_POLICY_REQUIRED)
+		return "required";
+	return "unset";
+}
+
+static char *
+oauth2_mtls_client_cert_fingerprint(oauth2_log_t *log,
+				    oauth2_cfg_mtls_verify_t *mtls_verify,
+				    const oauth2_http_request_t *request)
+{
+	BIO *input = NULL;
+	X509 *x509 = NULL;
+	unsigned char md[EVP_MAX_MD_SIZE];
+	unsigned int md_len;
+	char *fingerprint = NULL;
+	const char *cert_pem = NULL;
+
+	if (mtls_verify == NULL)
+		goto end;
+
+	cert_pem = oauth2_http_request_context_get(log, request,
+						   OAUTH2_TLS_CERT_VAR_NAME);
+
+	oauth2_debug(log, "request context variable: %s=%s",
+		     OAUTH2_TLS_CERT_VAR_NAME, cert_pem);
+	if (cert_pem == NULL)
+		goto end;
+
+	input = BIO_new(BIO_s_mem());
+	if (input == NULL) {
+		oauth2_error(log, "memory allocation BIO_new/BIO_s_mem");
+		goto end;
+	}
+
+	if (BIO_puts(input, cert_pem) <= 0) {
+		oauth2_error(log, "memory allocation BIO_new/BIO_s_mem");
+		goto end;
+	}
+
+	x509 = PEM_read_bio_X509_AUX(input, NULL, NULL, NULL);
+	if (x509 == NULL) {
+		oauth2_error(log, "could not decode x509 cert from presumably "
+				  "PEM encoded env var value");
+		goto end;
+	}
+
+	if (!X509_digest(x509, EVP_sha256(), md, &md_len)) {
+		oauth2_error(log, "X509_digest failed");
+		goto end;
+	}
+
+	oauth2_base64url_encode(log, md, md_len, &fingerprint);
+
+end:
+
+	if (input)
+		BIO_free(input);
+	if (x509)
+		X509_free(x509);
+
+	return fingerprint;
+}
+
+oauth2_cfg_mtls_verify_policy_t
+oauth2_mtls_verify_policy_get(const oauth2_cfg_mtls_verify_t *mtls_verify)
+{
+	if ((mtls_verify == NULL) ||
+	    (mtls_verify->policy == OAUTH2_CFG_UINT_UNSET))
+		return OAUTH2_MTLS_VERIFY_POLICY_REQUIRED;
+	return mtls_verify->policy;
+}
+
+static bool oauth2_mtls_validate_cnf_x5t_s256(
+    oauth2_log_t *log, oauth2_cfg_mtls_verify_t *mtls_verify,
+    const oauth2_http_request_t *request, const char *x5t_256_str)
+{
+	bool rc = false;
+	char *fingerprint = NULL;
+
+	fingerprint =
+	    oauth2_mtls_client_cert_fingerprint(log, mtls_verify, request);
+	if (fingerprint == NULL) {
+		oauth2_debug(log, "no certificate (fingerprint) provided");
+		goto end;
+	}
+
+	if (strcmp(fingerprint, x5t_256_str) != 0) {
+		oauth2_warn(log,
+			    "fingerprint of provided cert (%s) does not match "
+			    "cnf[\"x5t#S256\"] (%s)",
+			    fingerprint, x5t_256_str);
+		goto end;
+	}
+
+	oauth2_debug(
+	    log, "fingerprint of provided cert (%s) matches cnf[\"x5t#S256\"]",
+	    fingerprint);
+
+	rc = true;
+
+end:
+
+	if (fingerprint)
+		oauth2_mem_free(fingerprint);
+
+	return rc;
+}
+
+#define OAUTH2_CLAIM_CNF "cnf"
+#define OAUTH2_CLAIM_CNF_X5T_S256 "x5t#S256"
+
+static bool oauth2_mtls_token_verify(oauth2_log_t *log,
+				     oauth2_cfg_mtls_verify_t *mtls_verify,
+				     const oauth2_http_request_t *request,
+				     json_t *jwt)
+{
+	bool rc = false;
+	char *cnf_x5t_s256_str = NULL;
+
+	oauth2_debug(log, "enter: policy=%s",
+		     oauth2_mtls_verify_policy2str(mtls_verify->policy));
+
+	json_t *cnf = json_object_get(jwt, OAUTH2_CLAIM_CNF);
+	// cnf = json_object();
+	// json_object_set(cnf, "x5t#S256",
+	// json_string("3rM_CLStQF3e-N2_9dZcR-BMw45XmRR0jbj6MSHU2bM"));
+	if (cnf == NULL) {
+		oauth2_debug(log, "no \"%s\" claim found in the token",
+			     OAUTH2_CLAIM_CNF);
+		goto err;
+	}
+
+	oauth2_json_string_get(log, cnf, OAUTH2_CLAIM_CNF_X5T_S256,
+			       &cnf_x5t_s256_str, NULL);
+	if (cnf_x5t_s256_str == NULL) {
+		oauth2_debug(log,
+			     " \"%s\" claim found in the token but no \"%s\" "
+			     "key found inside",
+			     OAUTH2_CLAIM_CNF, OAUTH2_CLAIM_CNF_X5T_S256);
+		goto err;
+	}
+
+	rc = oauth2_mtls_validate_cnf_x5t_s256(log, mtls_verify, request,
+					       cnf_x5t_s256_str);
+
+	goto end;
+
+err:
+
+	if ((cnf_x5t_s256_str == NULL) &&
+	    (oauth2_mtls_verify_policy_get(mtls_verify) !=
+	     OAUTH2_MTLS_VERIFY_POLICY_REQUIRED))
+		rc = true;
+
+end:
+
+	if (cnf_x5t_s256_str != NULL)
+		oauth2_mem_free(cnf_x5t_s256_str);
+
+	return rc;
+}
+
 bool oauth2_token_verify(oauth2_log_t *log, oauth2_http_request_t *request,
 			 oauth2_cfg_token_verify_t *verify, const char *token,
 			 json_t **json_payload)
@@ -712,9 +830,14 @@ bool oauth2_token_verify(oauth2_log_t *log, oauth2_http_request_t *request,
 		ptr = ptr->next;
 	}
 
-	if ((rc) && (ptr->type == OAUTH2_TOKEN_VERIFY_DPOP)) {
-		rc = oauth2_dpop_token_verify(log, &verify->dpop, request,
-					      *json_payload);
+	if (rc == true) {
+		if (ptr->type == OAUTH2_TOKEN_VERIFY_DPOP) {
+			rc = oauth2_dpop_token_verify(log, &verify->dpop,
+						      request, *json_payload);
+		} else if (ptr->type == OAUTH2_TOKEN_VERIFY_MTLS) {
+			rc = oauth2_mtls_token_verify(log, &verify->mtls,
+						      request, *json_payload);
+		}
 	}
 
 end:

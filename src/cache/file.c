@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2020 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2021 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -429,7 +429,7 @@ static void _oauth2_cache_files_clean(oauth2_log_t *log,
 		rc = _oauth2_cache_file_read(log, f, &info,
 					     sizeof(oauth2_cache_file_info_t));
 
-		if ((rc = false) || (oauth2_time_now_sec() < info.expire)) {
+		if ((rc == false) || (oauth2_time_now_sec() < info.expire)) {
 			oauth2_debug(
 			    log,
 			    "cache entry (%s) expired, removing file \"%s\")",

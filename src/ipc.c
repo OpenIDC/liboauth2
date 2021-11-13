@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2020 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2021 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -23,8 +23,6 @@
 #ifndef _WIN32
 #include <sys/mman.h>
 #include <unistd.h>
-#else
-#include "mmap-windows.h"
 #ifdef _MSC_VER
 #define _unlink unlink
 #endif
@@ -48,10 +46,8 @@ static char *_oauth2_ipc_get_name(oauth2_log_t *log, const char *type,
 {
 	char *rv = NULL;
 	rv = oauth2_mem_alloc(_OAUTH2_IPC_NAME_MAX);
-	// oauth2_snprintf(rv, _OAUTH2_IPC_NAME_MAX, "/zzo-%s-%ld.%p", type,
-	//		(long int)getpid(), ptr);
-	oauth2_snprintf(rv, _OAUTH2_IPC_NAME_MAX, "/zzo-%s-%p", type, ptr ? ptr : 0);
-	//oauth2_snprintf(rv, _OAUTH2_IPC_NAME_MAX, "/zzo-%s", type);
+	oauth2_snprintf(rv, _OAUTH2_IPC_NAME_MAX, "/zzo-%s-%ld.%p", type,
+			(long int)getpid(), ptr ? ptr : 0);
 	return rv;
 }
 
@@ -197,27 +193,6 @@ end:
 
 	return rc;
 }
-/*
-bool oauth2_ipc_sema_getvalue(oauth2_log_t *log, oauth2_ipc_sema_t *s, int
-*value) { int rc = false; int rv = 0;
-
-	rv = sem_getvalue(s->sema, value);
-	if (rv != 0) {
-		oauth2_error(log,
-		  "sem_getvalue() failed: %s (%d)", strerror(errno), errno);
-		goto end;
-	}
-
-	oauth2_debug(log, "semaphore: %d (s=%p)", *value, s);
-
-	rc = true;
-
-end:
-
-	return rc;
-}
-
-*/
 
 /*
  * mutex
@@ -301,8 +276,6 @@ end:
  */
 
 typedef struct oauth2_ipc_shm_t {
-	char *name;
-	// int fd;
 	oauth2_ipc_mutex_t *mutex;
 	oauth2_ipc_sema_t *num;
 	size_t size;
@@ -313,9 +286,7 @@ oauth2_ipc_shm_t *oauth2_ipc_shm_init(oauth2_log_t *log, size_t size)
 {
 	oauth2_ipc_shm_t *shm = oauth2_mem_alloc(sizeof(oauth2_ipc_shm_t));
 	shm->mutex = oauth2_ipc_mutex_init(log);
-	// shm->fd = -1;
 	shm->num = oauth2_ipc_sema_init(log);
-	shm->name = NULL;
 	shm->ptr = NULL;
 	shm->size = size;
 	return shm;
@@ -323,9 +294,6 @@ oauth2_ipc_shm_t *oauth2_ipc_shm_init(oauth2_log_t *log, size_t size)
 
 void oauth2_ipc_shm_free(oauth2_log_t *log, oauth2_ipc_shm_t *shm)
 {
-	bool rc = false;
-	int rv = 0;
-
 	if (shm == NULL)
 		goto end;
 
@@ -335,33 +303,24 @@ void oauth2_ipc_shm_free(oauth2_log_t *log, oauth2_ipc_shm_t *shm)
 
 
 	if (shm->ptr) {
+#ifdef WIN32
+		free(shm->ptr);
+
+		if (shm->ptr != NULL)
+			oauth2_error(log, "free() failed: %s", strerror(errno));
+
+#else
 		if (munmap(shm->ptr, shm->size) < 0)
 			oauth2_error(log, "munmap() failed: %s",
 				     strerror(errno));
+#endif
 		shm->ptr = NULL;
 	}
 
 	if (shm->num) {
-		// if we cannot lock it, it is 0
-		// TODO: isn't close enough?
-		rc = oauth2_ipc_sema_trywait(log, shm->num);
-		if (rc == false) {
-#ifdef _WIN32
-			CloseHandle(shm->name);
-#else
-			rv = shm_unlink(shm->name);
-			oauth2_error(log, "shm_unlink() failed: %s (%d)",
-				     strerror(errno), rv);
-#endif
-
-		}
 		oauth2_ipc_sema_free(log, shm->num);
 		shm->num = NULL;
-		oauth2_debug(log, "destroyed shm with name: %s", shm->name);
 	}
-
-	if (shm->name)
-		oauth2_mem_free(shm->name);
 
 	oauth2_mem_free(shm);
 
@@ -373,11 +332,6 @@ end:
 bool oauth2_ipc_shm_post_config(oauth2_log_t *log, oauth2_ipc_shm_t *shm)
 {
 	bool rc = false;
-#ifdef _WIN32
-	HANDLE fd = -1;
-#else
-	int fd = -1;
-#endif
 
 	if (shm == NULL)
 		goto end;
@@ -390,54 +344,29 @@ bool oauth2_ipc_shm_post_config(oauth2_log_t *log, oauth2_ipc_shm_t *shm)
 	if (rc == false)
 		goto end;
 
-	shm->name = _oauth2_ipc_get_name(log, "shm", shm);
-	if (shm->name == NULL)
+	oauth2_debug(log, "creating anonymous shm");
+
+#ifdef WIN32
+	shm->ptr = malloc(shm->size);
+
+	if (shm->ptr == NULL) {
+		oauth2_error(log, "malloc() failed: %s", strerror(errno));
 		goto end;
-
-	oauth2_debug(log, "creating shm with name: %s", shm->name);
-
-#ifdef _WIN32
-	fd = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0,
-			       shm->size, shm->name);
-
-	shm->ptr = MapViewOfFile(fd,  // handle to mapping object
-				 FILE_MAP_ALL_ACCESS, // read/write
-				 0,		      // high-order 32 bits of file offset
-				 0,           // low-order 32 bits of file offset
-				 shm->size);  // number of bytes to map
-
+	}
 #else
-	fd = shm_open(shm->name, O_CREAT | O_RDWR, 0666);
-	if (fd == -1) {
-		oauth2_error(log, "shm_open() failed: %s", strerror(errno));
-		goto end;
-
-	}
-
-	if (ftruncate(fd, shm->size) != 0) {
-		oauth2_error(log, "ftruncate() failed: %s", strerror(errno));
-		// goto end;
-	}
-
 	shm->ptr = mmap(0, shm->size, PROT_READ | PROT_WRITE,
-			MAP_SHARED | MAP_ANONYMOUS, -1 /*fd*/, 0);
+			MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+
 	if (shm->ptr == MAP_FAILED) {
 		oauth2_error(log, "mmap() failed: %s", strerror(errno));
 		goto end;
 	}
+
 #endif
 
 	rc = oauth2_ipc_sema_post(log, shm->num);
 
 end:
-
-#ifndef _WIN32
-	//if (fd != NULL)
-	//	CloseHandle(fd);
-//#else
-	 if (fd != -1)
-		close(fd);
-#endif
 
 	return rc;
 }

@@ -56,7 +56,6 @@
     </ClCompile>
     <ClCompile Include="src\semaphore.c" />
     <ClCompile Include="src\ipc.c" />
-    <ClCompile Include="src\mmap-windows.c" />
     <ClCompile Include="src\cfg\cache_cfg.c">
       <Filter>cfg</Filter>
     </ClCompile>
@@ -128,7 +127,6 @@
     <ClInclude Include="include\oauth2\version.h">
       <Filter>oauth2</Filter>
     </ClInclude>
-    <ClInclude Include="src\mmap-windows.h" />
     <ClInclude Include="src\dirent.h" />
   </ItemGroup>
   <ItemGroup>

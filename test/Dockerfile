@@ -20,10 +20,10 @@ RUN cd /root/nginx && ./configure --with-debug
 ENV FLAVOR bionic
 ENV CJOSE_VERSION 0.6.1.5
 
-ENV CJOSE_PKG libcjose0_${CJOSE_VERSION}-1~${FLAVOR}+1_amd64.deb
+ENV CJOSE_PKG libcjose0_${CJOSE_VERSION}-1~${FLAVOR}+1_arm64.deb
 RUN curl -s -L -o ~/${CJOSE_PKG} https://mod-auth-openidc.org/download/${CJOSE_PKG}
 RUN dpkg -i ~/${CJOSE_PKG}
-ENV CJOSE_PKG libcjose-dev_${CJOSE_VERSION}-1~${FLAVOR}+1_amd64.deb
+ENV CJOSE_PKG libcjose-dev_${CJOSE_VERSION}-1~${FLAVOR}+1_arm64.deb
 RUN curl -s -L -o ~/${CJOSE_PKG} https://mod-auth-openidc.org/download/${CJOSE_PKG}
 RUN dpkg -i ~/${CJOSE_PKG}
 RUN apt-get update && apt-get install -y -f

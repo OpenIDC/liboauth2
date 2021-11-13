@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2020 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2021 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -215,8 +215,8 @@ end:
 	return rv;
 }
 
-bool oauth2_jose_jwt_encrypt(oauth2_log_t *log, const char *secret,
-			     json_t *payload, char **cser)
+bool oauth2_jose_encrypt(oauth2_log_t *log, const char *secret,
+			 const char *s_sig_payload, char **cser)
 {
 	bool rv = false, rc = false;
 	cjose_err err;
@@ -225,17 +225,12 @@ bool oauth2_jose_jwt_encrypt(oauth2_log_t *log, const char *secret,
 	cjose_jws_t *jwt = NULL;
 	cjose_jwe_t *jwe = NULL;
 	cjose_header_t *sig_hdr = NULL, *enc_hdr = NULL;
-	char *s_sig_payload = NULL, *s_enc_payload = NULL;
+	char *s_enc_payload = NULL;
 
 	oauth2_debug(log, "enter");
 
 	if (cser == NULL)
 		goto end;
-
-	s_sig_payload =
-	    payload ? json_dumps(payload, JSON_PRESERVE_ORDER | JSON_COMPACT)
-		    : NULL;
-	oauth2_trace1(log, "JSON payload serialized: %s", s_sig_payload);
 
 	if (oauth2_jose_jwk_create_symmetric(
 		log, secret, OAUTH2_JOSE_OPENSSL_ALG_SHA256, &jwk) == false) {
@@ -325,9 +320,6 @@ bool oauth2_jose_jwt_encrypt(oauth2_log_t *log, const char *secret,
 
 end:
 
-	if (s_sig_payload)
-		oauth2_mem_free(s_sig_payload);
-
 	if (jwe)
 		cjose_jwe_release(jwe);
 	if (jwk)
@@ -344,10 +336,38 @@ end:
 	return rv;
 }
 
-bool oauth2_jose_jwt_decrypt(oauth2_log_t *log, const char *secret,
-			     const char *cser, json_t **result)
+bool oauth2_jose_jwt_encrypt(oauth2_log_t *log, const char *secret,
+			     json_t *payload, char **cser)
 {
+	bool rc = false;
 
+	char *s_sig_payload = NULL;
+
+	oauth2_debug(log, "enter");
+
+	if (cser == NULL)
+		goto end;
+
+	s_sig_payload =
+	    payload ? json_dumps(payload, JSON_PRESERVE_ORDER | JSON_COMPACT)
+		    : NULL;
+	oauth2_trace1(log, "JSON payload serialized: %s", s_sig_payload);
+
+	rc = oauth2_jose_encrypt(log, secret, s_sig_payload, cser);
+
+end:
+
+	if (s_sig_payload)
+		oauth2_mem_free(s_sig_payload);
+
+	oauth2_debug(log, "leave");
+
+	return rc;
+}
+
+bool oauth2_jose_decrypt(oauth2_log_t *log, const char *secret,
+			 const char *cser, char **result)
+{
 	//	oauth2_debug(log, "enter: JWT header=%s",
 	//			oidc_proto_peek_jwt_header(log, cser, NULL));
 
@@ -360,9 +380,6 @@ bool oauth2_jose_jwt_decrypt(oauth2_log_t *log, const char *secret,
 
 	uint8_t *s_decrypted = NULL, *s_payload = NULL;
 	size_t dec_len, payload_len;
-
-	char *payload = NULL;
-	json_error_t json_error;
 
 	oauth2_debug(log, "enter");
 
@@ -411,24 +428,15 @@ bool oauth2_jose_jwt_decrypt(oauth2_log_t *log, const char *secret,
 	}
 	oauth2_trace1(log, "plaintext retrieved");
 
-	payload = oauth2_mem_alloc(payload_len + 1);
-	strncpy(payload, (const char *)s_payload, payload_len);
-	payload[payload_len] = '\0';
+	*result = oauth2_mem_alloc(payload_len + 1);
+	strncpy(*result, (const char *)s_payload, payload_len);
+	(*result)[payload_len] = '\0';
 	oauth2_trace1(log, "plaintext copied");
-
-	*result = json_loads(payload, 0, &json_error);
-	if (*result == NULL) {
-		_OAUTH2_JOSE_JANSSON_ERR_LOG(log, "json_loads", json_error);
-		goto end;
-	}
-	oauth2_trace1(log, "payload parsed to JSON");
 
 	rv = true;
 
 end:
 
-	if (payload)
-		oauth2_mem_free(payload);
 	if (s_decrypted)
 		oauth2_mem_free(s_decrypted);
 
@@ -438,6 +446,134 @@ end:
 		oauth2_jose_jwk_release(jwk);
 	if (jwt)
 		cjose_jws_release(jwt);
+
+	oauth2_debug(log, "leave");
+
+	return rv;
+}
+
+bool oauth2_jose_jwt_decrypt(oauth2_log_t *log, const char *secret,
+			     const char *cser, json_t **result)
+{
+
+	bool rc = false;
+	char *payload = NULL;
+	json_error_t json_error;
+
+	oauth2_debug(log, "enter");
+
+	if ((secret == NULL) || (cser == NULL) || (result == NULL))
+		goto end;
+
+	if (oauth2_jose_decrypt(log, secret, cser, &payload) == false)
+		goto end;
+
+	*result = json_loads(payload, 0, &json_error);
+	if (*result == NULL) {
+		_OAUTH2_JOSE_JANSSON_ERR_LOG(log, "json_loads", json_error);
+		goto end;
+	}
+	oauth2_trace1(log, "payload parsed to JSON");
+
+	rc = true;
+
+end:
+
+	if (payload)
+		oauth2_mem_free(payload);
+
+	oauth2_debug(log, "leave");
+
+	return rc;
+}
+
+#define OAUTH2_JTI_LENGTH 16
+
+char *oauth2_jwt_create(oauth2_log_t *log, cjose_jwk_t *jwk, const char *alg,
+			const char *iss, const char *sub, const char *client_id,
+			const char *aud, oauth2_uint_t exp, bool include_iat,
+			bool include_jti)
+{
+	char *rv = NULL;
+	char *payload = NULL;
+	json_t *assertion = NULL;
+	cjose_header_t *hdr = NULL;
+	cjose_jws_t *jws = NULL;
+	const char *jwt = NULL;
+	cjose_err err;
+	char *jti = NULL;
+
+	oauth2_debug(log, "enter");
+
+	if (jwk == NULL)
+		goto end;
+
+	assertion = json_object();
+	if (include_jti) {
+		jti = oauth2_rand_str(log, OAUTH2_JTI_LENGTH);
+		json_object_set_new(assertion, OAUTH2_CLAIM_JTI,
+				    json_string(jti));
+	}
+	if (iss)
+		json_object_set_new(assertion, OAUTH2_CLAIM_ISS,
+				    json_string(iss));
+	if (sub)
+		json_object_set_new(assertion, OAUTH2_CLAIM_SUB,
+				    json_string(sub));
+	if (aud)
+		json_object_set_new(assertion, OAUTH2_CLAIM_AUD,
+				    json_string(aud));
+	json_object_set_new(assertion, OAUTH2_CLAIM_EXP,
+			    json_integer(oauth2_time_now_sec() + exp));
+	if (include_iat)
+		json_object_set_new(assertion, OAUTH2_CLAIM_IAT,
+				    json_integer(oauth2_time_now_sec()));
+	payload = json_dumps(assertion, JSON_PRESERVE_ORDER | JSON_COMPACT);
+
+	hdr = cjose_header_new(&err);
+	if (hdr == NULL) {
+		oauth2_error(log, "cjose_header_new failed: %s", err.message);
+		goto end;
+	}
+	if (cjose_header_set(hdr, CJOSE_HDR_ALG, alg, &err) == false) {
+		oauth2_error(log, "cjose_header_set %s:%s failed: %s",
+			     CJOSE_HDR_ALG, alg, err.message);
+		goto end;
+	}
+	if (cjose_header_set(hdr, OAUTH2_JOSE_HDR_TYP, OAUTH2_JOSE_HDR_TYP_JWT,
+			     &err) == false) {
+		oauth2_error(log, "cjose_header_set %s:%s failed: %s",
+			     OAUTH2_JOSE_HDR_TYP, OAUTH2_JOSE_HDR_TYP_JWT,
+			     err.message);
+		goto end;
+	}
+
+	jws = cjose_jws_sign(jwk, hdr, (const uint8_t *)payload,
+			     strlen(payload), &err);
+	if (jws == NULL) {
+		oauth2_error(log, "cjose_jws_sign failed: %s", err.message);
+		goto end;
+	}
+
+	if (cjose_jws_export(jws, &jwt, &err) == false) {
+		oauth2_error(log, "cjose_jws_export failed: %s", err.message);
+		goto end;
+	}
+
+	rv = oauth2_strndup(jwt, strlen(jwt));
+
+end:
+
+	if (jti)
+		oauth2_mem_free(jti);
+	if (assertion)
+		json_decref(assertion);
+	if (payload)
+		free(payload);
+	if (hdr)
+		cjose_header_release(hdr);
+	if (jws)
+		cjose_jws_release(jws);
 
 	oauth2_debug(log, "leave");
 
@@ -740,17 +876,16 @@ bool oauth2_jose_jwt_verify_set_options(
 	jwt_verify->iat_validate = oauth2_parse_validate_claim_option(
 	    log, oauth2_nv_list_get(log, params, OAUTH2_JOSE_JWT_IAT_VALIDATE),
 	    OAUTH2_JOSE_JWT_VALIDATE_CLAIM_OPTIONAL);
-	;
+	// TODO: this is probably different (default -1) for id_token's
+	//       would we need to pass all flags explicitly in init?
 	jwt_verify->iat_slack_before = oauth2_parse_uint(
 	    log,
 	    oauth2_nv_list_get(log, params, OAUTH2_JOSE_JWT_IAT_SLACK_BEFORE),
-	    OAUTH2_JOSE_JWT_IAT_SLACK_DEFAULT);
-	// TODO: this is probably different (default -1) for id_token's
-	//       would we need to pass all flags explicitly in init?
+	    OAUTH2_CFG_UINT_UNSET);
 	jwt_verify->iat_slack_after = oauth2_parse_uint(
 	    log,
 	    oauth2_nv_list_get(log, params, OAUTH2_JOSE_JWT_IAT_SLACK_AFTER),
-	    OAUTH2_CFG_UINT_UNSET);
+	    OAUTH2_JOSE_JWT_IAT_SLACK_DEFAULT);
 
 	// TODO: calculate rc based on previous calls
 	return true;
@@ -1014,7 +1149,8 @@ bool oauth2_jose_jwt_validate_iat(oauth2_log_t *log, const json_t *json_payload,
 
 	now = oauth2_time_now_sec();
 
-	if ((slack_before >= 0) && ((now - slack_before) > iat)) {
+	if ((slack_before != OAUTH2_CFG_UINT_UNSET) &&
+	    ((now - slack_before) > iat)) {
 		oauth2_error(log,
 			     "\"%s\" validation failure (%ld): JWT was issued "
 			     "more than %d seconds ago",
@@ -1022,7 +1158,8 @@ bool oauth2_jose_jwt_validate_iat(oauth2_log_t *log, const json_t *json_payload,
 		goto end;
 	}
 
-	if ((slack_after >= 0) && ((now + slack_after) < iat)) {
+	if ((slack_after != OAUTH2_CFG_UINT_UNSET) &&
+	    ((now + slack_after) < iat)) {
 		oauth2_error(log,
 			     "\"%s\" validation failure (%ld): JWT was issued "
 			     "more than %d seconds in the future",
@@ -1095,6 +1232,9 @@ bool oauth2_jose_jwt_verify(oauth2_log_t *log,
 	peek = oauth2_jose_jwt_header_peek(log, token, NULL);
 	oauth2_debug(log, "enter: JWT token header=%s", peek);
 
+	if (token == NULL)
+		goto end;
+
 	/*
 	 * TODO: resolve the shared secret(s) and the private key(s) for
 	 * decryption
@@ -1157,13 +1297,21 @@ bool oauth2_jose_jwt_verify(oauth2_log_t *log,
 	oauth2_debug(log, "got plaintext (len=%lu): %s", plaintext_len,
 		     *s_payload);
 
-	if (oauth2_json_decode_object(log, *s_payload, json_payload) == false)
+	if (oauth2_json_decode_object(log, *s_payload, json_payload) == false) {
+		oauth2_mem_free(*s_payload);
+		*s_payload = NULL;
 		goto end;
+	}
 
 	if (jwt_verify_ctx) {
 		if (_oauth2_jose_jwt_payload_validate(
-			log, jwt_verify_ctx, *json_payload, NULL) == false)
+			log, jwt_verify_ctx, *json_payload, NULL) == false) {
+			json_decref(*json_payload);
+			*json_payload = NULL;
+			oauth2_mem_free(*s_payload);
+			*s_payload = NULL;
 			goto end;
+		}
 	}
 
 	rc = true;
@@ -1874,6 +2022,9 @@ char *oauth2_jose_resolve_from_uri(oauth2_log_t *log, oauth2_uri_ctx_t *uri_ctx,
 		oauth2_http_call_ctx_ssl_verify_set(
 		    log, ctx,
 		    oauth2_cfg_endpoint_get_ssl_verify(uri_ctx->endpoint));
+		oauth2_http_call_ctx_outgoing_proxy_set(
+		    log, ctx,
+		    oauth2_cfg_endpoint_get_outgoing_proxy(uri_ctx->endpoint));
 
 		rc = oauth2_http_get(
 		    log, oauth2_cfg_endpoint_get_url(uri_ctx->endpoint), NULL,

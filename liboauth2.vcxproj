@@ -78,13 +78,13 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(IncludePath);$(ProjectDir)target\httpd-2.4.46-win32-VS16\Apache24\include;$(ProjectDir)cjose\include;$(ProjectDir)vcpkg\installed\x86-windows\include</IncludePath>
+    <IncludePath>$(IncludePath);$(ProjectDir)target\httpd-2.4.51-win32-VS16\Apache24\include;$(ProjectDir)cjose\include;$(ProjectDir)vcpkg\installed\x86-windows\include</IncludePath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(ProjectDir)target\httpd-2.4.46-win64-VS16\Apache24\include;$(ProjectDir)cjose\include;$(ProjectDir)vcpkg\installed\x64-windows\include;$(ProjectDir)include;$(ProjectDir)src;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)target\httpd-2.4.51-win64-VS16\Apache24\include;$(ProjectDir)cjose\include;$(ProjectDir)vcpkg\installed\x64-windows\include;$(ProjectDir)include;$(ProjectDir)src;$(IncludePath)</IncludePath>
     <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -137,12 +137,13 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Disabled</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);WIN32;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <BrowseInformation>true</BrowseInformation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -171,7 +172,6 @@
     <ClInclude Include="src\cfg_int.h" />
     <ClInclude Include="src\dirent.h" />
     <ClInclude Include="src\jose_int.h" />
-    <ClInclude Include="src\mmap-windows.h" />
     <ClInclude Include="src\oauth2_int.h" />
     <ClInclude Include="src\openidc_int.h" />
     <ClInclude Include="src\util_int.h" />
@@ -194,7 +194,6 @@
     <ClCompile Include="src\cfg\target.c" />
     <ClCompile Include="src\cfg\verify.c" />
     <ClCompile Include="src\ipc.c" />
-    <ClCompile Include="src\mmap-windows.c" />
     <ClCompile Include="src\openidc\client.c" />
     <ClCompile Include="src\openidc\openidc.c" />
     <ClCompile Include="src\openidc\provider.c" />

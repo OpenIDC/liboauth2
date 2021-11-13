@@ -121,7 +121,7 @@ liboauth2_apache_la_pkgconfigdir = $(libdir)/pkgconfig
 liboauth2_apache_la_pkgconfig_DATA = liboauth2_apache.pc
 
 liboauth2_apache_la_CPPFLAGS = $(AM_CPPFLAGS) -DHAVE_APACHE
-liboauth2_apache_la_CFLAGS = @APR_CFLAGS@
+liboauth2_apache_la_CFLAGS = @APACHE_CFLAGS@
 liboauth2_apache_la_LIBADD = @APR_LIBS@
 
 includesub_HEADERS += \
