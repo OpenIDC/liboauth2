@@ -3,7 +3,7 @@ name: Build
 on: [push, pull_request]
 
 jobs:
-  runner-job:
+  build:
     runs-on: ubuntu-latest
 
     services:
@@ -22,9 +22,6 @@ jobs:
         image: memcached
         ports:
           - 11211:11211
-
-  build:
-    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
