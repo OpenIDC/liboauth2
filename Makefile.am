@@ -6,11 +6,11 @@ EXTRA_DIST = autogen.sh ChangeLog README.md LICENSE
 # generic
 #
 
-AM_CPPFLAGS = -Wall -Werror -Iinclude -Isrc @JANSSON_CFLAGS@
+AM_CPPFLAGS = -Wall -Werror -I${srcdir}/include -I${srcdir}/src @JANSSON_CFLAGS@ @OPENSSL_CFLAGS@
 AM_CPPFLAGS += $(CODE_COVERAGE_CPPFLAGS) $(CODE_COVERAGE_CFLAGS)
 AM_LDFLAGS = --coverage
 
-LDADD = @JANSSON_LIBS@
+LDADD = @JANSSON_LIBS@ @OPENSSL_LIBS@
 LDADD += $(CODE_COVERAGE_LIBS)
 
 #
@@ -45,8 +45,8 @@ lib_LTLIBRARIES = liboauth2.la
 liboauth2_la_pkgconfigdir = $(libdir)/pkgconfig
 liboauth2_la_pkgconfig_DATA = liboauth2.pc
 
-liboauth2_la_CFLAGS = @OPENSSL_CFLAGS@ @CURL_CFLAGS@ @CJOSE_CFLAGS@
-liboauth2_la_LIBADD = @OPENSSL_LIBS@ @CURL_LIBS@ @CJOSE_LIBS@
+liboauth2_la_CFLAGS = @CURL_CFLAGS@ @CJOSE_CFLAGS@
+liboauth2_la_LIBADD = @CURL_LIBS@ @CJOSE_LIBS@
 
 liboauth2_la_SOURCES = \
 	src/version.c \

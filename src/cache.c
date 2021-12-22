@@ -252,12 +252,11 @@ end:
 	return rc;
 }
 
-static const unsigned char *_oauth_cache_get_enc_key(oauth2_log_t *log,
+static const char *_oauth_cache_get_enc_key(oauth2_log_t *log,
 						     oauth2_cache_t *cache)
 {
 
 	const char *passphrase = NULL, *passphrase_hash_algo = NULL;
-	unsigned int enc_key_len = -1;
 
 	if (cache->enc_key != NULL)
 		goto end;
@@ -271,12 +270,13 @@ static const unsigned char *_oauth_cache_get_enc_key(oauth2_log_t *log,
 				   : OAUTH2_JOSE_OPENSSL_ALG_SHA256;
 
 	if (strcmp(passphrase_hash_algo, "none") == 0) {
-		cache->enc_key = (unsigned char *)oauth2_strdup(passphrase);
+		cache->enc_key = oauth2_strdup(passphrase);
 	} else {
-		if (oauth2_jose_hash_bytes(log, passphrase_hash_algo,
-					   (const unsigned char *)passphrase,
-					   strlen(passphrase), &cache->enc_key,
-					   &enc_key_len) == false) {
+		//		if (oauth2_jose_hash_bytes(log, passphrase_hash_algo,
+		//					   (const unsigned char *)passphrase,
+		//					   strlen(passphrase), &cache->enc_key,
+		//					   &enc_key_len) == false) {
+		if (oauth2_jose_hash2s(log, passphrase_hash_algo, passphrase, &cache->enc_key) == false) {
 			oauth2_error(
 			    log, "could not hash cache encryption passphrase");
 			goto end;

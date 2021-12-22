@@ -1,3 +1,10 @@
+12/22/2021
+- hash the cache encryption key to a string instead of bytes
+- Makefile.am improvements:
+  - move OpenSSL libs go generic libraries so cache files compile with the right flags
+  - use ${srcdir} to conform to distcheck
+- bump to 1.4.4dev
+
 10/12/2021
 - make outgoing_proxy an endpoint property
 - accommodate for NULL key in oauth2_cache_get and oauth2_cache_set
