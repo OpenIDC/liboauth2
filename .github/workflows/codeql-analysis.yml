@@ -24,7 +24,7 @@ jobs:
       run: |
         sudo apt-get update -y
         sudo apt-get install -y apache2-dev libcjose-dev libssl-dev check pkg-config
-        sudo apt-get install -y libjansson-dev libcurl4-openssl-dev libhiredis-dev
+        sudo apt-get install -y libjansson-dev libcurl4-openssl-dev libhiredis-dev libmemcached-dev
         
     - name: CodeQL
       uses: github/codeql-action/init@v1
