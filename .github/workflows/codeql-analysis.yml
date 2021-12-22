@@ -32,13 +32,12 @@ jobs:
         languages: ${{ matrix.language }}
 
     - name: Configure
-    - run: |
+      run: |
        ./autogen.sh
        ./configure 
              
     - name: Make
-    - run: |
-       make
+      run: make
  
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v1
