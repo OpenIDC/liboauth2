@@ -1,4 +1,5 @@
 [![Build Status](https://github.com/zmartzone/liboauth2/actions/workflows/build.yml/badge.svg)](https://github.com/zmartzone/liboauth2/actions/workflows/build.yml)
+[![Architectures Status](https://github.com/zmartzone/liboauth2/actions/workflows/archs.yml/badge.svg)](https://github.com/zmartzone/liboauth2/actions/workflows/archs.yml)
 [![CodeQL Analysis](https://github.com/zmartzone/liboauth2/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/zmartzone/liboauth2/actions/workflows/codeql-analysis.yml)
 [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/zmartzone/liboauth2.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/zmartzone/liboauth2/context:cpp)
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/zmartzone/liboauth2.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/zmartzone/liboauth2/alerts/)
