@@ -478,6 +478,8 @@ Suite *oauth2_check_jose_suite()
 	tcase_add_test(c, test_jwk_resolve_plain);
 	tcase_add_test(c, test_jwt_verify);
 
+	tcase_set_timeout(c, 8);
+
 	suite_add_tcase(s, c);
 
 	return s;

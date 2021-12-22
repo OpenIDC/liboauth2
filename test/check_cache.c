@@ -231,6 +231,9 @@ Suite *oauth2_check_cache_suite()
 #ifdef HAVE_LIBHIREDIS
 	tcase_add_test(c, test_cache_redis);
 #endif
+
+	tcase_set_timeout(c, 8);
+
 	suite_add_tcase(s, c);
 
 	return s;

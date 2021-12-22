@@ -1097,6 +1097,8 @@ Suite *oauth2_check_openidc_suite()
 	tcase_add_test(c, test_openidc_handle_cache);
 	tcase_add_test(c, test_openidc_state_cookie);
 
+	tcase_set_timeout(c, 8);
+
 	suite_add_tcase(s, c);
 
 	return s;
