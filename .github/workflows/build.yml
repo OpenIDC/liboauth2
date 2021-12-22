@@ -49,4 +49,4 @@ jobs:
       run: make
 
     - name: Test
-      run: make check
+      run: make check || (cat test-suite.log && exit -1)
