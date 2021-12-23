@@ -109,8 +109,14 @@ void liboauth2_check_register_http_callbacks(
 			p = strrchr(path, '.');                                \
 			if (p)                                                 \
 				*p = '\0';                                     \
+			p = path; \
+            while (*p == '.') { \
+				p++; \
+                if (*p == '/') p++; \
+			} \
+            if (*p == '/') p++; \
 			_http_base_path =                                      \
-			    oauth2_stradd(NULL, "/", path, NULL);              \
+			    oauth2_stradd(NULL, "/", p, NULL);              \
 			oauth2_mem_free(path);                                 \
 		}                                                              \
 		return _http_base_path;                                        \

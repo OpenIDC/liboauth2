@@ -50,3 +50,7 @@ jobs:
 
     - name: Test
       run: make check || (cat test-suite.log && exit -1)
+
+    - name: Distcheck
+      run: make distcheck DISTCHECK_CONFIGURE_FLAGS="--with-nginx=/tmp/nginx" DESTDIR="/tmp/mod_auth_openidc"
+ 

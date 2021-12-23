@@ -31,9 +31,7 @@ includesub_HEADERS = \
 	include/oauth2/openidc.h \
 	include/oauth2/session.h \
 	include/oauth2/cfg.h \
-	include/oauth2/util.h
-
-nodist_includesub_HEADERS = \
+	include/oauth2/util.h \
 	include/oauth2/version.h
 
 #
