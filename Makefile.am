@@ -6,7 +6,7 @@ EXTRA_DIST = autogen.sh ChangeLog README.md LICENSE
 # generic
 #
 
-AM_CPPFLAGS = -Wall -Werror -I${srcdir}/include -I${srcdir}/src @JANSSON_CFLAGS@ @OPENSSL_CFLAGS@
+AM_CPPFLAGS = -Wall -Werror -Wno-error=deprecated-declarations -I${srcdir}/include -I${srcdir}/src @JANSSON_CFLAGS@ @OPENSSL_CFLAGS@
 AM_CPPFLAGS += $(CODE_COVERAGE_CPPFLAGS) $(CODE_COVERAGE_CFLAGS)
 AM_LDFLAGS = --coverage
 
