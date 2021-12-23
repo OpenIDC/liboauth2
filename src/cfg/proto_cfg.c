@@ -263,8 +263,9 @@ void oauth2_cfg_ropc_merge(oauth2_log_t *log, oauth2_cfg_ropc_t *dst,
 			   oauth2_cfg_ropc_t *base, oauth2_cfg_ropc_t *add)
 {
 
-	oauth2_cfg_ropc_t *src =
-	    (add && add->token_endpoint != 0) ? add : base ? base : NULL;
+	oauth2_cfg_ropc_t *src = (add && add->token_endpoint != 0) ? add
+				 : base				   ? base
+								   : NULL;
 
 	if ((src == NULL) || (dst == NULL))
 		goto end;

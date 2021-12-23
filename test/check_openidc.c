@@ -551,9 +551,11 @@ START_TEST(test_openidc_resolver)
 	oauth2_openidc_provider_free(_log, provider);
 	provider = NULL;
 
-	sprintf((char *)filename, "%s/%s", getenv("srcdir") ? getenv("srcdir") : ".", "test/provider.json");
-	rv = oauth2_cfg_openidc_provider_resolver_set_options(
-	    _log, c, "file", filename, NULL);
+	sprintf((char *)filename, "%s/%s",
+		getenv("srcdir") ? getenv("srcdir") : ".",
+		"test/provider.json");
+	rv = oauth2_cfg_openidc_provider_resolver_set_options(_log, c, "file",
+							      filename, NULL);
 	ck_assert_ptr_eq(rv, NULL);
 
 	rc = _oauth2_openidc_provider_resolve(_log, c, r, NULL, &provider);
@@ -647,9 +649,10 @@ START_TEST(test_openidc_client)
 	cfg = oauth2_cfg_openidc_init(_log);
 	ck_assert_ptr_ne(cfg, NULL);
 
-	sprintf((char *)filename, "%s/%s", getenv("srcdir") ? getenv("srcdir") : ".", "test/client.json");
-	rv = oauth2_openidc_client_set_options(
-	    _log, cfg, "file", filename, "ssl_verify=false");
+	sprintf((char *)filename, "%s/%s",
+		getenv("srcdir") ? getenv("srcdir") : ".", "test/client.json");
+	rv = oauth2_openidc_client_set_options(_log, cfg, "file", filename,
+					       "ssl_verify=false");
 	ck_assert_ptr_eq(rv, NULL);
 
 	client = oauth2_cfg_openidc_client_get(_log, cfg);

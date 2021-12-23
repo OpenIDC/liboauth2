@@ -153,7 +153,8 @@ char *oauth2_cfg_token_in_set(oauth2_log_t *log, oauth2_cfg_token_in_t *cfg,
 		    rv,
 		    _oauth2_cfg_accept_in_options_set[i + 1].method == NULL
 			? " or "
-			: i > 0 ? ", " : "",
+		    : i > 0 ? ", "
+			    : "",
 		    _oauth2_cfg_accept_in_options_set[i].method, NULL);
 		i++;
 	}
@@ -307,8 +308,10 @@ void oauth2_cfg_source_token_merge(oauth2_log_t *log,
 				   oauth2_cfg_source_token_t *base,
 				   oauth2_cfg_source_token_t *add)
 {
-	oauth2_cfg_source_token_t *src =
-	    (add && add->accept_in.value != 0) ? add : base ? base : NULL;
+	oauth2_cfg_source_token_t *src = (add && add->accept_in.value != 0)
+					     ? add
+					 : base ? base
+						: NULL;
 
 	if (src == NULL)
 		goto end;

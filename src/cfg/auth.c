@@ -437,7 +437,8 @@ char *oauth2_cfg_set_endpoint_auth(oauth2_log_t *log,
 		    rv,
 		    _oauth2_cfg_endpoint_auth_options_set[i + 1].type == NULL
 			? " or "
-			: i > 0 ? ", " : "",
+		    : i > 0 ? ", "
+			    : "",
 		    _oauth2_cfg_endpoint_auth_options_set[i].type, NULL);
 		i++;
 	}
