@@ -1,3 +1,8 @@
+03/03/2022
+- fix race condition and potential crash in curl usage in oauth2_url_decode
+  see zmartzone/mod_oauth2#27; thanks @rtitle
+- release 1.4.4.1
+
 12/23/2021
 - allow deprecated declarations to build with OpenSSL 3.0; see #31
 - release 1.4.4
