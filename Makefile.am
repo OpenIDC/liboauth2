@@ -6,11 +6,11 @@ EXTRA_DIST = autogen.sh ChangeLog README.md LICENSE
 # generic
 #
 
-AM_CPPFLAGS = -Wall -Werror -Iinclude -Isrc @JANSSON_CFLAGS@
+AM_CPPFLAGS = -Wall -Werror -Wno-error=deprecated-declarations -I${srcdir}/include -I${srcdir}/src @JANSSON_CFLAGS@ @OPENSSL_CFLAGS@
 AM_CPPFLAGS += $(CODE_COVERAGE_CPPFLAGS) $(CODE_COVERAGE_CFLAGS)
 AM_LDFLAGS = --coverage
 
-LDADD = @JANSSON_LIBS@
+LDADD = @JANSSON_LIBS@ @OPENSSL_LIBS@
 LDADD += $(CODE_COVERAGE_LIBS)
 
 #
@@ -31,9 +31,7 @@ includesub_HEADERS = \
 	include/oauth2/openidc.h \
 	include/oauth2/session.h \
 	include/oauth2/cfg.h \
-	include/oauth2/util.h
-
-nodist_includesub_HEADERS = \
+	include/oauth2/util.h \
 	include/oauth2/version.h
 
 #
@@ -45,8 +43,8 @@ lib_LTLIBRARIES = liboauth2.la
 liboauth2_la_pkgconfigdir = $(libdir)/pkgconfig
 liboauth2_la_pkgconfig_DATA = liboauth2.pc
 
-liboauth2_la_CFLAGS = @OPENSSL_CFLAGS@ @CURL_CFLAGS@ @CJOSE_CFLAGS@
-liboauth2_la_LIBADD = @OPENSSL_LIBS@ @CURL_LIBS@ @CJOSE_LIBS@
+liboauth2_la_CFLAGS = @CURL_CFLAGS@ @CJOSE_CFLAGS@
+liboauth2_la_LIBADD = @CURL_LIBS@ @CJOSE_LIBS@
 
 liboauth2_la_SOURCES = \
 	src/version.c \
@@ -122,7 +120,7 @@ liboauth2_apache_la_pkgconfig_DATA = liboauth2_apache.pc
 
 liboauth2_apache_la_CPPFLAGS = $(AM_CPPFLAGS) -DHAVE_APACHE
 liboauth2_apache_la_CFLAGS = @APACHE_CFLAGS@
-liboauth2_apache_la_LIBADD = @APR_LIBS@
+liboauth2_apache_la_LIBADD = liboauth2.la @APR_LIBS@
 
 includesub_HEADERS += \
 	include/oauth2/apache.h
@@ -143,7 +141,7 @@ liboauth2_nginx_la_pkgconfig_DATA = liboauth2_nginx.pc
 
 liboauth2_nginx_la_CPPFLAGS = $(AM_CPPFLAGS) -DHAVE_NGINX
 liboauth2_nginx_la_CFLAGS = @NGINX_CFLAGS@
-liboauth2_nginx_la_LIBADD = @NGINX_LIBS@
+liboauth2_nginx_la_LIBADD = liboauth2.la @NGINX_LIBS@
 
 includesub_HEADERS += \
 	include/oauth2/nginx.h

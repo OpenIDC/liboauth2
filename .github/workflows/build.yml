@@ -1,0 +1,56 @@
+name: Build
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+
+      redis:
+        image: redis
+#        options: >-
+#          --health-cmd "redis-cli ping"
+#          --health-interval 10s
+#          --health-timeout 5s
+#          --health-retries 5
+        ports:
+          - 6379:6379
+
+      memcached:
+        image: memcached
+        ports:
+          - 11211:11211
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Dependencies
+      env:
+        NGINX_VERSION: 1.18.0
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y apache2-dev libcjose-dev libssl-dev check pkg-config
+        sudo apt-get install -y libjansson-dev libcurl4-openssl-dev libhiredis-dev libmemcached-dev
+        sudo apt-get install build-essential libpcre3 libpcre3-dev zlib1g zlib1g-dev libgd-dev libxml2 libxml2-dev uuid-dev
+        cd /tmp
+        wget https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz
+        tar zxvf nginx-${NGINX_VERSION}.tar.gz
+        ln -s nginx-${NGINX_VERSION} nginx
+        cd /tmp/nginx && ./configure --with-debug
+        
+    - name: Configure
+      run: |
+        ./autogen.sh
+        ./configure --with-nginx=/tmp/nginx
+
+    - name: Make
+      run: make
+
+    - name: Test
+      run: make check || (cat test-suite.log && exit -1)
+
+    - name: Distcheck
+      run: make distcheck DISTCHECK_CONFIGURE_FLAGS="--with-nginx=/tmp/nginx" DESTDIR="/tmp/liboauth2"
+ 

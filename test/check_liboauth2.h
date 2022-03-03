@@ -3,7 +3,7 @@
 
 /***************************************************************************
  *
- * Copyright (C) 2018-2021 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2022 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -109,8 +109,15 @@ void liboauth2_check_register_http_callbacks(
 			p = strrchr(path, '.');                                \
 			if (p)                                                 \
 				*p = '\0';                                     \
-			_http_base_path =                                      \
-			    oauth2_stradd(NULL, "/", path, NULL);              \
+			p = path;                                              \
+			while (*p == '.') {                                    \
+				p++;                                           \
+				if (*p == '/')                                 \
+					p++;                                   \
+			}                                                      \
+			if (*p == '/')                                         \
+				p++;                                           \
+			_http_base_path = oauth2_stradd(NULL, "/", p, NULL);   \
 			oauth2_mem_free(path);                                 \
 		}                                                              \
 		return _http_base_path;                                        \

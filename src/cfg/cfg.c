@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2021 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2022 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -269,9 +269,11 @@ char *oauth2_cfg_set_options(oauth2_log_t *log, void *cfg, const char *type,
 	rv = oauth2_strdup("Invalid value, must be one of: ");
 	i = 0;
 	while (set[i].type != NULL) {
-		rv = oauth2_stradd(
-		    rv, set[i + 1].type == NULL ? " or " : i > 0 ? ", " : "",
-		    set[i].type, NULL);
+		rv = oauth2_stradd(rv,
+				   set[i + 1].type == NULL ? " or "
+				   : i > 0		   ? ", "
+							   : "",
+				   set[i].type, NULL);
 		i++;
 	}
 	rv = oauth2_stradd(rv, ".", NULL, NULL);
