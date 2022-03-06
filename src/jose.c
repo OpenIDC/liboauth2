@@ -36,6 +36,11 @@
 #include <openssl/hmac.h>
 #include <openssl/pem.h>
 
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+#include <openssl/core_names.h>
+#include <openssl/decoder.h>
+#endif
+
 #define _OAUTH2_JOSE_OPENSSL_ERR_LOG(log, function)                            \
 	oauth2_error(log, "%s failed: %s", function,                           \
 		     ERR_error_string(ERR_get_error(), NULL))
@@ -1553,14 +1558,13 @@ static BIO *_oauth2_jose_str2bio(oauth2_log_t *log, const char *value)
 	BIO *input = NULL;
 
 	if ((input = BIO_new(BIO_s_mem())) == NULL) {
-		oauth2_error(log, "BIO allocation failed: ",
+		oauth2_error(log, "BIO allocation failed: %s",
 			     ERR_error_string(ERR_get_error(), NULL));
 		goto end;
 	}
 
 	if (BIO_puts(input, value) <= 0) {
-		oauth2_error(log, "BIO_puts failed: ",
-			     ERR_error_string(ERR_get_error(), NULL));
+		_OAUTH2_JOSE_OPENSSL_ERR_LOG(log, "BIO_puts");
 		goto end;
 	}
 
@@ -1578,12 +1582,15 @@ _oauth2_jose_options_jwk_set_rsa_key(oauth2_log_t *log, EVP_PKEY *pkey,
 	cjose_jwk_rsa_keyspec key_spec;
 	cjose_err err;
 	cjose_jwk_t *jwk = NULL;
-	RSA *rsa = NULL;
-	const BIGNUM *rsa_n, *rsa_e;
+	BIGNUM *rsa_n = NULL, *rsa_e = NULL;
 
 	memset(&key_spec, 0, sizeof(cjose_jwk_rsa_keyspec));
 
-	rsa = EVP_PKEY_get1_RSA(pkey);
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+	EVP_PKEY_get_bn_param(pkey, OSSL_PKEY_PARAM_RSA_N, &rsa_n);
+	EVP_PKEY_get_bn_param(pkey, OSSL_PKEY_PARAM_RSA_E, &rsa_e);
+#else
+	RSA *rsa = (RSA *)EVP_PKEY_get1_RSA(pkey);
 	if (rsa == NULL) {
 		rv = oauth2_stradd(NULL, "EVP_PKEY_get1_RSA failed", ": ",
 				   ERR_error_string(ERR_get_error(), NULL));
@@ -1591,13 +1598,15 @@ _oauth2_jose_options_jwk_set_rsa_key(oauth2_log_t *log, EVP_PKEY *pkey,
 	}
 
 #if OPENSSL_VERSION_NUMBER >= 0x10100005L && !defined(LIBRESSL_VERSION_NUMBER)
-	RSA_get0_key(rsa, &rsa_n, &rsa_e, NULL);
+	RSA_get0_key(rsa, (const BIGNUM **)&rsa_n, (const BIGNUM **)&rsa_e,
+		     NULL);
 #else
 	rsa_n = rsa->n;
 	rsa_e = rsa->e;
 #endif
 
 	RSA_free(rsa);
+#endif
 
 	key_spec.nlen = BN_num_bytes(rsa_n);
 	key_spec.n = oauth2_mem_alloc(key_spec.nlen);
@@ -1818,16 +1827,65 @@ static oauth2_jose_jwk_list_t *
 _oauth2_jose_jwks_eckey_url_resolve_response_callback(oauth2_log_t *log,
 						      char *response)
 {
-
 	oauth2_jose_jwk_list_t *keys = NULL;
-	BIO *input = NULL;
-	EC_KEY *eckey = NULL;
-	const EC_GROUP *ecgroup = NULL;
-	const EC_POINT *ecpoint = NULL;
 	BIGNUM *x = NULL, *y = NULL;
 	cjose_jwk_ec_keyspec spec;
 	cjose_jwk_t *jwk = NULL;
 	cjose_err err;
+
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+	OSSL_DECODER_CTX *dctx = NULL;
+	EVP_PKEY *pkey = NULL;
+	const unsigned char *data = (unsigned char *)response;
+	size_t datalen = strlen(response) + 1;
+
+	dctx = OSSL_DECODER_CTX_new_for_pkey(
+	    &pkey, "PEM", NULL, "EC",
+	    OSSL_KEYMGMT_SELECT_PUBLIC_KEY |
+		OSSL_KEYMGMT_SELECT_DOMAIN_PARAMETERS,
+	    NULL, NULL);
+	if (dctx == NULL) {
+		_OAUTH2_JOSE_OPENSSL_ERR_LOG(log,
+					     "OSSL_DECODER_CTX_new_for_pkey");
+		goto end;
+	}
+
+	if (OSSL_DECODER_from_data(dctx, &data, &datalen) <= 0) {
+		_OAUTH2_JOSE_OPENSSL_ERR_LOG(log, "OSSL_DECODER_from_data");
+		goto end;
+	}
+
+	char *curve_name[64];
+	size_t len = 0;
+	if (EVP_PKEY_get_utf8_string_param(pkey, OSSL_PKEY_PARAM_GROUP_NAME,
+					   (char *)curve_name,
+					   sizeof(curve_name), &len) <= 0) {
+		_OAUTH2_JOSE_OPENSSL_ERR_LOG(log,
+					     "EVP_PKEY_get_utf8_string_param");
+		goto end;
+	}
+
+	spec.crv = OBJ_txt2nid((char *)curve_name);
+	if (spec.crv == NID_undef) {
+		_OAUTH2_JOSE_OPENSSL_ERR_LOG(log, "OBJ_txt2nid");
+		goto end;
+	}
+
+	if (EVP_PKEY_get_bn_param(pkey, OSSL_PKEY_PARAM_EC_PUB_X, &x) <= 0) {
+		_OAUTH2_JOSE_OPENSSL_ERR_LOG(log, "EVP_PKEY_get_bn_param");
+		goto end;
+	}
+
+	if (EVP_PKEY_get_bn_param(pkey, OSSL_PKEY_PARAM_EC_PUB_Y, &y) <= 0) {
+		_OAUTH2_JOSE_OPENSSL_ERR_LOG(log, "EVP_PKEY_get_bn_param");
+		goto end;
+	}
+
+#else
+	BIO *input = NULL;
+	EC_KEY *eckey = NULL;
+	const EC_GROUP *ecgroup = NULL;
+	const EC_POINT *ecpoint = NULL;
 
 	input = _oauth2_jose_str2bio(log, response);
 	if (input == NULL)
@@ -1835,47 +1893,42 @@ _oauth2_jose_jwks_eckey_url_resolve_response_callback(oauth2_log_t *log,
 
 	eckey = PEM_read_bio_EC_PUBKEY(input, NULL, 0, 0);
 	if (eckey == NULL) {
-		oauth2_error(log, "PEM_read_bio_EC_PUBKEY failed: ",
-			     ERR_error_string(ERR_get_error(), NULL));
+		_OAUTH2_JOSE_OPENSSL_ERR_LOG(log, "PEM_read_bio_EC_PUBKEY");
 		goto end;
 	}
 
 	ecgroup = EC_KEY_get0_group(eckey);
 	if (ecgroup == NULL) {
-		oauth2_error(log, "EC_KEY_get0_group failed: ",
-			     ERR_error_string(ERR_get_error(), NULL));
+		_OAUTH2_JOSE_OPENSSL_ERR_LOG(log, "EC_KEY_get0_group");
 		goto end;
 	}
 
 	spec.crv = EC_GROUP_get_curve_name(ecgroup);
 	if (spec.crv == 0) {
-		oauth2_error(log, "EC_GROUP_get_curve_name failed: ",
-			     ERR_error_string(ERR_get_error(), NULL));
+		_OAUTH2_JOSE_OPENSSL_ERR_LOG(log, "EC_GROUP_get_curve_name");
 		goto end;
 	}
 
 	ecpoint = EC_KEY_get0_public_key(eckey);
 	if (ecpoint == 0) {
-		oauth2_error(log, "EC_KEY_get0_public_key failed: ",
-			     ERR_error_string(ERR_get_error(), NULL));
+		_OAUTH2_JOSE_OPENSSL_ERR_LOG(log, "EC_KEY_get0_public_key");
 		goto end;
 	}
 
 	x = BN_new();
 	y = BN_new();
 	if ((x == NULL) || (y == NULL)) {
-		oauth2_error(log, "BN_new failed: ",
-			     ERR_error_string(ERR_get_error(), NULL));
+		_OAUTH2_JOSE_OPENSSL_ERR_LOG(log, "BN_new");
 		goto end;
 	}
 
 	if (EC_POINT_get_affine_coordinates_GFp(ecgroup, ecpoint, x, y, NULL) !=
 	    1) {
-		oauth2_error(log,
-			     "EC_POINT_get_affine_coordinates_GFp failed: ",
-			     ERR_error_string(ERR_get_error(), NULL));
+		_OAUTH2_JOSE_OPENSSL_ERR_LOG(
+		    log, "EC_POINT_get_affine_coordinates_GFp");
 		goto end;
 	}
+#endif
 
 	spec.xlen = BN_num_bytes(x);
 	spec.x = oauth2_mem_alloc(spec.xlen);
@@ -1891,8 +1944,8 @@ _oauth2_jose_jwks_eckey_url_resolve_response_callback(oauth2_log_t *log,
 	err.code = CJOSE_ERR_NONE;
 	jwk = cjose_jwk_create_EC_spec(&spec, &err);
 	if ((jwk == NULL) || (err.code != CJOSE_ERR_NONE)) {
-		oauth2_error(log,
-			     "cjose_jwk_create_EC_spec failed: ", err.message);
+		oauth2_error(log, "cjose_jwk_create_EC_spec failed: %s",
+			     err.message);
 		goto end;
 	}
 
@@ -1912,11 +1965,16 @@ end:
 	if (y)
 		BN_free(y);
 
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+	if (dctx)
+		OSSL_DECODER_CTX_free(dctx);
+#else
 	if (eckey)
 		EC_KEY_free(eckey);
 
 	if (input)
 		BIO_free(input);
+#endif
 
 	return keys;
 }

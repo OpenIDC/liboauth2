@@ -1,3 +1,7 @@
+03/06/2022
+- add support for OpenSSL 3.0; closes #31
+- bump to 1.5.0dev
+
 03/03/2022
 - fix race condition and potential crash in curl usage in oauth2_url_decode
   see zmartzone/mod_oauth2#27; thanks @rtitle
