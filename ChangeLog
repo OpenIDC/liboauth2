@@ -1,3 +1,19 @@
+03/03/2022
+- fix race condition and potential crash in curl usage in oauth2_url_decode
+  see zmartzone/mod_oauth2#27; thanks @rtitle
+- release 1.4.4.1
+
+12/23/2021
+- allow deprecated declarations to build with OpenSSL 3.0; see #31
+- release 1.4.4
+
+12/22/2021
+- hash the cache encryption key to a string instead of bytes
+- Makefile.am improvements:
+  - move OpenSSL libs go generic libraries so cache files compile with the right flags
+  - use ${srcdir} to conform to distcheck
+- add Github Actions CI; remove Travis
+
 10/12/2021
 - make outgoing_proxy an endpoint property
 - accommodate for NULL key in oauth2_cache_get and oauth2_cache_set

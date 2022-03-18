@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2021 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2022 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -534,6 +534,7 @@ START_TEST(test_openidc_resolver)
 	oauth2_cfg_openidc_t *c = NULL;
 	oauth2_http_request_t *r = NULL;
 	oauth2_openidc_provider_t *provider = NULL;
+	char filename[512];
 
 	c = oauth2_cfg_openidc_init(_log);
 	r = oauth2_http_request_init(_log);
@@ -550,8 +551,11 @@ START_TEST(test_openidc_resolver)
 	oauth2_openidc_provider_free(_log, provider);
 	provider = NULL;
 
-	rv = oauth2_cfg_openidc_provider_resolver_set_options(
-	    _log, c, "file", "./test/provider.json", NULL);
+	sprintf((char *)filename, "%s/%s",
+		getenv("srcdir") ? getenv("srcdir") : ".",
+		"test/provider.json");
+	rv = oauth2_cfg_openidc_provider_resolver_set_options(_log, c, "file",
+							      filename, NULL);
 	ck_assert_ptr_eq(rv, NULL);
 
 	rc = _oauth2_openidc_provider_resolve(_log, c, r, NULL, &provider);
@@ -640,12 +644,15 @@ START_TEST(test_openidc_client)
 	char *rv = NULL;
 	oauth2_cfg_openidc_t *cfg = NULL;
 	oauth2_openidc_client_t *client = NULL;
+	char filename[512];
 
 	cfg = oauth2_cfg_openidc_init(_log);
 	ck_assert_ptr_ne(cfg, NULL);
 
-	rv = oauth2_openidc_client_set_options(
-	    _log, cfg, "file", "./test/client.json", "ssl_verify=false");
+	sprintf((char *)filename, "%s/%s",
+		getenv("srcdir") ? getenv("srcdir") : ".", "test/client.json");
+	rv = oauth2_openidc_client_set_options(_log, cfg, "file", filename,
+					       "ssl_verify=false");
 	ck_assert_ptr_eq(rv, NULL);
 
 	client = oauth2_cfg_openidc_client_get(_log, cfg);
@@ -1096,6 +1103,8 @@ Suite *oauth2_check_openidc_suite()
 	tcase_add_test(c, test_openidc_handle_cookie);
 	tcase_add_test(c, test_openidc_handle_cache);
 	tcase_add_test(c, test_openidc_state_cookie);
+
+	tcase_set_timeout(c, 8);
 
 	suite_add_tcase(s, c);
 

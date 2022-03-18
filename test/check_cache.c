@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2021 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2022 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -56,7 +56,7 @@ static void _test_basic_cache(oauth2_cache_t *c)
 	bool rc = false;
 	char *value = NULL;
 
-	rc = oauth2_cache_set(_log, c, "piet", "klaas", 1);
+	rc = oauth2_cache_set(_log, c, "piet", "klaas", 2);
 	ck_assert_int_eq(rc, true);
 
 	value = NULL;
@@ -66,7 +66,7 @@ static void _test_basic_cache(oauth2_cache_t *c)
 	ck_assert_str_eq(value, "klaas");
 	oauth2_mem_free(value);
 
-	sleep(2);
+	sleep(3);
 
 	value = NULL;
 	rc = oauth2_cache_get(_log, c, "piet", &value);
@@ -231,6 +231,9 @@ Suite *oauth2_check_cache_suite()
 #ifdef HAVE_LIBHIREDIS
 	tcase_add_test(c, test_cache_redis);
 #endif
+
+	tcase_set_timeout(c, 8);
+
 	suite_add_tcase(s, c);
 
 	return s;

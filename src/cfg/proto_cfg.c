@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2021 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2022 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -263,8 +263,9 @@ void oauth2_cfg_ropc_merge(oauth2_log_t *log, oauth2_cfg_ropc_t *dst,
 			   oauth2_cfg_ropc_t *base, oauth2_cfg_ropc_t *add)
 {
 
-	oauth2_cfg_ropc_t *src =
-	    (add && add->token_endpoint != 0) ? add : base ? base : NULL;
+	oauth2_cfg_ropc_t *src = (add && add->token_endpoint != 0) ? add
+				 : base				   ? base
+								   : NULL;
 
 	if ((src == NULL) || (dst == NULL))
 		goto end;

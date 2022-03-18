@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2021 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2022 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -24,6 +24,7 @@
 #include <ctype.h>
 #include <string.h>
 
+#include "oauth2/ipc.h"
 #include "oauth2/log.h"
 #include "oauth2/mem.h"
 #include "oauth2/util.h"
@@ -40,16 +41,20 @@
 #include "cfg_int.h"
 
 static CURL *_s_curl = NULL;
-static oauth2_uint_t _curl_refcount = 0;
+static oauth2_ipc_mutex_t *_curl_mutex = NULL;
 
 oauth2_log_t *oauth2_init(oauth2_log_level_t level, oauth2_log_sink_t *sink)
 {
+	oauth2_log_t *log = NULL;
 	ERR_load_crypto_strings();
 	OpenSSL_add_all_algorithms();
 	// TODO: align flags/call with memory initialization in mem.c
 	//       possibly providing alloc funcs as part of init?
 	curl_global_init(CURL_GLOBAL_ALL);
-	return oauth2_log_init(level, sink);
+	log = oauth2_log_init(level, sink);
+	_curl_mutex = oauth2_ipc_mutex_init(log);
+	oauth2_ipc_mutex_post_config(log, _curl_mutex);
+	return log;
 }
 
 void oauth2_shutdown(oauth2_log_t *log)
@@ -60,6 +65,10 @@ void oauth2_shutdown(oauth2_log_t *log)
 	if (_s_curl) {
 		curl_easy_cleanup(_s_curl);
 		_s_curl = NULL;
+	}
+	if (_curl_mutex != NULL) {
+		oauth2_ipc_mutex_free(log, _curl_mutex);
+		_curl_mutex = NULL;
 	}
 	curl_global_cleanup();
 	EVP_cleanup();
@@ -243,23 +252,19 @@ end:
 
 static CURL *oauth2_curl_init(oauth2_log_t *log)
 {
+	oauth2_ipc_mutex_lock(log, _curl_mutex);
 	if (_s_curl == NULL) {
 		_s_curl = curl_easy_init();
 		if (_s_curl == NULL) {
 			oauth2_error(log, "curl_easy_init() error");
 		}
 	}
-	_curl_refcount++;
 	return _s_curl;
 }
 
-static void oauth2_curl_free(CURL *curl)
+static void oauth2_curl_free(oauth2_log_t *log, CURL *curl)
 {
-	_curl_refcount--;
-	if ((_curl_refcount == 0) && (_s_curl)) {
-		curl_easy_cleanup(_s_curl);
-		_s_curl = NULL;
-	}
+	oauth2_ipc_mutex_unlock(log, _curl_mutex);
 }
 
 char *oauth2_url_encode(oauth2_log_t *log, const char *src)
@@ -290,7 +295,7 @@ end:
 	if (rc)
 		curl_free(rc);
 	if (curl)
-		oauth2_curl_free(curl);
+		oauth2_curl_free(log, curl);
 
 	oauth2_debug(log, "leave: %s", dst);
 
@@ -340,7 +345,7 @@ end:
 	if (replaced)
 		oauth2_mem_free(replaced);
 	if (curl)
-		oauth2_curl_free(curl);
+		oauth2_curl_free(log, curl);
 
 	oauth2_debug(log, "leave: %s", dst);
 

@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2021 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2022 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -437,7 +437,8 @@ char *oauth2_cfg_set_endpoint_auth(oauth2_log_t *log,
 		    rv,
 		    _oauth2_cfg_endpoint_auth_options_set[i + 1].type == NULL
 			? " or "
-			: i > 0 ? ", " : "",
+		    : i > 0 ? ", "
+			    : "",
 		    _oauth2_cfg_endpoint_auth_options_set[i].type, NULL);
 		i++;
 	}

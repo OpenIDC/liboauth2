@@ -3,7 +3,7 @@
 
 /***************************************************************************
  *
- * Copyright (C) 2018-2021 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2022 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -30,7 +30,7 @@ typedef struct oauth2_cache_t {
 	oauth2_cache_type_t *type;
 	char *key_hash_algo;
 	bool encrypt;
-	unsigned char *enc_key;
+	char *enc_key;
 	char *passphrase_hash_algo;
 } oauth2_cache_t;
 
