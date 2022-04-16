@@ -1,5 +1,7 @@
 04/16/2022
+- fix file cache so we do not try to remove a file that was cleaned just before; see #33
 - fix tests for client_secret_jwt and private_key_jwt so encoded JWT comparison works for cjose >= 0.6.2
+- release 1.4.4.2
 
 03/06/2022
 - add support for OpenSSL 3.0; closes #31

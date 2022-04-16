@@ -497,7 +497,8 @@ static bool oauth2_cache_file_set(oauth2_log_t *log, oauth2_cache_t *cache,
 	_oauth2_cache_files_clean(log, impl);
 
 	if (value == NULL) {
-		rc = _oauth2_cache_file_remove(log, path);
+		if (access(path, F_OK) == 0)
+			rc = _oauth2_cache_file_remove(log, path);
 		goto unlock;
 	}
 
