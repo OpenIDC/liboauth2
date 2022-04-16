@@ -1,3 +1,6 @@
+04/16/2022
+- fix tests for client_secret_jwt and private_key_jwt so encoded JWT comparison works for cjose >= 0.6.2
+
 03/06/2022
 - add support for OpenSSL 3.0; closes #31
 - bump to 1.5.0dev
