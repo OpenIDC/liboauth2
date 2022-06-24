@@ -1,3 +1,7 @@
+06/24/2022
+- add cjose, curl and ssl to liboauth2.pc.in
+- bump to 1.5.0dev
+
 04/16/2022
 - fix file cache so we do not try to remove a file that was cleaned just before; see #33
 - fix tests for client_secret_jwt and private_key_jwt so encoded JWT comparison works for cjose >= 0.6.2
