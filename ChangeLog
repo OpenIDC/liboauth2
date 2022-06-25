@@ -1,5 +1,6 @@
 06/24/2022
 - add cjose, curl and ssl to liboauth2.pc.in
+- add add curl and cjose flags to liboauth2_cache_la_CFLAGS
 - bump to 1.5.0dev
 
 04/16/2022
