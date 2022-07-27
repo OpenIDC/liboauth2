@@ -338,10 +338,11 @@ static apr_status_t oauth2_apache_request_context_free(void *rec)
 }
 
 oauth2_apache_request_ctx_t *
-oauth2_apache_request_context(request_rec *r,
+oauth2_apache_request_context(request_rec *rr,
 			      oauth2_log_function_t request_log_cb,
 			      const char *user_data_key)
 {
+	request_rec *r = (rr->main != NULL) ? rr->main : rr;
 	oauth2_apache_request_ctx_t *ctx = NULL;
 	apr_pool_userdata_get((void **)&ctx, user_data_key, r->pool);
 	if (ctx == NULL) {
