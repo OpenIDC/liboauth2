@@ -922,11 +922,17 @@ static bool _oauth2_jose_jwt_verify_jwk(oauth2_log_t *log, void *rec,
 	    (strcmp(ctx->kid, kid) != 0))
 		goto end;
 
+	err.code = CJOSE_ERR_NONE;
 	if (cjose_jws_verify(ctx->jws, jwk->jwk, &err) == true) {
 		oauth2_debug(log, "cjose_jws_verify returned true");
 		ctx->verified = true;
 		// break the loop
 		rc = false;
+	} else if (err.code != CJOSE_ERR_NONE) {
+		oauth2_warn(log, "cjose_jws_verify failed: [%s:%lu %s %s]",
+			    err.file ? err.file : "<n/a>", err.line,
+			    err.function ? err.function : "<n/a>",
+			    err.message ? err.message : "");
 	}
 
 end:
