@@ -641,6 +641,7 @@ oauth2_jose_jwk_list_clone(oauth2_log_t *log, oauth2_jose_jwk_list_t *src)
 {
 	oauth2_jose_jwk_list_t *dst = NULL, *ptr = NULL, *last = NULL,
 			       *elem = NULL;
+	char *str = NULL;
 	cjose_err err;
 
 	ptr = src;
@@ -651,9 +652,17 @@ oauth2_jose_jwk_list_clone(oauth2_log_t *log, oauth2_jose_jwk_list_t *src)
 		elem->jwk->kid = oauth2_strdup(ptr->jwk->kid);
 
 		err.code = CJOSE_ERR_NONE;
-		elem->jwk->jwk = cjose_jwk_retain(ptr->jwk->jwk, &err);
+
+		// cjose_jwk_retain is not thread safe
+		str = cjose_jwk_to_json(ptr->jwk->jwk, true, &err);
+		if (str) {
+			elem->jwk->jwk =
+			    cjose_jwk_import(str, strlen(str), &err);
+			cjose_get_dealloc()(str);
+		}
+
 		if ((elem->jwk->jwk == NULL) && (err.code != CJOSE_ERR_NONE)) {
-			oauth2_error(log, "cjose_jwk_retain failed: %s",
+			oauth2_error(log, "cjose_jwk_to_json/import failed: %s",
 				     err.message);
 			oauth2_jose_jwk_list_free(log, elem);
 			continue;

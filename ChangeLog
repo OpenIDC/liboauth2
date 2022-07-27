@@ -2,6 +2,8 @@
 - use main request for Apache request contexts
 - set refresh to true when getting jwsk_uri results from cache
 - print warning when cjose_jws_verify fails
+- avoid using cjose_jwk_retain because it is not thread safe
+- release 1.4.5
 
 06/24/2022
 - add cjose, curl and ssl to liboauth2.pc.in
