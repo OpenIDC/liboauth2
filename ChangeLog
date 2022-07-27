@@ -1,5 +1,6 @@
 07/27/2022
 - use main request for Apache request contexts
+- set refresh to true when getting jwsk_uri results from cache
 
 06/24/2022
 - add cjose, curl and ssl to liboauth2.pc.in

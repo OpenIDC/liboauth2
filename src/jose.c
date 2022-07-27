@@ -2070,6 +2070,8 @@ char *oauth2_jose_resolve_from_uri(oauth2_log_t *log, oauth2_uri_ctx_t *uri_ctx,
 		oauth2_cache_get(log, uri_ctx->cache,
 				 oauth2_cfg_endpoint_get_url(uri_ctx->endpoint),
 				 &response);
+
+		*refresh = true;
 	}
 
 	if (response == NULL) {
