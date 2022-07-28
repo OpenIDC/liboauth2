@@ -1,3 +1,6 @@
+07/28/2022
+- fix memory leak when using OAuth2Verify metadata
+
 07/27/2022
 - use main request for Apache request contexts
 - set refresh to true when getting jwsk_uri results from cache

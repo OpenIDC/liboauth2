@@ -467,10 +467,16 @@ ctx->metadata_uri = oauth2_uri_ctx_init(log);
 _OAUTH2_CFG_CTX_INIT_END
 
 _OAUTH2_CFG_CTX_CLONE_START(oauth2_metadata_ctx)
+if (dst->introspect)
+	oauth2_introspect_ctx_free(log, dst->introspect);
 dst->introspect = oauth2_introspect_ctx_clone(log, src->introspect);
+if (dst->jwks_uri_verify)
+	oauth2_jose_jwt_verify_ctx_free(log, dst->jwks_uri_verify);
 dst->jwks_uri_verify =
     oauth2_jose_jwt_verify_ctx_clone(log, src->jwks_uri_verify);
 dst->metadata_uri = oauth2_uri_ctx_clone(log, src->metadata_uri);
+if (dst->metadata_uri)
+	oauth2_uri_ctx_free(log, dst->metadata_uri);
 _OAUTH2_CFG_CTX_CLONE_END
 
 _OAUTH2_CFG_CTX_FREE_START(oauth2_metadata_ctx)
