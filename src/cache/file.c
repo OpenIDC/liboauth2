@@ -37,6 +37,10 @@
 
 #include "cache_int.h"
 
+#ifndef F_OK
+	#define F_OK 0
+#endif
+
 typedef struct oauth2_cache_impl_file_t {
 	oauth2_ipc_mutex_t *mutex;
 	char *dir;
@@ -499,7 +503,9 @@ static bool oauth2_cache_file_set(oauth2_log_t *log, oauth2_cache_t *cache,
 	_oauth2_cache_files_clean(log, impl);
 
 	if (value == NULL) {
-		rc = _oauth2_cache_file_remove(log, path);
+		rc = (access(path, F_OK) == 0)
+			 ? _oauth2_cache_file_remove(log, path)
+			 : true;
 		goto unlock;
 	}
 

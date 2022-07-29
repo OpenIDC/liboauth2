@@ -22,7 +22,7 @@ Generic library to build C-based OAuth 2.x and OpenID Connect servers and client
 - OAuth 2.0 Token Introspection ([RFC 7662](https://tools.ietf.org/html/rfc7662))
 - JWT bearer token validation using JWK, JWKS URI, shared symmetric key, X.509 cert, and RSA public key ([RFC 6750](https://tools.ietf.org/html/rfc6750))
 - OAuth 2.0 Authorization Server Metadata ([RFC 8414](https://tools.ietf.org/html/rfc8414))
-- Proof Key for Code Exchange (PCKE) by OAuth Public Clients ([RFC 7636](https://tools.ietf.org/html/rfc7636))
+- Proof Key for Code Exchange (PKCE) by OAuth Public Clients ([RFC 7636](https://tools.ietf.org/html/rfc7636))
 - OAuth 2.0 Mutual-TLS (MTLS) Certificate-Bound Access Tokens  ([RFC 8705](https://tools.ietf.org/html/rfc8705))
 - OAuth 2.0 Demonstration of Proof-of-Possession (DPoP) at the Application Layer ([Internet-Draft](https://tools.ietf.org/html/draft-ietf-oauth-dpop))
 - Amazon ALB [EC key URL based `x-amzn-oidc-data` JWT verification](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/listener-authenticate-users.html)

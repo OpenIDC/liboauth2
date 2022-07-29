@@ -89,6 +89,7 @@ noinst_LTLIBRARIES = liboauth2_cache.la
 liboauth2_la_LIBADD += liboauth2_cache.la
 liboauth2_cache_la_SOURCES = src/cache.c
 liboauth2_cache_la_CPPFLAGS = $(AM_CPPFLAGS)
+liboauth2_cache_la_CFLAGS = @CURL_CFLAGS@ @CJOSE_CFLAGS@
 
 if HAVE_LIBMEMCACHE
 liboauth2_cache_la_CPPFLAGS += -DHAVE_LIBMEMCACHE

@@ -272,12 +272,6 @@ static const char *_oauth_cache_get_enc_key(oauth2_log_t *log,
 	if (strcmp(passphrase_hash_algo, "none") == 0) {
 		cache->enc_key = oauth2_strdup(passphrase);
 	} else {
-		//		if (oauth2_jose_hash_bytes(log,
-		// passphrase_hash_algo,
-		// (const unsigned char *)passphrase,
-		// strlen(passphrase),
-		//&cache->enc_key,
-		//&enc_key_len) == false) {
 		if (oauth2_jose_hash2s(log, passphrase_hash_algo, passphrase,
 				       &cache->enc_key) == false) {
 			oauth2_error(
