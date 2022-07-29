@@ -13,9 +13,10 @@ set ERROR_CODE=0
 
 @REM ==== START VALIDATION ====
 if not "%VCPKG_HOME%"=="" goto OK_VCPKG_HOME
-echo The VCPKG_HOME environment variable is not defined correctly >&2
-echo This environment variable is needed to run this program >&2
-goto error
+
+SET BASE_DIR=%cd%
+set VCPKG_HOME=%BASE_DIR%/vcpkg
+mkdir "%VCPKG_HOME%"
 
 echo The VCPKG_HOME environment variable exists
 :OK_VCPKG_HOME
@@ -33,16 +34,20 @@ call "%VCPKG_HOME%\bootstrap-vcpkg.bat"
 :VCPKG_BUILT
 @REM ==== Checking if libraries are built ====
 REM echo The %VCPKG_CMD% has already been built
-if not exist "%VCPKG_HOME%/installed/x64-windows/include/pcre"       %VCPKG_CMD% install pcre --triplet x64-windows
 if not exist "%VCPKG_HOME%/installed/x64-windows/include/openssl"     %VCPKG_CMD% install openssl --triplet x64-windows
 if not exist "%VCPKG_HOME%/installed/x64-windows/include/curl"     %VCPKG_CMD% install curl --triplet x64-windows
 if not exist "%VCPKG_HOME%/installed/x64-windows/include/jansson" %VCPKG_CMD% install jansson --triplet x64-windows
 
 %VCPKG_CMD% integrate install 
 
-:error
-set ERROR_CODE=1
+goto continue
 
+:error
+echo ==== WE GOT AN ERROR ====
+set ERROR_CODE=1
+exit
+
+:continue
 @ECHO Over changes to cjose and mod_auth_openidc so they compile on windows
 xcopy changes\*.* /r /q /y /s
 

@@ -37,6 +37,10 @@
 
 #include "cache_int.h"
 
+#ifndef F_OK
+	#define F_OK 0
+#endif
+
 typedef struct oauth2_cache_impl_file_t {
 	oauth2_ipc_mutex_t *mutex;
 	char *dir;
