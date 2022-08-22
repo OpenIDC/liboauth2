@@ -923,6 +923,7 @@ static size_t oauth2_http_curl_buf_write(void *contents, size_t size,
 	memcpy(newptr, mem->memory, mem->size);
 	memcpy(&(newptr[mem->size]), contents, realsize);
 	mem->size += realsize;
+	oauth2_mem_free(mem->memory);
 	mem->memory = newptr;
 	mem->memory[mem->size] = 0;
 
