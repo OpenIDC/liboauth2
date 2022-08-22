@@ -1,3 +1,8 @@
+08/22/2022
+- fix concurrency issue when using OAuth2Verify metadata; see #37; thanks @rtitle
+- fix memory leak in cURL writeback function
+- release 1.4.5.1
+
 07/28/2022
 - fix memory leak when using OAuth2Verify metadata
 
