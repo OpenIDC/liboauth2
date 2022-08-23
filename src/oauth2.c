@@ -467,9 +467,15 @@ ctx->metadata_uri = oauth2_uri_ctx_init(log);
 _OAUTH2_CFG_CTX_INIT_END
 
 _OAUTH2_CFG_CTX_CLONE_START(oauth2_metadata_ctx)
+if (dst->introspect)
+	oauth2_introspect_ctx_free(log, dst->introspect);
 dst->introspect = oauth2_introspect_ctx_clone(log, src->introspect);
+if (dst->jwks_uri_verify)
+	oauth2_jose_jwt_verify_ctx_free(log, dst->jwks_uri_verify);
 dst->jwks_uri_verify =
     oauth2_jose_jwt_verify_ctx_clone(log, src->jwks_uri_verify);
+if (dst->metadata_uri)
+	oauth2_uri_ctx_free(log, dst->metadata_uri);
 dst->metadata_uri = oauth2_uri_ctx_clone(log, src->metadata_uri);
 _OAUTH2_CFG_CTX_CLONE_END
 
@@ -496,7 +502,9 @@ static bool _oauth2_metadata_verify_callback(oauth2_log_t *log,
 	char *response = NULL;
 	json_t *json_metadata = NULL, *json_jwks_uri = NULL,
 	       *json_introspection_endpoint;
-	const char *jwks_uri = NULL, *introspection_endpoint = NULL;
+	oauth2_jose_jwt_verify_ctx_t *jwks_uri_verify = NULL;
+	oauth2_introspect_ctx_t *introspect_ctx = NULL;
+	const char *jwks_uri = NULL, *introspection_uri = NULL;
 	char *peek = NULL;
 
 	if ((verify == NULL) || (verify->ctx == NULL) ||
@@ -532,12 +540,14 @@ jwks_uri:
 			oauth2_warn(log, "\"jwks_uri\" value is not a string");
 		}
 	}
-
 	if (jwks_uri) {
+		// NB: need a copy because we're going to modify a static/shared config setting
+		jwks_uri_verify =
+		    oauth2_jose_jwt_verify_ctx_clone(log, ptr->jwks_uri_verify);
 		oauth2_cfg_endpoint_set_url(
-		    ptr->jwks_uri_verify->jwks_provider->jwks_uri->endpoint,
+		    jwks_uri_verify->jwks_provider->jwks_uri->endpoint,
 		    jwks_uri);
-		rc = oauth2_jose_jwt_verify(log, ptr->jwks_uri_verify, token,
+		rc = oauth2_jose_jwt_verify(log, jwks_uri_verify, token,
 					    json_payload, s_payload);
 		if (rc == true)
 			goto end;
@@ -549,7 +559,7 @@ introspect:
 	    json_object_get(json_metadata, "introspection_endpoint");
 	if (json_introspection_endpoint) {
 		if (json_is_string(json_introspection_endpoint)) {
-			introspection_endpoint =
+			introspection_uri =
 			    json_string_value(json_introspection_endpoint);
 		} else {
 			oauth2_warn(
@@ -558,10 +568,13 @@ introspect:
 		}
 	}
 
-	if (introspection_endpoint) {
-		oauth2_cfg_endpoint_set_url(ptr->introspect->endpoint,
-					    introspection_endpoint);
-		rc = _oauth2_introspect_verify(log, ptr->introspect, token,
+	if (introspection_uri) {
+		// NB: need a copy because we're going to modify a static/shared config setting
+		introspect_ctx =
+		    oauth2_introspect_ctx_clone(log, ptr->introspect);
+		oauth2_cfg_endpoint_set_url(introspect_ctx->endpoint,
+					    introspection_uri);
+		rc = _oauth2_introspect_verify(log, introspect_ctx, token,
 					       json_payload, s_payload);
 		if (rc == true)
 			goto end;
@@ -575,6 +588,10 @@ end:
 		json_decref(json_metadata);
 	if (response)
 		oauth2_mem_free(response);
+	if (jwks_uri_verify)
+		oauth2_jose_jwt_verify_ctx_free(log, jwks_uri_verify);
+	if (introspect_ctx)
+		oauth2_introspect_ctx_free(log, introspect_ctx);
 
 	return rc;
 }

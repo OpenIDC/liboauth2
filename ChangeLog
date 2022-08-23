@@ -1,3 +1,11 @@
+08/22/2022
+- fix concurrency issue when using OAuth2Verify metadata; see #37; thanks @rtitle
+- fix memory leak in cURL writeback function
+- release 1.4.5.1
+
+07/28/2022
+- fix memory leak when using OAuth2Verify metadata
+
 07/27/2022
 - use main request for Apache request contexts
 - set refresh to true when getting jwsk_uri results from cache
