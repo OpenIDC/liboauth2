@@ -1,3 +1,7 @@
+11/23/2022
+- add JANSSON_LIBS to apache/nginx LIBADD; closes #40; thanks @pskopnik
+- bump to 1.4.5.2dev
+
 08/22/2022
 - fix concurrency issue when using OAuth2Verify metadata; see #37; thanks @rtitle
 - fix memory leak in cURL writeback function
