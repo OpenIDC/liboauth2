@@ -1,3 +1,6 @@
+11/30/2022
+- initialize check_oauth2 properly; call OPENSSL_init_crypto for OpenSSL >= 1.1.0
+
 11/23/2022
 - add JANSSON_LIBS to apache/nginx LIBADD; closes #40; thanks @pskopnik
 - bump to 1.4.5.2dev

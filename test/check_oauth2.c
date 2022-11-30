@@ -37,12 +37,12 @@ void oauth2_check_oauth2_cleanup()
 
 static void setup(void)
 {
-	_log = oauth2_log_init(OAUTH2_LOG_TRACE1, 0);
+	_log = oauth2_init(OAUTH2_LOG_TRACE1, 0);
 }
 
 static void teardown(void)
 {
-	oauth2_log_free(_log);
+	oauth2_shutdown(_log);
 }
 
 START_TEST(test_oauth2_verify_clone)

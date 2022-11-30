@@ -541,7 +541,8 @@ jwks_uri:
 		}
 	}
 	if (jwks_uri) {
-		// NB: need a copy because we're going to modify a static/shared config setting
+		// NB: need a copy because we're going to modify a static/shared
+		// config setting
 		jwks_uri_verify =
 		    oauth2_jose_jwt_verify_ctx_clone(log, ptr->jwks_uri_verify);
 		oauth2_cfg_endpoint_set_url(
@@ -569,7 +570,8 @@ introspect:
 	}
 
 	if (introspection_uri) {
-		// NB: need a copy because we're going to modify a static/shared config setting
+		// NB: need a copy because we're going to modify a static/shared
+		// config setting
 		introspect_ctx =
 		    oauth2_introspect_ctx_clone(log, ptr->introspect);
 		oauth2_cfg_endpoint_set_url(introspect_ctx->endpoint,
