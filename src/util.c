@@ -47,7 +47,7 @@ oauth2_log_t *oauth2_init(oauth2_log_level_t level, oauth2_log_sink_t *sink)
 {
 	oauth2_log_t *log = NULL;
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
-	OPENSSL_init_crypto();
+	OPENSSL_init_crypto(0, NULL);
 #else
 	ERR_load_crypto_strings();
 	OpenSSL_add_all_algorithms();
