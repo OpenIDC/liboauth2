@@ -27,13 +27,13 @@ AC_SUBST(CJOSE_LIBS)
 
 AC_ARG_WITH([memcache], AS_HELP_STRING([--with-memcache], [build with Memcache cache support [default=autodetect]]),)
 if test "x$with_memcache" != "xno"; then
-	PKG_CHECK_MODULES([MEMCACHE], [libmemcached >= 0.8.0], [have_memcache="yes"], [have_memcache="no"])
+	PKG_CHECK_MODULES([MEMCACHE], [libmemcached >= 1.0], [have_memcache="yes"], [have_memcache="no"])
 fi
 AM_CONDITIONAL(HAVE_LIBMEMCACHE, [test x"$have_memcache" = "xyes"])
 AC_SUBST(MEMCACHE_CFLAGS)
 AC_SUBST(MEMCACHE_LIBS)
 if test x"$have_memcache" = "xyes"; then
-	MEMCACHE_PC=', libmemcached >= 0.8.0'
+	MEMCACHE_PC=', libmemcached >= 1.0'
 fi
 AC_SUBST(MEMCACHE_PC)
 
