@@ -1,3 +1,7 @@
+12/06/2022
+- change Apache module init info log
+- release 1.4.5.2
+
 11/30/2022
 - initialize check_oauth2 properly; call OPENSSL_init_crypto for OpenSSL >= 1.1.0
 

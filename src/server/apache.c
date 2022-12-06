@@ -237,8 +237,9 @@ int oauth2_apache_post_config(apr_pool_t *pool, apr_pool_t *p1, apr_pool_t *p2,
 
 	cfg = (oauth2_apache_cfg_srv_t *)ap_get_module_config(s->module_config,
 							      m);
-	oauth2_info(cfg->log, "%s-%s - init", package_name_version,
-		    oauth2_package_string());
+
+	ap_log_error(APLOG_MARK, APLOG_INFO, 0, s, "%s-%s - init",
+		     package_name_version, oauth2_package_string());
 
 end:
 
