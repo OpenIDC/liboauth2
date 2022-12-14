@@ -1,3 +1,7 @@
+12/14/2022
+- fix NGINX https schema detection
+- bump to 1.4.5.3dev
+
 12/06/2022
 - change Apache module init info log
 - release 1.4.5.2

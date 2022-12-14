@@ -113,9 +113,10 @@ const char *ap_run_http_scheme(const request_rec *r)
 	return "https";
 }
 
-AP_DECLARE(void) ap_log_error_(const char *file, int line, int module_index,
-		int level, apr_status_t status, const server_rec *s, const char *fmt,
-		...) {
+AP_DECLARE(void)
+ap_log_error_(const char *file, int line, int module_index, int level,
+	      apr_status_t status, const server_rec *s, const char *fmt, ...)
+{
 }
 #endif
 
