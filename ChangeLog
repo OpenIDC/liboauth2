@@ -1,3 +1,7 @@
+01/20/2023
+- don't add WWW-Authenticate header(s) but (over)write a single one; see zmartzone/mod_oauth2#42
+- release 1.4.5.3
+
 12/14/2022
 - fix NGINX https schema detection
 - bump to 1.4.5.3dev

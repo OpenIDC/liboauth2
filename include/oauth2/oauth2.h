@@ -55,6 +55,7 @@
 #define OAUTH2_ERROR_INVALID_TOKEN "invalid_token"
 #define OAUTH2_ERROR_INVALID_REQUEST "invalid_request"
 #define OAUTH2_ERROR_INSUFFICIENT_SCOPE "insufficient_scope"
+#define OAUTH2_ERROR_INSUFFICIENT_USER_AUTHENTICATION "insufficient_user_authentication"
 
 #define OAUTH2_CLAIM_ISS "iss"
 #define OAUTH2_CLAIM_SUB "sub"

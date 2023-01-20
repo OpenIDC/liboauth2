@@ -309,7 +309,7 @@ int oauth2_apache_return_www_authenticate(oauth2_cfg_source_token_t *cfg,
 					  const char *error_description);
 bool oauth2_apache_request_header_set(oauth2_log_t *log, void *rec,
 				      const char *name, const char *value);
-void oauth2_apache_hdr_out_add(oauth2_log_t *log, const request_rec *r,
+void oauth2_apache_hdr_out_set(oauth2_log_t *log, const request_rec *r,
 			       const char *name, const char *value);
 void oauth2_apache_scrub_headers(oauth2_apache_request_ctx_t *ctx,
 				 oauth2_cfg_target_pass_t *target_pass);
