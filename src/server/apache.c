@@ -384,7 +384,7 @@ int oauth2_apache_return_www_authenticate(oauth2_cfg_source_token_t *cfg,
 		hdr = apr_psprintf(ctx->r->pool, "%s, %s=\"%s\"", hdr,
 				   OAUTH2_ERROR_DESCRIPTION, error_description);
 
-	oauth2_apache_hdr_out_set(ctx->log, ctx->r,
+	oauth2_apache_hdr_out_add(ctx->log, ctx->r,
 				  OAUTH2_HTTP_HDR_WWW_AUTHENTICATE, hdr);
 
 	oauth2_debug(ctx->log, "leave");
@@ -423,11 +423,11 @@ end:
 	return rc;
 }
 
-bool oauth2_apache_response_header_set(oauth2_log_t *log, void *rec,
+bool oauth2_apache_response_header_add(oauth2_log_t *log, void *rec,
 				       const char *name, const char *value)
 {
 	request_rec *r = (request_rec *)rec;
-	oauth2_apache_hdr_out_set(log, r, name, value);
+	oauth2_apache_hdr_out_add(log, r, name, value);
 	return true;
 }
 
@@ -441,7 +441,7 @@ bool oauth2_apache_http_response_set(oauth2_log_t *log,
 		goto end;
 
 	oauth2_http_response_headers_loop(log, response,
-					  oauth2_apache_response_header_set, r);
+					  oauth2_apache_response_header_add, r);
 
 	r->status = oauth2_http_response_status_code_get(log, response);
 
@@ -452,11 +452,11 @@ end:
 	return rc;
 }
 
-void oauth2_apache_hdr_out_set(oauth2_log_t *log, const request_rec *r,
+void oauth2_apache_hdr_out_add(oauth2_log_t *log, const request_rec *r,
 			       const char *name, const char *value)
 {
 	oauth2_debug(log, "%s: %s", name, value);
-	apr_table_set(r->err_headers_out, name, value);
+	apr_table_add(r->err_headers_out, name, value);
 }
 
 void oauth2_apache_scrub_headers(oauth2_apache_request_ctx_t *ctx,

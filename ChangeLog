@@ -1,3 +1,7 @@
+01/21/2023
+- revert header_add/header_set change
+- release 1.4.5.4
+
 01/20/2023
 - don't add WWW-Authenticate header(s) but (over)write a single one; see zmartzone/mod_oauth2#42
 - release 1.4.5.3
