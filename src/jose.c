@@ -138,11 +138,19 @@ bool oauth2_jose_hash_bytes(oauth2_log_t *log, const char *digest,
 	EVP_MD_CTX_init(ctx);
 
 	if ((evp_digest = EVP_get_digestbyname(digest)) == NULL) {
-		oauth2_error(
-		    log,
-		    "no OpenSSL digest algorithm found for algorithm \"%s\"",
-		    digest);
-		goto end;
+		// hack away for el7/x86 where Apache is compiled against
+		// OpenSSL 1.0.2 but NGINX 1.20.1 against OpenSSL 1.1.0
+		if (strcmp(digest, "sha256") == 0) {
+			oauth2_debug(log, "try to directly set EVP_sha256");
+			evp_digest = EVP_sha256();
+		}
+		if (evp_digest == NULL) {
+			oauth2_error(log,
+				     "no OpenSSL digest algorithm found for "
+				     "algorithm \"%s\"",
+				     digest);
+			goto end;
+		}
 	}
 
 	if (!EVP_DigestInit_ex(ctx, evp_digest, NULL))
