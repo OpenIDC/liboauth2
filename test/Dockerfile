@@ -1,6 +1,6 @@
 #FROM ubuntu:trusty
 FROM ubuntu:bionic
-MAINTAINER hans.zandbelt@zmartzone.eu
+MAINTAINER hans.zandbelt@openidc.com
 
 RUN apt-get update && apt-get install -y pkg-config make gcc gdb lcov valgrind vim curl wget
 RUN apt-get update && apt-get install -y autoconf automake libtool

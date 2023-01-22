@@ -1,8 +1,6 @@
 [![Build Status](https://github.com/zmartzone/liboauth2/actions/workflows/build.yml/badge.svg)](https://github.com/zmartzone/liboauth2/actions/workflows/build.yml)
 [![Architectures Status](https://github.com/zmartzone/liboauth2/actions/workflows/archs.yml/badge.svg)](https://github.com/zmartzone/liboauth2/actions/workflows/archs.yml)
 [![CodeQL Analysis](https://github.com/zmartzone/liboauth2/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/zmartzone/liboauth2/actions/workflows/codeql-analysis.yml)
-[![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/zmartzone/liboauth2.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/zmartzone/liboauth2/context:cpp)
-[![Total alerts](https://img.shields.io/lgtm/alerts/g/zmartzone/liboauth2.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/zmartzone/liboauth2/alerts/)
 
 # liboauth2
 Generic library to build C-based OAuth 2.x and OpenID Connect servers and clients e.g. web-server plugins.
@@ -52,10 +50,10 @@ See [Frequently Asked Questions](https://github.com/zmartzone/liboauth2/wiki) on
 Ask questions in the [Discussions](https://github.com/zmartzone/liboauth2/discussions) tracker.
 
 ### Commercial Support
-For commercial support contracts, professional services, training, and use-case specific support, contact [ZmartZone IAM](https://www.zmartzone.eu) at:
-[sales@zmartzone.eu](mailto:sales@zmartzone.eu)
+For commercial support contracts, professional services, training, and use-case specific support, contact [OpenIDC](https://www.openidc.com) at:
+[sales@openidc.com](mailto:sales@openidc.com)
 
 Disclaimer
 ----------
-*This software is open sourced by ZmartZone IAM. For commercial support
-you can contact [ZmartZone IAM](https://www.zmartzone.eu) as described above in the [Support](#support) section.*
+*This software is open sourced by OpenIDC. For commercial support
+you can contact [OpenIDC](https://www.openidc.com) as described above in the [Support](#support) section.*
