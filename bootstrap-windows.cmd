@@ -53,7 +53,7 @@ xcopy changes\*.* /r /q /y /s
 
 @ECHO Downloading Apache http x64 zip files.
 
-if exist ".\target\httpd-2.4.54-win64-VS16" goto APACHE_DOWNLOADED
+if exist ".\target\httpd-2.4.55-win64-VS16" goto APACHE_DOWNLOADED
 
 powershell .\download.ps1
 
