@@ -28,8 +28,8 @@ jobs:
             distro: ubuntu20.04
   
     steps:
-    - uses: actions/checkout@v2.4.0
-    - uses: uraimo/run-on-arch-action@v2.1.1
+    - uses: actions/checkout@v3
+    - uses: uraimo/run-on-arch-action@v2
       name: Build
       id: build
       with:

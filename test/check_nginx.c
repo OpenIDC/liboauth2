@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2022 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2023 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -52,6 +52,9 @@ static void setup(void)
 	_request->pool = ngx_create_pool(1024, NULL);
 	_request->connection = oauth2_mem_alloc(sizeof(ngx_connection_t));
 	_request->connection->log = NULL;
+	_request->http_connection =
+	    oauth2_mem_alloc(sizeof(ngx_http_connection_t));
+	_request->http_connection->ssl = 1;
 	ngx_list_init(&_request->headers_out.headers, _request->pool, 20,
 		      sizeof(ngx_table_elt_t));
 	ngx_list_init(&_request->headers_in.headers, _request->pool, 20,
@@ -93,6 +96,7 @@ static void teardown(void)
 
 	list_free(&_request->headers_out.headers);
 	list_free(&_request->headers_in.headers);
+	oauth2_mem_free(_request->http_connection);
 	oauth2_mem_free(_request->connection);
 	ngx_destroy_pool(_request->pool);
 	oauth2_mem_free(_request);

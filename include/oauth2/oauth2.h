@@ -3,7 +3,7 @@
 
 /***************************************************************************
  *
- * Copyright (C) 2018-2022 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2023 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -55,6 +55,8 @@
 #define OAUTH2_ERROR_INVALID_TOKEN "invalid_token"
 #define OAUTH2_ERROR_INVALID_REQUEST "invalid_request"
 #define OAUTH2_ERROR_INSUFFICIENT_SCOPE "insufficient_scope"
+#define OAUTH2_ERROR_INSUFFICIENT_USER_AUTHENTICATION                          \
+	"insufficient_user_authentication"
 
 #define OAUTH2_CLAIM_ISS "iss"
 #define OAUTH2_CLAIM_SUB "sub"

@@ -1,3 +1,26 @@
+01/21/2023
+- revert header_add/header_set change
+- release 1.4.5.4
+
+01/20/2023
+- don't add WWW-Authenticate header(s) but (over)write a single one; see zmartzone/mod_oauth2#42
+- release 1.4.5.3
+
+12/14/2022
+- fix NGINX https schema detection
+- bump to 1.4.5.3dev
+
+12/06/2022
+- change Apache module init info log
+- release 1.4.5.2
+
+11/30/2022
+- initialize check_oauth2 properly; call OPENSSL_init_crypto for OpenSSL >= 1.1.0
+
+11/23/2022
+- add JANSSON_LIBS to apache/nginx LIBADD; closes #40; thanks @pskopnik
+- bump to 1.4.5.2dev
+
 08/22/2022
 - fix concurrency issue when using OAuth2Verify metadata; see #37; thanks @rtitle
 - fix memory leak in cURL writeback function
