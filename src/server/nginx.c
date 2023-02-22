@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2022 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2023 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -87,7 +87,9 @@ void oauth2_nginx_log(oauth2_log_sink_t *sink, const char *filename,
 
 static void _oauth2_nginx_schema_copy(oauth2_nginx_request_context_t *ctx)
 {
-	_OAUTH2_NGINX_START_END_COPY(ctx, schema_start, schema_end, scheme);
+	oauth2_http_request_scheme_set(
+	    ctx->log, ctx->request,
+	    ctx->r->http_connection->ssl == 1 ? "https" : "http");
 }
 
 static void _oauth2_nginx_host_copy(oauth2_nginx_request_context_t *ctx)

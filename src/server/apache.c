@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2022 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2023 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -244,8 +244,9 @@ int oauth2_apache_post_config(apr_pool_t *pool, apr_pool_t *p1, apr_pool_t *p2,
 
 	cfg = (oauth2_apache_cfg_srv_t *)ap_get_module_config(s->module_config,
 							      m);
-	oauth2_info(cfg->log, "%s-%s - init", package_name_version,
-		    oauth2_package_string());
+
+	ap_log_error(APLOG_MARK, APLOG_INFO, 0, s, "%s-%s - init",
+		     package_name_version, oauth2_package_string());
 
 end:
 
@@ -429,7 +430,7 @@ end:
 	return rc;
 }
 
-bool oauth2_apache_response_header_set(oauth2_log_t *log, void *rec,
+bool oauth2_apache_response_header_add(oauth2_log_t *log, void *rec,
 				       const char *name, const char *value)
 {
 	request_rec *r = (request_rec *)rec;
@@ -447,7 +448,7 @@ bool oauth2_apache_http_response_set(oauth2_log_t *log,
 		goto end;
 
 	oauth2_http_response_headers_loop(log, response,
-					  oauth2_apache_response_header_set, r);
+					  oauth2_apache_response_header_add, r);
 
 	r->status = oauth2_http_response_status_code_get(log, response);
 

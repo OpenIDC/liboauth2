@@ -121,7 +121,7 @@ liboauth2_apache_la_pkgconfig_DATA = liboauth2_apache.pc
 
 liboauth2_apache_la_CPPFLAGS = $(AM_CPPFLAGS) -DHAVE_APACHE
 liboauth2_apache_la_CFLAGS = @APACHE_CFLAGS@
-liboauth2_apache_la_LIBADD = liboauth2.la @APR_LIBS@
+liboauth2_apache_la_LIBADD = liboauth2.la @APR_LIBS@ @JANSSON_LIBS@
 
 includesub_HEADERS += \
 	include/oauth2/apache.h
@@ -142,7 +142,7 @@ liboauth2_nginx_la_pkgconfig_DATA = liboauth2_nginx.pc
 
 liboauth2_nginx_la_CPPFLAGS = $(AM_CPPFLAGS) -DHAVE_NGINX
 liboauth2_nginx_la_CFLAGS = @NGINX_CFLAGS@
-liboauth2_nginx_la_LIBADD = liboauth2.la @NGINX_LIBS@
+liboauth2_nginx_la_LIBADD = liboauth2.la @NGINX_LIBS@ @JANSSON_LIBS@
 
 includesub_HEADERS += \
 	include/oauth2/nginx.h

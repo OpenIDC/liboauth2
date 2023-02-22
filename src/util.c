@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2022 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2023 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -46,8 +46,13 @@ static oauth2_ipc_mutex_t *_curl_mutex = NULL;
 oauth2_log_t *oauth2_init(oauth2_log_level_t level, oauth2_log_sink_t *sink)
 {
 	oauth2_log_t *log = NULL;
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+	OPENSSL_init_crypto(0, NULL);
+#else
 	ERR_load_crypto_strings();
 	OpenSSL_add_all_algorithms();
+	OpenSSL_add_all_digests();
+#endif
 	// TODO: align flags/call with memory initialization in mem.c
 	//       possibly providing alloc funcs as part of init?
 	curl_global_init(CURL_GLOBAL_ALL);
