@@ -1,6 +1,6 @@
 03/01/2023
 - add support for introspect.params; see https://github.com/zmartzone/mod_oauth2/discussions/44
-- bump to 1.4.5.5rc1
+- release 1.4.5.5
 
 01/22/2023
 - hack for el7/x86 where openssl 1.0.2 and openssl 1.1.1 are installed for respectively Apache and NGINX 1.20.1
