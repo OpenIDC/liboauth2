@@ -556,6 +556,9 @@ static char *oauth2_check_oauth2_serve_post(const char *request)
 		if (oauth2_parse_form_encoded_params(_log, data, &params) ==
 		    false)
 			goto error;
+		token = oauth2_nv_list_get(_log, params, "key2");
+		if ((token == NULL) || (strcmp(token, "two") != 0))
+			goto error;
 		token = oauth2_nv_list_get(_log, params, "token");
 		if (token == NULL)
 			goto error;
@@ -788,7 +791,9 @@ START_TEST(test_oauth2_verify_token_introspection)
 			    post_introspection_path, NULL);
 
 	rv = oauth2_cfg_token_verify_add_options(
-	    _log, &verify, "introspect", url, "introspect.ssl_verify=false");
+	    _log, &verify, "introspect", url,
+	    "introspect.ssl_verify=false&introspect.params=key1%3Done%26key2%"
+	    "3Dtwo");
 	ck_assert_ptr_eq(rv, NULL);
 
 	rc = oauth2_token_verify(_log, NULL, verify, "bogus", &json_payload);
@@ -1002,8 +1007,9 @@ START_TEST(test_oauth2_verify_token_metadata)
 	url = oauth2_stradd(NULL, oauth2_check_http_base_url(), metadata_path,
 			    NULL);
 
-	rv = oauth2_cfg_token_verify_add_options(_log, &verify, "metadata", url,
-						 "&verify.exp=skip");
+	rv = oauth2_cfg_token_verify_add_options(
+	    _log, &verify, "metadata", url,
+	    "&verify.exp=skip&&introspect.params=key2%3Dtwo");
 	ck_assert_ptr_eq(rv, NULL);
 
 	// reference token

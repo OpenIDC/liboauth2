@@ -274,19 +274,24 @@ end:
 
 _OAUTH2_CFG_CTX_TYPE_START(oauth2_introspect_ctx)
 oauth2_cfg_endpoint_t *endpoint;
+oauth2_nv_list_t *params;
 _OAUTH2_CFG_CTX_TYPE_END(oauth2_introspect_ctx)
 
 _OAUTH2_CFG_CTX_INIT_START(oauth2_introspect_ctx)
 ctx->endpoint = NULL;
+ctx->params = NULL;
 _OAUTH2_CFG_CTX_INIT_END
 
 _OAUTH2_CFG_CTX_CLONE_START(oauth2_introspect_ctx)
 dst->endpoint = oauth2_cfg_endpoint_clone(log, src->endpoint);
+dst->params = oauth2_nv_list_clone(log, src->params);
 _OAUTH2_CFG_CTX_CLONE_END
 
 _OAUTH2_CFG_CTX_FREE_START(oauth2_introspect_ctx)
 if (ctx->endpoint)
 	oauth2_cfg_endpoint_free(log, ctx->endpoint);
+if (ctx->params)
+	oauth2_nv_list_free(log, ctx->params);
 _OAUTH2_CFG_CTX_FREE_END
 
 _OAUTH2_CFG_CTX_FUNCS(oauth2_introspect_ctx)
@@ -331,7 +336,7 @@ static bool _oauth2_introspect_verify(oauth2_log_t *log,
 	oauth2_nv_list_add(log, params, OAUTH2_INTROSPECT_TOKEN_TYPE_HINT,
 			   OAUTH2_INTROSPECT_TOKEN_TYPE_HINT_ACCESS_TOKEN);
 
-	// TODO: add configurable extra POST params
+	oauth2_nv_list_merge_into(log, ctx->params, params);
 
 	if (oauth2_http_ctx_auth_add(
 		log, http_ctx, oauth2_cfg_endpoint_get_auth(ctx->endpoint),
@@ -428,6 +433,11 @@ static char *_oauth2_verify_options_set_introspect_url_ctx(
 	ctx->endpoint = oauth2_cfg_endpoint_init(log);
 	rv = oauth2_cfg_set_endpoint(log, ctx->endpoint, url, params,
 				     "introspect");
+
+	if (oauth2_parse_form_encoded_params(
+		log, oauth2_nv_list_get(log, params, "introspect.params"),
+		&ctx->params) == false)
+		rv = oauth2_strdup("oauth2_parse_form_encoded_params failed");
 
 	oauth2_debug(log, "leave: %s", rv);
 
