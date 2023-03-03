@@ -38,7 +38,7 @@ jobs:
         install: |
           apt-get update -y
           apt-get install -y apache2-dev libcjose-dev libssl-dev check pkg-config wget
-          apt-get install -y libjansson-dev libcurl4-openssl-dev libhiredis-dev libmemcached-dev redis-server memcached
+          apt-get install -y libjansson-dev libcurl4-openssl-dev libhiredis-dev libmemcached-dev redis-server memcached libpcre2-dev libpcre2-8-0
           apt-get install -y build-essential libpcre3 libpcre3-dev zlib1g zlib1g-dev libxml2 libxml2-dev uuid-dev
           cd /tmp
           wget --no-check-certificate https://nginx.org/download/nginx-1.18.0.tar.gz
