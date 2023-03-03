@@ -18,14 +18,14 @@ jobs:
 #test/check_cache.c:74:F:core:test_cache_redis:0: Assertion 'value == ((void *)0)' failed: value == 0x4006a290, ((void *)0) == 0
 #test/check_nginx.c:102:E:core:test_request_context:0: (after this point) Test timeout expired
 #test/check_nginx.c:114:E:core:test_nginx_http_response_set:0: (after this point) Received signal 11 (Segmentation fault)
-#          - arch: armv7
-#            distro: ubuntu20.04
+          - arch: armv7
+            distro: ubuntu-latest
           - arch: aarch64
-            distro: ubuntu20.04
+            distro: ubuntu-latest
           - arch: ppc64le
-            distro: ubuntu20.04
+            distro: ubuntu-latest
           - arch: s390x
-            distro: ubuntu20.04
+            distro: ubuntu-latest
   
     steps:
     - uses: actions/checkout@v3

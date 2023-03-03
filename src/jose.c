@@ -1649,10 +1649,12 @@ _oauth2_jose_options_jwk_set_rsa_key(oauth2_log_t *log, EVP_PKEY *pkey,
 	rv = _oauth2_jose_verify_options_jwk_add_jwk(log, jwk, params, verify);
 
 end:
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
 	if (rsa_n)
 		BN_clear_free(rsa_n);
 	if (rsa_e)
 		BN_clear_free(rsa_e);
+#endif
 	if (key_spec.n)
 		oauth2_mem_free(key_spec.n);
 	if (key_spec.e)
