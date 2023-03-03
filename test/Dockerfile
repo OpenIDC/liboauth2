@@ -1,33 +1,20 @@
-#FROM ubuntu:trusty
-FROM ubuntu:bionic
-MAINTAINER hans.zandbelt@openidc.com
+FROM ubuntu:jammy
 
 RUN apt-get update && apt-get install -y pkg-config make gcc gdb lcov valgrind vim curl wget
 RUN apt-get update && apt-get install -y autoconf automake libtool
 RUN apt-get update && apt-get install -y libssl-dev libjansson-dev libcurl4-openssl-dev check
 RUN apt-get update && apt-get install -y apache2-dev
-#RUN apt-get update && apt-get install -y libcjose-dev
 RUN apt-get update && apt-get install -y libpcre3-dev zlib1g-dev
 
-ENV NGINX_VERSION 1.16.1
+ENV NGINX_VERSION 1.18.0
 WORKDIR /root
 RUN wget https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz
 RUN tar zxvf nginx-${NGINX_VERSION}.tar.gz
 RUN ln -s nginx-${NGINX_VERSION} nginx
 RUN cd /root/nginx && ./configure --with-debug
 
-#ENV FLAVOR trusty
-ENV FLAVOR bionic
-ENV CJOSE_VERSION 0.6.1.5
-
-ENV CJOSE_PKG libcjose0_${CJOSE_VERSION}-1~${FLAVOR}+1_arm64.deb
-RUN curl -s -L -o ~/${CJOSE_PKG} https://mod-auth-openidc.org/download/${CJOSE_PKG}
-RUN dpkg -i ~/${CJOSE_PKG}
-ENV CJOSE_PKG libcjose-dev_${CJOSE_VERSION}-1~${FLAVOR}+1_arm64.deb
-RUN curl -s -L -o ~/${CJOSE_PKG} https://mod-auth-openidc.org/download/${CJOSE_PKG}
-RUN dpkg -i ~/${CJOSE_PKG}
-RUN apt-get update && apt-get install -y -f
-
+RUN apt-get update && apt-get install -y libpcre2-dev libpcre2-8-0
+RUN apt-get update && apt-get install -y libcjose-dev libcjose0
 RUN apt-get update && apt-get install -y libmemcached-dev memcached
 RUN apt-get update && apt-get install -y libhiredis-dev redis-server
 

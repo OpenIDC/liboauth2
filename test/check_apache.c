@@ -185,6 +185,45 @@ START_TEST(test_apache_authz_match_claim)
 }
 END_TEST
 
+START_TEST(test_apache_authz_match_claim_expr)
+{
+	json_error_t err;
+	oauth2_apache_request_ctx_t *ctx = NULL;
+	const char *s_claims = "{ \"scope\": \"one, two, three, four, five\", "
+			       "\"scopes\": [ \"one\", \"two\", \"three\" ] }";
+	json_t *claims = NULL;
+	bool rc = false;
+
+	ctx = oauth2_apache_request_context(request, check_apache_log_request,
+					    "check_apache");
+	claims = json_loads(s_claims, 0, &err);
+
+	rc = oauth2_apache_authz_match_claim(ctx, "scope~(^|\\s)(one)($|\\s|,)",
+					     claims);
+	ck_assert_int_eq(rc, true);
+
+	rc = oauth2_apache_authz_match_claim(
+	    ctx, "scope~(^|\\s)(four)($|\\s|,)", claims);
+	ck_assert_int_eq(rc, true);
+
+	rc = oauth2_apache_authz_match_claim(
+	    ctx, "scope~(^|\\s)(five)($|\\s|,)", claims);
+	ck_assert_int_eq(rc, true);
+
+	rc = oauth2_apache_authz_match_claim(ctx, "scope~(^|\\s)(six)($|\\s|,)",
+					     claims);
+	ck_assert_int_eq(rc, false);
+
+	rc = oauth2_apache_authz_match_claim(ctx, "scopes~^three$", claims);
+	ck_assert_int_eq(rc, true);
+
+	rc = oauth2_apache_authz_match_claim(ctx, "scopes~^four", claims);
+	ck_assert_int_eq(rc, false);
+
+	json_decref(claims);
+}
+END_TEST
+
 START_TEST(test_apache_authorize)
 {
 	json_error_t err;
@@ -237,6 +276,7 @@ Suite *oauth2_check_apache_suite()
 
 	tcase_add_test(c, test_apache_request_state);
 	tcase_add_test(c, test_apache_authz_match_claim);
+	tcase_add_test(c, test_apache_authz_match_claim_expr);
 	tcase_add_test(c, test_apache_authorize);
 	tcase_add_test(c, test_apache_http_response_set);
 
