@@ -1,3 +1,6 @@
+03/07/2023
+- release 1.5.0
+
 03/03/2023
 - add support for regular expressions in Require statements; see https://github.com/zmartzone/mod_oauth2/discussions/39
 - depend on libpcre2
