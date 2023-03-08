@@ -8,7 +8,7 @@ libdir=@libdir@
 includedir=@includedir@
 
 Name: liboauth2_apache
-URL: https://github.com/zmartzone/liboauth2
+URL: https://github.com/OpenIDC/liboauth2
 Description: Apache C bindings for liboauth2
 Version: @VERSION@
 Requires: liboauth2 >= 1.5.0, apr-1, apr-util-1

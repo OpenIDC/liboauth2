@@ -1,6 +1,6 @@
-[![Build Status](https://github.com/zmartzone/liboauth2/actions/workflows/build.yml/badge.svg)](https://github.com/zmartzone/liboauth2/actions/workflows/build.yml)
-[![Architectures Status](https://github.com/zmartzone/liboauth2/actions/workflows/archs.yml/badge.svg)](https://github.com/zmartzone/liboauth2/actions/workflows/archs.yml)
-[![CodeQL Analysis](https://github.com/zmartzone/liboauth2/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/zmartzone/liboauth2/actions/workflows/codeql-analysis.yml)
+[![Build Status](https://github.com/OpenIDC/liboauth2/actions/workflows/build.yml/badge.svg)](https://github.com/OpenIDC/liboauth2/actions/workflows/build.yml)
+[![Architectures Status](https://github.com/OpenIDC/liboauth2/actions/workflows/archs.yml/badge.svg)](https://github.com/OpenIDC/liboauth2/actions/workflows/archs.yml)
+[![CodeQL Analysis](https://github.com/OpenIDC/liboauth2/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/OpenIDC/liboauth2/actions/workflows/codeql-analysis.yml)
 
 # liboauth2
 Generic library to build C-based OAuth 2.x and OpenID Connect servers and clients e.g. web-server plugins.
@@ -46,8 +46,8 @@ liboauth2 depends on the following libraries:
 ## Support
 
 ### Community Support
-See [Frequently Asked Questions](https://github.com/zmartzone/liboauth2/wiki) on the Wiki.  
-Ask questions in the [Discussions](https://github.com/zmartzone/liboauth2/discussions) tracker.
+See [Frequently Asked Questions](https://github.com/OpenIDC/liboauth2/wiki) on the Wiki.  
+Ask questions in the [Discussions](https://github.com/OpenIDC/liboauth2/discussions) tracker.
 
 ### Commercial Support
 For commercial support contracts, professional services, training, and use-case specific support, contact [OpenIDC](https://www.openidc.com) at:
