@@ -6,7 +6,7 @@
 Generic library to build C-based OAuth 2.x and OpenID Connect servers and clients e.g. web-server plugins.
 
 ## Overview
-- extends [cjose](https://github.com/cisco/cjose) into OAuth 2.x and OpenID Connect specific claims, secrets, and hashes
+- extends [cjose](https://github.com/OpenIDC/cjose) into OAuth 2.x and OpenID Connect specific claims, secrets, and hashes
 - adds OAuth 2.x and OpenID Connect protocols by abstracting HTTP requests and responses from web server implementation specifics
 - reusable code across other OAuth 2.x and REST related protocols
   e.g. token exchange with endpoint authentication, source token retrieval, target pass settings etc.
@@ -36,7 +36,7 @@ liboauth2 depends on the following libraries:
 - [`openssl`](https://www.openssl.org/) for SSL and crypto support
 - [`libcurl`](https://curl.haxx.se/libcurl/) for HTTP client support
 - [`jansson`](http://www.digip.org/jansson/) for JSON parsing
-- [`cjose`](https://github.com/cisco/cjose) for JSON Object Signing and Encryption (JOSE) support
+- [`cjose`](https://github.com/OpenIDC/cjose) for JSON Object Signing and Encryption (JOSE) support
 - (optional) [`libmemcached`](https://libmemcached.org) for memcache cache backend support
 - (optional) [`libhiredis`](https://github.com/redis/hiredis) for Redis cache backend support
 - (optional) [`Apache 2.x`](https://httpd.apache.org/) for Apache 2.x bindings support
