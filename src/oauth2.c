@@ -358,11 +358,20 @@ static bool _oauth2_introspect_verify(oauth2_log_t *log,
 		goto end;
 
 	active = json_object_get(*json_payload, OAUTH2_INTROSPECT_CLAIM_ACTIVE);
-	if (active == NULL)
+	if (active == NULL) {
+		oauth2_error(log,
+			     "no claim \"%s\" found in introspection response",
+			     OAUTH2_INTROSPECT_CLAIM_ACTIVE);
 		goto end;
+	}
 
-	if (json_is_boolean(active) == false)
+	if (json_is_boolean(active) == false) {
+		oauth2_error(log,
+			     "claim \"%s\" in introspection response "
+			     "is not a boolean",
+			     OAUTH2_INTROSPECT_CLAIM_ACTIVE);
 		goto end;
+	}
 
 	if (json_is_true(active) == false) {
 		oauth2_error(

@@ -1,3 +1,6 @@
+03/22/2023
+- add error logs about missing or invalid "active" boolean claim in introspection response
+
 03/08/2023
 - move repo to OpenIDC github organization
 
