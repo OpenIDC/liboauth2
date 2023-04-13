@@ -1,3 +1,7 @@
+04/14/2023
+- add support for resolving provider metadata from a Discovery endpoint URL; see https://github.com/OpenIDC/ngx_openidc_module/issues/18
+- bump to 1.5.1dev
+
 03/22/2023
 - add error logs about missing or invalid "active" boolean claim in introspection response
 

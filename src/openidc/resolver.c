@@ -215,6 +215,135 @@ static char *_oauth2_cfg_openidc_provider_resolver_file_set_options(
 	return NULL;
 }
 
+_OAUTH2_CFG_CTX_TYPE_START(oauth2_openidc_provider_resolver_url_ctx)
+oauth2_cfg_endpoint_t *endpoint;
+_OAUTH2_CFG_CTX_TYPE_END(oauth2_openidc_provider_resolver_url_ctx)
+
+_OAUTH2_CFG_CTX_INIT_START(oauth2_openidc_provider_resolver_url_ctx)
+ctx->endpoint = NULL;
+_OAUTH2_CFG_CTX_INIT_END
+
+_OAUTH2_CFG_CTX_CLONE_START(oauth2_openidc_provider_resolver_url_ctx)
+dst->endpoint = oauth2_cfg_endpoint_clone(log, src->endpoint);
+_OAUTH2_CFG_CTX_CLONE_END
+
+_OAUTH2_CFG_CTX_FREE_START(oauth2_openidc_provider_resolver_url_ctx)
+if (ctx->endpoint)
+	oauth2_cfg_endpoint_free(log, ctx->endpoint);
+_OAUTH2_CFG_CTX_FREE_END
+
+_OAUTH2_CFG_CTX_FUNCS(oauth2_openidc_provider_resolver_url_ctx)
+
+static bool _oauth2_openidc_provider_resolve_url_exec(
+    oauth2_log_t *log, oauth2_openidc_provider_resolver_url_ctx_t *ctx,
+    char **s_json)
+{
+	bool rc = false;
+	oauth2_http_call_ctx_t *http_ctx = NULL;
+	char *s_response = NULL;
+	oauth2_uint_t status_code = 0;
+
+	oauth2_debug(log, "enter");
+
+	http_ctx = oauth2_http_call_ctx_init(log);
+	if (http_ctx == NULL)
+		goto end;
+
+	if (oauth2_http_call_ctx_ssl_verify_set(
+		log, http_ctx,
+		oauth2_cfg_endpoint_get_ssl_verify(ctx->endpoint)) == false)
+		goto end;
+
+	if (oauth2_http_call_ctx_timeout_set(
+		log, http_ctx,
+		oauth2_cfg_endpoint_get_http_timeout(ctx->endpoint)) == false)
+		goto end;
+	oauth2_http_call_ctx_outgoing_proxy_set(
+	    log, http_ctx,
+	    oauth2_cfg_endpoint_get_outgoing_proxy(ctx->endpoint));
+
+	if (oauth2_http_get(log, oauth2_cfg_endpoint_get_url(ctx->endpoint),
+			    NULL, http_ctx, s_json, &status_code) == false)
+		goto end;
+
+	if ((status_code < 200) || (status_code >= 300)) {
+		goto end;
+	}
+
+	rc = true;
+
+end:
+
+	if (s_response)
+		oauth2_mem_free(s_response);
+	if (http_ctx)
+		oauth2_http_call_ctx_free(log, http_ctx);
+
+	oauth2_debug(log, "leave: %d", rc);
+
+	return rc;
+}
+
+static bool _oauth2_openidc_provider_resolve_url(
+    oauth2_log_t *log, const oauth2_cfg_openidc_t *cfg,
+    const oauth2_http_request_t *request, char **s_json)
+{
+	bool rc = false;
+	oauth2_openidc_provider_resolver_url_ctx_t *ctx = NULL;
+
+	oauth2_debug(log, "enter");
+
+	ctx = (oauth2_openidc_provider_resolver_url_ctx_t *)
+		  cfg->provider_resolver->ctx->ptr;
+	if (ctx->endpoint == NULL)
+		goto end;
+
+	if (_oauth2_openidc_provider_resolve_url_exec(log, ctx, s_json) ==
+	    false)
+		goto end;
+
+	rc = true;
+
+end:
+
+	oauth2_debug(log, "leave: %d", rc);
+
+	return rc;
+}
+
+static char *_oauth2_cfg_openidc_provider_resolver_url_set_options(
+    oauth2_log_t *log, const char *value, const oauth2_nv_list_t *params,
+    void *c)
+{
+	oauth2_cfg_openidc_t *cfg = (oauth2_cfg_openidc_t *)c;
+	char *rv = NULL;
+
+	// TODO: macroize?
+	cfg->provider_resolver = oauth2_cfg_openidc_provider_resolver_init(log);
+	cfg->provider_resolver->callback = _oauth2_openidc_provider_resolve_url;
+	cfg->provider_resolver->ctx->callbacks =
+	    &oauth2_openidc_provider_resolver_url_ctx_funcs;
+	cfg->provider_resolver->ctx->ptr =
+	    cfg->provider_resolver->ctx->callbacks->init(log);
+
+	// TODO: factor out?
+	oauth2_openidc_provider_resolver_url_ctx_t *ctx =
+	    (oauth2_openidc_provider_resolver_url_ctx_t *)
+		cfg->provider_resolver->ctx->ptr;
+
+	ctx->endpoint = oauth2_cfg_endpoint_init(log);
+	rv = oauth2_cfg_set_endpoint(log, ctx->endpoint, value, params, NULL);
+	if (rv)
+		goto end;
+
+	cfg->provider_resolver->cache =
+	    oauth2_cache_obtain(log, oauth2_nv_list_get(log, params, "cache"));
+
+end:
+
+	return rv;
+}
+
 // DIR
 
 static char *_oauth2_cfg_openidc_provider_resolver_dir_set_options(
@@ -286,12 +415,14 @@ static char *_oauth2_cfg_openidc_provider_resolver_string_set_options(
 #define OAUTH2_OPENIDC_PROVIDER_RESOLVER_STR_STR "string"
 #define OAUTH2_OPENIDC_PROVIDER_RESOLVER_FILE_STR "file"
 #define OAUTH2_OPENIDC_PROVIDER_RESOLVER_DIR_STR "dir"
+#define OAUTH2_OPENIDC_PROVIDER_RESOLVER_URL_STR "url"
 
 // clang-format off
 static oauth2_cfg_set_options_ctx_t _oauth2_cfg_resolver_options_set[] = {
 	{ OAUTH2_OPENIDC_PROVIDER_RESOLVER_STR_STR, _oauth2_cfg_openidc_provider_resolver_string_set_options },
 	{ OAUTH2_OPENIDC_PROVIDER_RESOLVER_FILE_STR, _oauth2_cfg_openidc_provider_resolver_file_set_options },
 	{ OAUTH2_OPENIDC_PROVIDER_RESOLVER_DIR_STR, _oauth2_cfg_openidc_provider_resolver_dir_set_options },
+	{ OAUTH2_OPENIDC_PROVIDER_RESOLVER_URL_STR, _oauth2_cfg_openidc_provider_resolver_url_set_options },
 	{ NULL, NULL }
 };
 // clang-format on
