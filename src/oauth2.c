@@ -540,21 +540,6 @@ static bool _oauth2_metadata_verify_callback(oauth2_log_t *log,
 	if (oauth2_json_decode_object(log, response, &json_metadata) == false)
 		goto end;
 
-	json_issuer = json_object_get(json_metadata, "issuer");
-	if (json_issuer) {
-		if (json_is_string(json_issuer)) {
-			ptr->jwks_uri_verify->issuer =
-			    oauth2_strdup(json_string_value(json_issuer));
-		} else {
-			oauth2_error(log, "\"issuer\" value is not a string");
-			goto end;
-		}
-	} else {
-		oauth2_error(log,
-			     "required \"issuer\" value not found in metadata");
-		goto end;
-	}
-
 	peek = oauth2_jose_jwt_header_peek(log, token, NULL);
 	if (peek) {
 		oauth2_debug(log, "JWT token: header=%s", peek);
@@ -579,6 +564,24 @@ jwks_uri:
 		// config setting
 		jwks_uri_verify =
 		    oauth2_jose_jwt_verify_ctx_clone(log, ptr->jwks_uri_verify);
+
+		json_issuer = json_object_get(json_metadata, "issuer");
+		if (json_issuer) {
+			if (json_is_string(json_issuer)) {
+				jwks_uri_verify->issuer = oauth2_strdup(
+				    json_string_value(json_issuer));
+			} else {
+				oauth2_error(
+				    log, "\"issuer\" value is not a string");
+				goto end;
+			}
+		} else {
+			oauth2_error(
+			    log,
+			    "required \"issuer\" value not found in metadata");
+			goto end;
+		}
+
 		oauth2_cfg_endpoint_set_url(
 		    jwks_uri_verify->jwks_provider->jwks_uri->endpoint,
 		    jwks_uri);

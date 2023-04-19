@@ -1145,29 +1145,27 @@ Suite *oauth2_check_oauth2_suite()
 						oauth2_check_oauth2_serve_post);
 
 	tcase_add_checked_fixture(c, setup, teardown);
-	/*
-		tcase_add_test(c, test_oauth2_auth_client_secret_basic);
-		tcase_add_test(c, test_oauth2_auth_client_secret_post);
-		tcase_add_test(c, test_oauth2_auth_client_secret_jwt);
-		tcase_add_test(c, test_oauth2_auth_private_key_jwt);
-		tcase_add_test(c, test_oauth2_auth_client_cert);
-		tcase_add_test(c, test_oauth2_auth_http_basic);
-		tcase_add_test(c, test_oauth2_auth_none);
-		tcase_add_test(c, test_oauth2_verify_clone);
-		tcase_add_test(c, test_oauth2_verify_jwks_uri);
-		tcase_add_test(c, test_oauth2_verify_jwk);
-		tcase_add_test(c, test_oauth2_verify_jwk_dpop);
-		tcase_add_test(c, test_oauth2_verify_eckey_uri);
-		tcase_add_test(c, test_oauth2_verify_token_introspection);
-		tcase_add_test(c, test_oauth2_verify_token_plain);
-		tcase_add_test(c, test_oauth2_verify_token_base64);
-		tcase_add_test(c, test_oauth2_verify_token_base64url);
-		tcase_add_test(c, test_oauth2_verify_token_hex);
-		tcase_add_test(c, test_oauth2_verify_token_pem);
-		tcase_add_test(c, test_oauth2_verify_token_pubkey);
-	*/
+	tcase_add_test(c, test_oauth2_auth_client_secret_basic);
+	tcase_add_test(c, test_oauth2_auth_client_secret_post);
+	tcase_add_test(c, test_oauth2_auth_client_secret_jwt);
+	tcase_add_test(c, test_oauth2_auth_private_key_jwt);
+	tcase_add_test(c, test_oauth2_auth_client_cert);
+	tcase_add_test(c, test_oauth2_auth_http_basic);
+	tcase_add_test(c, test_oauth2_auth_none);
+	tcase_add_test(c, test_oauth2_verify_clone);
+	tcase_add_test(c, test_oauth2_verify_jwks_uri);
+	tcase_add_test(c, test_oauth2_verify_jwk);
+	tcase_add_test(c, test_oauth2_verify_jwk_dpop);
+	tcase_add_test(c, test_oauth2_verify_eckey_uri);
+	tcase_add_test(c, test_oauth2_verify_token_introspection);
+	tcase_add_test(c, test_oauth2_verify_token_plain);
+	tcase_add_test(c, test_oauth2_verify_token_base64);
+	tcase_add_test(c, test_oauth2_verify_token_base64url);
+	tcase_add_test(c, test_oauth2_verify_token_hex);
+	tcase_add_test(c, test_oauth2_verify_token_pem);
+	tcase_add_test(c, test_oauth2_verify_token_pubkey);
 	tcase_add_test(c, test_oauth2_verify_token_metadata);
-	//	tcase_add_test(c, test_oauth2_verify_jwk_mtls);
+	tcase_add_test(c, test_oauth2_verify_jwk_mtls);
 
 	suite_add_tcase(s, c);
 
