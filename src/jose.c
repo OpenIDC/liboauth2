@@ -870,6 +870,7 @@ _OAUTH2_CFG_CTX_INIT_END
 
 _OAUTH2_CFG_CTX_CLONE_START(oauth2_jose_jwt_verify_ctx)
 dst->exp_validate = src->exp_validate;
+dst->iat_validate = src->iat_validate;
 dst->iss_validate = src->iss_validate;
 dst->issuer = oauth2_strdup(src->issuer);
 dst->iat_slack_after = src->iat_slack_after;
