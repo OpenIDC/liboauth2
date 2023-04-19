@@ -564,6 +564,7 @@ START_TEST(test_openidc_resolver_url)
 	oauth2_http_request_free(_log, r);
 	oauth2_cfg_openidc_free(_log, c);
 }
+END_TEST
 
 START_TEST(test_openidc_resolver)
 {
