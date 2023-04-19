@@ -862,6 +862,7 @@ _OAUTH2_CFG_CTX_INIT_START(oauth2_jose_jwt_verify_ctx)
 ctx->exp_validate = OAUTH2_CFG_UINT_UNSET;
 ctx->iat_validate = OAUTH2_CFG_UINT_UNSET;
 ctx->iss_validate = OAUTH2_CFG_UINT_UNSET;
+ctx->issuer = NULL;
 ctx->iat_slack_after = OAUTH2_CFG_UINT_UNSET;
 ctx->iat_slack_before = OAUTH2_CFG_UINT_UNSET;
 ctx->jwks_provider = NULL;
@@ -869,14 +870,16 @@ _OAUTH2_CFG_CTX_INIT_END
 
 _OAUTH2_CFG_CTX_CLONE_START(oauth2_jose_jwt_verify_ctx)
 dst->exp_validate = src->exp_validate;
+dst->iss_validate = src->iss_validate;
+dst->issuer = oauth2_strdup(src->issuer);
 dst->iat_slack_after = src->iat_slack_after;
 dst->iat_slack_before = src->iat_slack_before;
-dst->iat_validate = src->iat_validate;
-dst->iss_validate = src->iss_validate;
 dst->jwks_provider = _oauth2_jose_jwks_provider_clone(log, src->jwks_provider);
 _OAUTH2_CFG_CTX_CLONE_END
 
 _OAUTH2_CFG_CTX_FREE_START(oauth2_jose_jwt_verify_ctx)
+if (ctx->issuer)
+	oauth2_mem_free(ctx->issuer);
 if (ctx->jwks_provider)
 	_oauth2_jose_jwks_provider_free(log, ctx->jwks_provider);
 _OAUTH2_CFG_CTX_FREE_END
@@ -1207,14 +1210,15 @@ end:
 static bool
 _oauth2_jose_jwt_payload_validate(oauth2_log_t *log,
 				  oauth2_jose_jwt_verify_ctx_t *jwt_verify_ctx,
-				  const json_t *json_payload, const char *iss)
+				  const json_t *json_payload)
 {
 	bool rc = false;
 
 	oauth2_debug(log, "enter");
 
 	if (_oauth2_jose_jwt_validate_iss(
-		log, json_payload, iss, jwt_verify_ctx->iss_validate) == false)
+		log, json_payload, jwt_verify_ctx->issuer,
+		jwt_verify_ctx->iss_validate) == false)
 		goto end;
 
 	if (_oauth2_jose_jwt_validate_exp(
@@ -1332,8 +1336,8 @@ bool oauth2_jose_jwt_verify(oauth2_log_t *log,
 	}
 
 	if (jwt_verify_ctx) {
-		if (_oauth2_jose_jwt_payload_validate(
-			log, jwt_verify_ctx, *json_payload, NULL) == false) {
+		if (_oauth2_jose_jwt_payload_validate(log, jwt_verify_ctx,
+						      *json_payload) == false) {
 			json_decref(*json_payload);
 			*json_payload = NULL;
 			oauth2_mem_free(*s_payload);

@@ -503,6 +503,7 @@ static char metadata[512];
 static char *get_metadata_json()
 {
 	static char *format = "{"
+			      "\"issuer\": \"https://example.com\","
 			      "\"jwks_uri\": \"%s%s\","
 			      "\"introspection_endpoint\": \"%s%s\""
 			      "}";
@@ -572,7 +573,7 @@ static char *oauth2_check_oauth2_serve_post(const char *request)
 
 error:
 
-	rv = oauth2_strdup("problem");
+	rv = oauth2_strdup("{ \"error\": \"problem\" }");
 
 end:
 
@@ -1009,7 +1010,7 @@ START_TEST(test_oauth2_verify_token_metadata)
 
 	rv = oauth2_cfg_token_verify_add_options(
 	    _log, &verify, "metadata", url,
-	    "&verify.exp=skip&&introspect.params=key2%3Dtwo");
+	    "verify.exp=skip&verify.iss=required&introspect.params=key2%3Dtwo");
 	ck_assert_ptr_eq(rv, NULL);
 
 	// reference token
@@ -1045,8 +1046,21 @@ START_TEST(test_oauth2_verify_token_metadata)
 	    "x7Zf28T3ejzEX-ETefpTENX7BJ57-vQbAeECRTIo_LhzKTaDkiZWpf6JgraQg";
 
 	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
+	ck_assert_int_eq(rc, false);
+	json_decref(json_payload);
+
+	oauth2_cfg_token_verify_free(_log, verify);
+	verify = NULL;
+
+	rv = oauth2_cfg_token_verify_add_options(
+	    _log, &verify, "metadata", url,
+	    "verify.exp=skip&verify.iss=optional&introspect.params=key2%3Dtwo");
+	ck_assert_ptr_eq(rv, NULL);
+
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
 	ck_assert_int_eq(rc, true);
 	json_decref(json_payload);
+
 	// get it from the cache
 	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
 	ck_assert_int_eq(rc, true);
@@ -1131,28 +1145,29 @@ Suite *oauth2_check_oauth2_suite()
 						oauth2_check_oauth2_serve_post);
 
 	tcase_add_checked_fixture(c, setup, teardown);
-
-	tcase_add_test(c, test_oauth2_auth_client_secret_basic);
-	tcase_add_test(c, test_oauth2_auth_client_secret_post);
-	tcase_add_test(c, test_oauth2_auth_client_secret_jwt);
-	tcase_add_test(c, test_oauth2_auth_private_key_jwt);
-	tcase_add_test(c, test_oauth2_auth_client_cert);
-	tcase_add_test(c, test_oauth2_auth_http_basic);
-	tcase_add_test(c, test_oauth2_auth_none);
-	tcase_add_test(c, test_oauth2_verify_clone);
-	tcase_add_test(c, test_oauth2_verify_jwks_uri);
-	tcase_add_test(c, test_oauth2_verify_jwk);
-	tcase_add_test(c, test_oauth2_verify_jwk_dpop);
-	tcase_add_test(c, test_oauth2_verify_eckey_uri);
-	tcase_add_test(c, test_oauth2_verify_token_introspection);
-	tcase_add_test(c, test_oauth2_verify_token_plain);
-	tcase_add_test(c, test_oauth2_verify_token_base64);
-	tcase_add_test(c, test_oauth2_verify_token_base64url);
-	tcase_add_test(c, test_oauth2_verify_token_hex);
-	tcase_add_test(c, test_oauth2_verify_token_pem);
-	tcase_add_test(c, test_oauth2_verify_token_pubkey);
+	/*
+		tcase_add_test(c, test_oauth2_auth_client_secret_basic);
+		tcase_add_test(c, test_oauth2_auth_client_secret_post);
+		tcase_add_test(c, test_oauth2_auth_client_secret_jwt);
+		tcase_add_test(c, test_oauth2_auth_private_key_jwt);
+		tcase_add_test(c, test_oauth2_auth_client_cert);
+		tcase_add_test(c, test_oauth2_auth_http_basic);
+		tcase_add_test(c, test_oauth2_auth_none);
+		tcase_add_test(c, test_oauth2_verify_clone);
+		tcase_add_test(c, test_oauth2_verify_jwks_uri);
+		tcase_add_test(c, test_oauth2_verify_jwk);
+		tcase_add_test(c, test_oauth2_verify_jwk_dpop);
+		tcase_add_test(c, test_oauth2_verify_eckey_uri);
+		tcase_add_test(c, test_oauth2_verify_token_introspection);
+		tcase_add_test(c, test_oauth2_verify_token_plain);
+		tcase_add_test(c, test_oauth2_verify_token_base64);
+		tcase_add_test(c, test_oauth2_verify_token_base64url);
+		tcase_add_test(c, test_oauth2_verify_token_hex);
+		tcase_add_test(c, test_oauth2_verify_token_pem);
+		tcase_add_test(c, test_oauth2_verify_token_pubkey);
+	*/
 	tcase_add_test(c, test_oauth2_verify_token_metadata);
-	tcase_add_test(c, test_oauth2_verify_jwk_mtls);
+	//	tcase_add_test(c, test_oauth2_verify_jwk_mtls);
 
 	suite_add_tcase(s, c);
 

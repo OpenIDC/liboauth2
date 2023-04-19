@@ -67,6 +67,7 @@ typedef struct oauth2_jose_jwks_provider_t {
 
 _OAUTH2_CFG_CTX_TYPE_START(oauth2_jose_jwt_verify_ctx)
 oauth2_jose_jwks_provider_t *jwks_provider;
+char *issuer;
 oauth2_jose_jwt_validate_claim_t iss_validate;
 oauth2_jose_jwt_validate_claim_t exp_validate;
 oauth2_jose_jwt_validate_claim_t iat_validate;

@@ -519,8 +519,8 @@ static bool _oauth2_metadata_verify_callback(oauth2_log_t *log,
 	oauth2_metadata_ctx_t *ptr = NULL;
 	bool refresh = false;
 	char *response = NULL;
-	json_t *json_metadata = NULL, *json_jwks_uri = NULL,
-	       *json_introspection_endpoint;
+	json_t *json_metadata = NULL, *json_issuer = NULL,
+	       *json_jwks_uri = NULL, *json_introspection_endpoint;
 	oauth2_jose_jwt_verify_ctx_t *jwks_uri_verify = NULL;
 	oauth2_introspect_ctx_t *introspect_ctx = NULL;
 	const char *jwks_uri = NULL, *introspection_uri = NULL;
@@ -539,6 +539,21 @@ static bool _oauth2_metadata_verify_callback(oauth2_log_t *log,
 
 	if (oauth2_json_decode_object(log, response, &json_metadata) == false)
 		goto end;
+
+	json_issuer = json_object_get(json_metadata, "issuer");
+	if (json_issuer) {
+		if (json_is_string(json_issuer)) {
+			ptr->jwks_uri_verify->issuer =
+			    oauth2_strdup(json_string_value(json_issuer));
+		} else {
+			oauth2_error(log, "\"issuer\" value is not a string");
+			goto end;
+		}
+	} else {
+		oauth2_error(log,
+			     "required \"issuer\" value not found in metadata");
+		goto end;
+	}
 
 	peek = oauth2_jose_jwt_header_peek(log, token, NULL);
 	if (peek) {
