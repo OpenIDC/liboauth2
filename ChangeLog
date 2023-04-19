@@ -1,5 +1,6 @@
 04/19/2023
 - add issuer validation for JWT access tokens when configured through OAuth2Verify metadata; closes #44; thanks @chris-crunchr
+- release 1.5.1
 
 04/14/2023
 - add support for resolving provider metadata from a Discovery endpoint URL; see https://github.com/OpenIDC/ngx_openidc_module/issues/18
