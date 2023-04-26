@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @Author: Hans Zandbelt - hans.zandbelt@zmartzone.eu
+ * @Author: Hans Zandbelt - hans.zandbelt@openidc.com
  *
  **************************************************************************/
 
@@ -106,6 +106,7 @@ static cjose_jwk_t *jwk_rsa = NULL;
 static char *jwks_uri_path = "/jwks_uri";
 static char *token_endpoint_path = "/token";
 static char *userinfo_endpoint_path = "/userinfo";
+static char *discovery_endpoint_path = "/.well-known/openid-configuration";
 
 static cjose_jwk_t *oauth2_jwk_rsa_get()
 {
@@ -137,6 +138,10 @@ static char *oauth2_check_openidc_serve_get(const char *request)
 			   strlen(userinfo_endpoint_path)) == 0) {
 		rv = oauth2_strdup("{ \"sub\": \"myclient\", "
 				   "\"myuserinfoclaim\": \"somevalue\" }");
+	} else if (strncmp(request, discovery_endpoint_path,
+			   strlen(discovery_endpoint_path)) == 0) {
+		rv =
+		    oauth2_strdup("{ \"issuer\": \"https://op.example.org\" }");
 	} else {
 		rv = oauth2_strdup("problem");
 	}
@@ -526,6 +531,40 @@ static void _test_openidc_resolve_to_false(oauth2_cfg_openidc_t *c,
 	ck_assert_int_eq(rc, false);
 	ck_assert_ptr_eq(NULL, provider);
 }
+
+START_TEST(test_openidc_resolver_url)
+{
+	bool rc = false;
+	char *rv = NULL;
+	oauth2_cfg_openidc_t *c = NULL;
+	oauth2_http_request_t *r = NULL;
+	oauth2_openidc_provider_t *provider = NULL;
+	char *discovery_uri = oauth2_stradd(NULL, oauth2_check_http_base_url(),
+					    discovery_endpoint_path, NULL);
+
+	c = oauth2_cfg_openidc_init(_log);
+	r = oauth2_http_request_init(_log);
+
+	rv = oauth2_cfg_openidc_provider_resolver_set_options(
+	    _log, c, "url", discovery_uri, NULL);
+	ck_assert_ptr_eq(rv, NULL);
+
+	rc = _oauth2_openidc_provider_resolve(_log, c, r, NULL, &provider);
+	ck_assert_int_eq(rc, true);
+	ck_assert_ptr_ne(NULL, provider);
+	ck_assert_str_eq("https://op.example.org",
+			 oauth2_openidc_provider_issuer_get(_log, provider));
+	oauth2_openidc_provider_free(_log, provider);
+	provider = NULL;
+
+	oauth2_openidc_provider_free(_log, provider);
+	provider = NULL;
+
+	oauth2_mem_free(discovery_uri);
+	oauth2_http_request_free(_log, r);
+	oauth2_cfg_openidc_free(_log, c);
+}
+END_TEST
 
 START_TEST(test_openidc_resolver)
 {
@@ -1103,6 +1142,7 @@ Suite *oauth2_check_openidc_suite()
 	tcase_add_test(c, test_openidc_handle_cookie);
 	tcase_add_test(c, test_openidc_handle_cache);
 	tcase_add_test(c, test_openidc_state_cookie);
+	tcase_add_test(c, test_openidc_resolver_url);
 
 	tcase_set_timeout(c, 8);
 

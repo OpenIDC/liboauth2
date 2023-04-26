@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @Author: Hans Zandbelt - hans.zandbelt@zmartzone.eu
+ * @Author: Hans Zandbelt - hans.zandbelt@openidc.com
  *
  **************************************************************************/
 
@@ -23,6 +23,8 @@
 #include <oauth2/http.h>
 #include <oauth2/mem.h>
 #include <oauth2/oauth2.h>
+
+#include "util_int.h"
 
 #include <http_core.h>
 #include <http_log.h>
@@ -914,6 +916,90 @@ static bool oauth2_apache_authz_match_value(oauth2_apache_request_ctx_t *ctx,
 	return false;
 }
 
+static bool oauth2_apache_authz_match_expr(oauth2_apache_request_ctx_t *ctx,
+					   const char *spec_c, json_t *val)
+{
+	bool rc = false;
+	pcre2_code *preg = NULL;
+	char *error_str = NULL;
+	int i = 0;
+
+	/* setup the regex; spec_c points to the NULL-terminated value pattern
+	 */
+	preg = oauth2_pcre2_compile(spec_c);
+
+	if (preg == NULL) {
+		oauth2_error(ctx->log,
+			     "pattern [%s] is not a valid regular expression",
+			     spec_c);
+		goto end;
+	}
+
+	/* see if the claim is a literal string */
+	if (json_is_string(val)) {
+
+		error_str = NULL;
+		/* PCRE-compare the string value against the expression */
+		if (oauth2_pcre2_exec(preg, json_string_value(val),
+				      (int)strlen(json_string_value(val)),
+				      &error_str) > 0) {
+			oauth2_debug(ctx->log,
+				     "value \"%s\" matched regex \"%s\"",
+				     json_string_value(val), spec_c);
+			rc = true;
+			goto end;
+		} else if (error_str) {
+			oauth2_debug(ctx->log, "pcre error (string): %s",
+				     error_str);
+		}
+
+		/* see if the claim value is an array */
+	} else if (json_is_array(val)) {
+
+		/* compare the claim values in the array against the expression
+		 */
+		for (i = 0; i < json_array_size(val); i++) {
+
+			json_t *elem = json_array_get(val, i);
+			if (json_is_string(elem)) {
+
+				error_str = NULL;
+				/* PCRE-compare the string value against the
+				 * expression */
+				if (oauth2_pcre2_exec(
+					preg, json_string_value(elem),
+					(int)strlen(json_string_value(elem)),
+					&error_str) > 0) {
+					oauth2_debug(ctx->log,
+						     "array value \"%s\" "
+						     "matched regex \"%s\"",
+						     json_string_value(elem),
+						     spec_c);
+					rc = true;
+					goto end;
+				} else if (error_str) {
+					oauth2_debug(ctx->log,
+						     "pcre error (array): %s",
+						     error_str);
+				}
+				if (error_str) {
+					oauth2_mem_free(error_str);
+					error_str = NULL;
+				}
+			}
+		}
+	}
+
+end:
+
+	if (error_str)
+		oauth2_mem_free(error_str);
+	if (preg)
+		pcre2_code_free(preg);
+
+	return rc;
+}
+
 bool oauth2_apache_authz_match_claim(oauth2_apache_request_ctx_t *ctx,
 				     const char *const attr_spec,
 				     const json_t *const claims)
@@ -956,17 +1042,15 @@ bool oauth2_apache_authz_match_claim(oauth2_apache_request_ctx_t *ctx,
 				return true;
 
 			/* a tilde denotes a string PCRE match */
-			//			} else if (!(*attr_c) &&
-			//(*spec_c)
-			//== '~') {
-			//
-			//				/* skip the tilde */
-			//				spec_c++;
-			//
-			//				if
-			//(oauth2_authz_match_expression(r, spec_c, val) ==
-			// TRUE) 					return
-			// true;
+		} else if (!(*attr_c) && (*spec_c) == '~') {
+
+			/* skip the tilde */
+			spec_c++;
+
+			if (oauth2_apache_authz_match_expr(ctx, spec_c, val) ==
+			    true)
+				return true;
+
 			/* dot means child nodes must be evaluated */
 		} else if (!(*attr_c) && (*spec_c) == '.') {
 

@@ -16,16 +16,16 @@ jobs:
       matrix:
         include:
 #test/check_cache.c:74:F:core:test_cache_redis:0: Assertion 'value == ((void *)0)' failed: value == 0x4006a290, ((void *)0) == 0
-#test/check_nginx.c:102:E:core:test_request_context:0: (after this point) Test timeout expired
-#test/check_nginx.c:114:E:core:test_nginx_http_response_set:0: (after this point) Received signal 11 (Segmentation fault)
+#test/check_nginx.c:106:E:core:test_request_context:0: (after this point) Received signal 11 (Segmentation fault)
+#test/check_nginx.c:118:E:core:test_nginx_http_response_set:0: (after this point) Received signal 11 (Segmentation fault)  
 #          - arch: armv7
-#            distro: ubuntu20.04
+#            distro: ubuntu_latest
           - arch: aarch64
-            distro: ubuntu20.04
+            distro: ubuntu_latest
           - arch: ppc64le
-            distro: ubuntu20.04
+            distro: ubuntu_latest
           - arch: s390x
-            distro: ubuntu20.04
+            distro: ubuntu_latest
   
     steps:
     - uses: actions/checkout@v3
@@ -38,7 +38,7 @@ jobs:
         install: |
           apt-get update -y
           apt-get install -y apache2-dev libcjose-dev libssl-dev check pkg-config wget
-          apt-get install -y libjansson-dev libcurl4-openssl-dev libhiredis-dev libmemcached-dev redis-server memcached
+          apt-get install -y libjansson-dev libcurl4-openssl-dev libhiredis-dev libmemcached-dev redis-server memcached libpcre2-dev libpcre2-8-0
           apt-get install -y build-essential libpcre3 libpcre3-dev zlib1g zlib1g-dev libxml2 libxml2-dev uuid-dev
           cd /tmp
           wget --no-check-certificate https://nginx.org/download/nginx-1.18.0.tar.gz

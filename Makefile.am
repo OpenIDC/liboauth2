@@ -43,8 +43,8 @@ lib_LTLIBRARIES = liboauth2.la
 liboauth2_la_pkgconfigdir = $(libdir)/pkgconfig
 liboauth2_la_pkgconfig_DATA = liboauth2.pc
 
-liboauth2_la_CFLAGS = @CURL_CFLAGS@ @CJOSE_CFLAGS@
-liboauth2_la_LIBADD = @CURL_LIBS@ @CJOSE_LIBS@
+liboauth2_la_CFLAGS = @CURL_CFLAGS@ @CJOSE_CFLAGS@ @PCRE2_CFLAGS@
+liboauth2_la_LIBADD = @CURL_LIBS@ @CJOSE_LIBS@ @PCRE2_LIBS@
 
 liboauth2_la_SOURCES = \
 	src/version.c \
@@ -161,7 +161,7 @@ TESTS = check_liboauth2
 check_PROGRAMS = $(TESTS)
 
 check_liboauth2_CPPFLAGS = $(liboauth2_cache_la_CPPFLAGS)
-check_liboauth2_CFLAGS = @OPENSSL_CFLAGS@ @CURL_CFLAGS@ @CJOSE_CFLAGS@ @CHECK_CFLAGS@
+check_liboauth2_CFLAGS = @OPENSSL_CFLAGS@ @CURL_CFLAGS@ @CJOSE_CFLAGS@ @PCRE2_CFLAGS@ @CHECK_CFLAGS@
 check_liboauth2_LDADD = liboauth2.la
 if HAVE_APACHE
 check_liboauth2_CPPFLAGS += $(liboauth2_apache_la_CPPFLAGS)
@@ -173,7 +173,7 @@ check_liboauth2_CPPFLAGS += $(liboauth2_nginx_la_CPPFLAGS)
 check_liboauth2_CFLAGS += $(liboauth2_nginx_la_CFLAGS)
 check_liboauth2_LDADD += liboauth2_nginx.la
 endif
-check_liboauth2_LDADD += @OPENSSL_LIBS@ @CURL_LIBS@ @CJOSE_LIBS@ @CHECK_LIBS@
+check_liboauth2_LDADD += @OPENSSL_LIBS@ @CURL_LIBS@ @CJOSE_LIBS@ @PCRE2_LIBS@ @CHECK_LIBS@
 
 check_liboauth2_SOURCES = \
 	test/check_liboauth2.h \
@@ -226,10 +226,10 @@ docker-coverage: clean
 	docker run -it --rm $(TAG):latest /bin/bash -c "./start.sh && make check-code-coverage"
 
 docker-valgrind: docker
-	docker run -it --rm -e CK_FORK=no $(TAG):latest /bin/bash -c "./start.sh && /usr/bin/valgrind --leak-check=full --show-leak-kinds=all .libs/check_liboauth2"
+	docker run -it --rm -e CK_FORK=no $(TAG):latest /bin/bash -c "./start.sh && /usr/bin/valgrind --leak-check=full --show-leak-kinds=definite --read-inline-info=yes --keep-debuginfo=yes .libs/check_liboauth2"
 	
 docker-valgrind-%: docker
-	docker run -it --rm -e CK_FORK=no -e CK_RUN_SUITE=${subst docker-valgrind-,,$@} $(TAG):latest /bin/bash -c "./start.sh && /usr/bin/valgrind --leak-check=full --show-leak-kinds=all .libs/check_liboauth2"
+	docker run -it --rm -e CK_FORK=no -e CK_RUN_SUITE=${subst docker-valgrind-,,$@} $(TAG):latest /bin/bash -c "./start.sh && /usr/bin/valgrind --leak-check=full --show-leak-kinds=definite --read-inline-info=yes --keep-debuginfo=yes .libs/check_liboauth2"
 
 docker-gdb: docker
 	docker run --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -it --rm -e CK_FORK=no $(TAG):latest /bin/bash -c "./start.sh && /usr/bin/gdb .libs/check_liboauth2"

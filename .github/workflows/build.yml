@@ -24,7 +24,7 @@ jobs:
           - 11211:11211
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Dependencies
       env:
@@ -32,7 +32,7 @@ jobs:
       run: |
         sudo apt-get update -y
         sudo apt-get install -y apache2-dev libcjose-dev libssl-dev check pkg-config
-        sudo apt-get install -y libjansson-dev libcurl4-openssl-dev libhiredis-dev libmemcached-dev
+        sudo apt-get install -y libjansson-dev libcurl4-openssl-dev libhiredis-dev libmemcached-dev libpcre2-dev libpcre2-8-0
         sudo apt-get install build-essential libpcre3 libpcre3-dev zlib1g zlib1g-dev libxml2 libxml2-dev uuid-dev
         cd /tmp
         wget https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz
