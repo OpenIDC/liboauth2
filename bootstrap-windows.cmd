@@ -37,6 +37,7 @@ REM echo The %VCPKG_CMD% has already been built
 if not exist "%VCPKG_HOME%/installed/x64-windows/include/openssl"     %VCPKG_CMD% install openssl --triplet x64-windows
 if not exist "%VCPKG_HOME%/installed/x64-windows/include/curl"     %VCPKG_CMD% install curl --triplet x64-windows
 if not exist "%VCPKG_HOME%/installed/x64-windows/include/jansson" %VCPKG_CMD% install jansson --triplet x64-windows
+if not exist "%VCPKG_HOME%/installed/x64-windows/include/pcre2"     %VCPKG_CMD% install pcre2 --triplet x64-windows
 
 %VCPKG_CMD% integrate install 
 
