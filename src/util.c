@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @Author: Hans Zandbelt - hans.zandbelt@zmartzone.eu
+ * @Author: Hans Zandbelt - hans.zandbelt@openidc.com
  *
  **************************************************************************/
 
@@ -1448,4 +1448,50 @@ end:
 		fclose(fp);
 
 	return rv;
+}
+
+pcre2_code *oauth2_pcre2_compile(const char *regexp)
+{
+	int errorcode;
+	PCRE2_SIZE erroroffset;
+	pcre2_code *preg =
+	    pcre2_compile((PCRE2_SPTR)regexp, (PCRE2_SIZE)strlen(regexp), 0,
+			  &errorcode, &erroroffset, NULL);
+	return preg;
+}
+
+int oauth2_pcre2_exec(pcre2_code *preg, const char *input, int len,
+		      char **error_str)
+{
+	int rc = 0;
+	pcre2_match_data *match_data = NULL;
+
+	match_data = pcre2_match_data_create_from_pattern(preg, NULL);
+
+	if (match_data == NULL) {
+		*error_str = oauth2_strdup(
+		    "pcre2_match_data_create_from_pattern failed");
+		goto end;
+	}
+
+	rc = pcre2_match(preg, (PCRE2_SPTR)input, (PCRE2_SIZE)len, 0, 0,
+			 match_data, NULL);
+
+	if (rc < 0) {
+		switch (rc) {
+		case PCRE2_ERROR_NOMATCH:
+			*error_str =
+			    oauth2_strdup("string did not match the pattern");
+			break;
+		default:
+			*error_str = oauth2_strdup("unknown error");
+			break;
+		}
+	}
+
+end:
+	if (match_data)
+		pcre2_match_data_free(match_data);
+
+	return rc;
 }

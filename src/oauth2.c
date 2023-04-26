@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @Author: Hans Zandbelt - hans.zandbelt@zmartzone.eu
+ * @Author: Hans Zandbelt - hans.zandbelt@openidc.com
  *
  **************************************************************************/
 
@@ -274,19 +274,24 @@ end:
 
 _OAUTH2_CFG_CTX_TYPE_START(oauth2_introspect_ctx)
 oauth2_cfg_endpoint_t *endpoint;
+oauth2_nv_list_t *params;
 _OAUTH2_CFG_CTX_TYPE_END(oauth2_introspect_ctx)
 
 _OAUTH2_CFG_CTX_INIT_START(oauth2_introspect_ctx)
 ctx->endpoint = NULL;
+ctx->params = NULL;
 _OAUTH2_CFG_CTX_INIT_END
 
 _OAUTH2_CFG_CTX_CLONE_START(oauth2_introspect_ctx)
 dst->endpoint = oauth2_cfg_endpoint_clone(log, src->endpoint);
+dst->params = oauth2_nv_list_clone(log, src->params);
 _OAUTH2_CFG_CTX_CLONE_END
 
 _OAUTH2_CFG_CTX_FREE_START(oauth2_introspect_ctx)
 if (ctx->endpoint)
 	oauth2_cfg_endpoint_free(log, ctx->endpoint);
+if (ctx->params)
+	oauth2_nv_list_free(log, ctx->params);
 _OAUTH2_CFG_CTX_FREE_END
 
 _OAUTH2_CFG_CTX_FUNCS(oauth2_introspect_ctx)
@@ -331,7 +336,7 @@ static bool _oauth2_introspect_verify(oauth2_log_t *log,
 	oauth2_nv_list_add(log, params, OAUTH2_INTROSPECT_TOKEN_TYPE_HINT,
 			   OAUTH2_INTROSPECT_TOKEN_TYPE_HINT_ACCESS_TOKEN);
 
-	// TODO: add configurable extra POST params
+	oauth2_nv_list_merge_into(log, ctx->params, params);
 
 	if (oauth2_http_ctx_auth_add(
 		log, http_ctx, oauth2_cfg_endpoint_get_auth(ctx->endpoint),
@@ -353,11 +358,20 @@ static bool _oauth2_introspect_verify(oauth2_log_t *log,
 		goto end;
 
 	active = json_object_get(*json_payload, OAUTH2_INTROSPECT_CLAIM_ACTIVE);
-	if (active == NULL)
+	if (active == NULL) {
+		oauth2_error(log,
+			     "no claim \"%s\" found in introspection response",
+			     OAUTH2_INTROSPECT_CLAIM_ACTIVE);
 		goto end;
+	}
 
-	if (json_is_boolean(active) == false)
+	if (json_is_boolean(active) == false) {
+		oauth2_error(log,
+			     "claim \"%s\" in introspection response "
+			     "is not a boolean",
+			     OAUTH2_INTROSPECT_CLAIM_ACTIVE);
 		goto end;
+	}
 
 	if (json_is_true(active) == false) {
 		oauth2_error(
@@ -428,6 +442,11 @@ static char *_oauth2_verify_options_set_introspect_url_ctx(
 	ctx->endpoint = oauth2_cfg_endpoint_init(log);
 	rv = oauth2_cfg_set_endpoint(log, ctx->endpoint, url, params,
 				     "introspect");
+
+	if (oauth2_parse_form_encoded_params(
+		log, oauth2_nv_list_get(log, params, "introspect.params"),
+		&ctx->params) == false)
+		rv = oauth2_strdup("oauth2_parse_form_encoded_params failed");
 
 	oauth2_debug(log, "leave: %s", rv);
 
@@ -500,8 +519,8 @@ static bool _oauth2_metadata_verify_callback(oauth2_log_t *log,
 	oauth2_metadata_ctx_t *ptr = NULL;
 	bool refresh = false;
 	char *response = NULL;
-	json_t *json_metadata = NULL, *json_jwks_uri = NULL,
-	       *json_introspection_endpoint;
+	json_t *json_metadata = NULL, *json_issuer = NULL,
+	       *json_jwks_uri = NULL, *json_introspection_endpoint;
 	oauth2_jose_jwt_verify_ctx_t *jwks_uri_verify = NULL;
 	oauth2_introspect_ctx_t *introspect_ctx = NULL;
 	const char *jwks_uri = NULL, *introspection_uri = NULL;
@@ -545,6 +564,24 @@ jwks_uri:
 		// config setting
 		jwks_uri_verify =
 		    oauth2_jose_jwt_verify_ctx_clone(log, ptr->jwks_uri_verify);
+
+		json_issuer = json_object_get(json_metadata, "issuer");
+		if (json_issuer) {
+			if (json_is_string(json_issuer)) {
+				jwks_uri_verify->issuer = oauth2_strdup(
+				    json_string_value(json_issuer));
+			} else {
+				oauth2_error(
+				    log, "\"issuer\" value is not a string");
+				goto end;
+			}
+		} else {
+			oauth2_error(
+			    log,
+			    "required \"issuer\" value not found in metadata");
+			goto end;
+		}
+
 		oauth2_cfg_endpoint_set_url(
 		    jwks_uri_verify->jwks_provider->jwks_uri->endpoint,
 		    jwks_uri);

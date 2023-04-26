@@ -18,16 +18,16 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Dependencies
       run: |
         sudo apt-get update -y
         sudo apt-get install -y apache2-dev libcjose-dev libssl-dev check pkg-config
-        sudo apt-get install -y libjansson-dev libcurl4-openssl-dev libhiredis-dev libmemcached-dev
+        sudo apt-get install -y libjansson-dev libcurl4-openssl-dev libhiredis-dev libmemcached-dev libpcre2-dev libpcre2-8-0
         
     - name: CodeQL
-      uses: github/codeql-action/init@v1
+      uses: github/codeql-action/init@v2
       with:
         languages: ${{ matrix.language }}
 
@@ -40,4 +40,4 @@ jobs:
       run: make
  
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v1
+      uses: github/codeql-action/analyze@v2

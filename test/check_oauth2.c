@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @Author: Hans Zandbelt - hans.zandbelt@zmartzone.eu
+ * @Author: Hans Zandbelt - hans.zandbelt@openidc.com
  *
  **************************************************************************/
 
@@ -503,6 +503,7 @@ static char metadata[512];
 static char *get_metadata_json()
 {
 	static char *format = "{"
+			      "\"issuer\": \"https://example.com\","
 			      "\"jwks_uri\": \"%s%s\","
 			      "\"introspection_endpoint\": \"%s%s\""
 			      "}";
@@ -556,6 +557,9 @@ static char *oauth2_check_oauth2_serve_post(const char *request)
 		if (oauth2_parse_form_encoded_params(_log, data, &params) ==
 		    false)
 			goto error;
+		token = oauth2_nv_list_get(_log, params, "key2");
+		if ((token == NULL) || (strcmp(token, "two") != 0))
+			goto error;
 		token = oauth2_nv_list_get(_log, params, "token");
 		if (token == NULL)
 			goto error;
@@ -569,7 +573,7 @@ static char *oauth2_check_oauth2_serve_post(const char *request)
 
 error:
 
-	rv = oauth2_strdup("problem");
+	rv = oauth2_strdup("{ \"error\": \"problem\" }");
 
 end:
 
@@ -788,7 +792,9 @@ START_TEST(test_oauth2_verify_token_introspection)
 			    post_introspection_path, NULL);
 
 	rv = oauth2_cfg_token_verify_add_options(
-	    _log, &verify, "introspect", url, "introspect.ssl_verify=false");
+	    _log, &verify, "introspect", url,
+	    "introspect.ssl_verify=false&introspect.params=key1%3Done%26key2%"
+	    "3Dtwo");
 	ck_assert_ptr_eq(rv, NULL);
 
 	rc = oauth2_token_verify(_log, NULL, verify, "bogus", &json_payload);
@@ -1002,8 +1008,9 @@ START_TEST(test_oauth2_verify_token_metadata)
 	url = oauth2_stradd(NULL, oauth2_check_http_base_url(), metadata_path,
 			    NULL);
 
-	rv = oauth2_cfg_token_verify_add_options(_log, &verify, "metadata", url,
-						 "&verify.exp=skip");
+	rv = oauth2_cfg_token_verify_add_options(
+	    _log, &verify, "metadata", url,
+	    "verify.exp=skip&verify.iss=required&introspect.params=key2%3Dtwo");
 	ck_assert_ptr_eq(rv, NULL);
 
 	// reference token
@@ -1039,8 +1046,21 @@ START_TEST(test_oauth2_verify_token_metadata)
 	    "x7Zf28T3ejzEX-ETefpTENX7BJ57-vQbAeECRTIo_LhzKTaDkiZWpf6JgraQg";
 
 	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
+	ck_assert_int_eq(rc, false);
+	json_decref(json_payload);
+
+	oauth2_cfg_token_verify_free(_log, verify);
+	verify = NULL;
+
+	rv = oauth2_cfg_token_verify_add_options(
+	    _log, &verify, "metadata", url,
+	    "verify.exp=skip&verify.iss=optional&introspect.params=key2%3Dtwo");
+	ck_assert_ptr_eq(rv, NULL);
+
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
 	ck_assert_int_eq(rc, true);
 	json_decref(json_payload);
+
 	// get it from the cache
 	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
 	ck_assert_int_eq(rc, true);
@@ -1125,7 +1145,6 @@ Suite *oauth2_check_oauth2_suite()
 						oauth2_check_oauth2_serve_post);
 
 	tcase_add_checked_fixture(c, setup, teardown);
-
 	tcase_add_test(c, test_oauth2_auth_client_secret_basic);
 	tcase_add_test(c, test_oauth2_auth_client_secret_post);
 	tcase_add_test(c, test_oauth2_auth_client_secret_jwt);

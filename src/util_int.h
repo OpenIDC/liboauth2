@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @Author: Hans Zandbelt - hans.zandbelt@zmartzone.eu
+ * @Author: Hans Zandbelt - hans.zandbelt@openidc.com
  *
  **************************************************************************/
 
@@ -37,6 +37,9 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
+
+#define PCRE2_CODE_UNIT_WIDTH 8
+#include <pcre2.h>
 
 #include "oauth2/log.h"
 #include "oauth2/util.h"
@@ -172,5 +175,9 @@ char *_oauth2_bytes2str(oauth2_log_t *log, uint8_t *buf, size_t len);
 	_OAUTH2_MEMBER_LIST_IMPLEMENT_SET(module, type, list)                  \
 	_OAUTH2_MEMBER_LIST_IMPLEMENT_UNSET_GET(module, type, list)            \
 	_OAUTH2_MEMBER_LIST_IMPLEMENT_ADD(module, type, list)
+
+pcre2_code *oauth2_pcre2_compile(const char *regexp);
+int oauth2_pcre2_exec(pcre2_code *preg, const char *input, int len,
+		      char **error_str);
 
 #endif /* _OAUTH2_UTIL_INT_H_ */

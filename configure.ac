@@ -1,4 +1,4 @@
-AC_INIT([liboauth2],[1.4.5.4],[hans.zandbelt@zmartzone.eu])
+AC_INIT([liboauth2],[1.5.1],[hans.zandbelt@openidc.com])
 
 AM_INIT_AUTOMAKE([foreign no-define subdir-objects])
 AC_CONFIG_MACRO_DIR([m4])
@@ -24,6 +24,10 @@ AC_SUBST(JANSSON_LIBS)
 PKG_CHECK_MODULES(CJOSE, cjose)
 AC_SUBST(CJOSE_CFLAGS)
 AC_SUBST(CJOSE_LIBS)
+
+PKG_CHECK_MODULES(PCRE2, libpcre2-8)
+AC_SUBST(PCRE2_CFLAGS)
+AC_SUBST(PCRE2_LIBS)
 
 AC_ARG_WITH([memcache], AS_HELP_STRING([--with-memcache], [build with Memcache cache support [default=autodetect]]),)
 if test "x$with_memcache" != "xno"; then
