@@ -1,9 +1,9 @@
 [submodule "cjose"]
 	path = cjose
 	url = https://github.com/cisco/cjose
-[submodule "vcpkg"]
-	path = vcpkg
-	url = https://github.com/microsoft/vcpkg.git
 [submodule "semaphore"]
 	path = semaphore
 	url = https://github.com/DanielTillett/Simple-Windows-Posix-Semaphore.git
+[submodule "vcpkg"]
+	path = vcpkg
+	url = https://github.com/microsoft/vcpkg.git
