@@ -1278,7 +1278,7 @@ bool oauth2_jose_jwt_verify(oauth2_log_t *log,
 
 	jws = cjose_jws_import(token, strlen(token), &err);
 	if (jws == NULL) {
-		oauth2_error(log, "cjose_jws_import failed: %s", err.message);
+		_OAUTH2_UTIL_JOSE_ERR_LOG(log, "cjose_jws_import", err);
 		goto end;
 	}
 
@@ -1317,8 +1317,7 @@ bool oauth2_jose_jwt_verify(oauth2_log_t *log,
 
 	if (cjose_jws_get_plaintext(jws, &plaintext, &plaintext_len, &err) ==
 	    false) {
-		oauth2_error(log, "cjose_jws_get_plaintext failed: %s",
-			     err.message);
+		_OAUTH2_UTIL_JOSE_ERR_LOG(log, "cjose_jws_get_plaintext", err);
 		goto end;
 	}
 

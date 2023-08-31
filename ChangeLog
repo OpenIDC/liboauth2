@@ -1,3 +1,6 @@
+08/31/2023
+- printout more cjose error details when errors occur verifying JWT access tokens
+
 06/29/2023
 - fix timing issue in check_openidc.c; closes #47
 - bump to 1.5.2dev
