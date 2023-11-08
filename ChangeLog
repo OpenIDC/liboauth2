@@ -1,3 +1,7 @@
+11/08/2023
+- update DPoP support to RFC 9449
+- release 1.5.2
+
 08/31/2023
 - printout more cjose error details when errors occur verifying JWT access tokens
 

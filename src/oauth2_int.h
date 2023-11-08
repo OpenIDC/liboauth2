@@ -39,6 +39,6 @@ bool oauth2_auth_basic(oauth2_log_t *log, oauth2_http_call_ctx_t *ctx,
 bool oauth2_dpop_token_verify(oauth2_log_t *log,
 			      oauth2_cfg_dpop_verify_t *verify,
 			      oauth2_http_request_t *request,
-			      json_t *json_payload);
+			      const char *access_token, json_t *json_payload);
 
 #endif /* _OAUTH2_INT_H_ */

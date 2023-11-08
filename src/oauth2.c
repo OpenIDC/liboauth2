@@ -888,8 +888,8 @@ bool oauth2_token_verify(oauth2_log_t *log, oauth2_http_request_t *request,
 
 	if (rc == true) {
 		if (ptr->type == OAUTH2_TOKEN_VERIFY_DPOP) {
-			rc = oauth2_dpop_token_verify(log, &verify->dpop,
-						      request, *json_payload);
+			rc = oauth2_dpop_token_verify(
+			    log, &verify->dpop, request, token, *json_payload);
 		} else if (ptr->type == OAUTH2_TOKEN_VERIFY_MTLS) {
 			rc = oauth2_mtls_token_verify(log, &verify->mtls,
 						      request, *json_payload);

@@ -625,40 +625,49 @@ START_TEST(test_oauth2_verify_jwk_dpop)
 {
 	bool rc = false;
 	oauth2_cfg_token_verify_t *verify = NULL;
-	char *jwt = "eyJhbGciOiAiUlMyNTYifQ."
-		    "ewogICJzdWIiOiAic29tZW9uZUBleGFtcGxlLmNvbSIsCiAgImlzcyI6IC"
-		    "JodHRwczovL3NlcnZlci5leGFtcGxlLmNvbSIsCiAgImF1ZCI6ICJodHRw"
-		    "czovL3Jlc291cmNlLmV4YW1wbGUub3JnIiwKICAibmJmIjogMTU2MjI2Mj"
-		    "YxMSwKICAiZXhwIjogMTU2MjI2NjIxNiwKICAiY25mIjogewogICAgImpr"
-		    "dCI6ICIwWmNPQ09SWk5ZeS1EV3BxcTMwalp5SkdIVE4wZDJIZ2xCVjN1aW"
-		    "d1QTRJIgogIH0KfQ.o0j8O6PMQX4R-YPyiyNcdywMzHtUV3leeUn8X9w_"
-		    "CHq_M9UQndIbsNrzClKD8wTm3LuSO3v6wMsdxSC7Ypk3iTMKZCWK66fx9-"
-		    "BIo2d4fbJeC32YbL0FkSmZNzuqIPn1xfxoQ3Lx7_P9vS0k-"
-		    "frefuoWWR8NmVDGXuCxVg1INtoC1QUUB3rCe3PnY8cNNfijlSGSArODffQ"
-		    "XRR0CLULDGV87RgAeRZOHzfDc2lQr9ifLC8FfM6wRPBDCgljE5Ygyfc58x"
-		    "FAIEW_GnVJzRV-WN83PMJ-le-DMDHLnk_"
-		    "YvYbjKRG4Awr5OLm8jD8tc5YlwSZKRo7TOE_pGkctSTf1ang";
-	char *jwk = "{\"kty\":\"RSA\",\"kid\":\"k1\",\"use\":\"sig\",\"n\":"
-		    "\"ym7jipmB37CgdonwGFVRuZmRfCl3lVh91fmm5CXHcNlUFZNR3D6Q9r63"
-		    "PpGRnfSsX3dOweh8BXd2AJ3mxvcE4z9xH--tA5EaOGI7IVF0Ip_"
-		    "i3flGg85xOADlb8rX3ez1NqkqMVJeeJypKhCCDNfvu_"
-		    "MXSdPLglU969YQF5xKAK8VFRfI6EfxxrZ_3Dvt2CKDV4LTPPJe9KI2_"
-		    "LuLQFBJ3MzlCTVxY6gyaljrWaDq7q5Lt3GB1KYS0Yd8COEQwsclOLm0Tdd"
-		    "hg4cle-DfaTMi7xsTZsPKyac5x17Y4N4isHhZULuWHX7o1bs809xcj-_-"
-		    "YCRq6C61je_mzFhuF4pczw\",\"e\":\"AQAB\"}";
+	char *jwt =
+	    "eyJhbGciOiJSUzI1NiIsImtpZCI6ImsxIiwicGkuYXRtIjoiMSJ9."
+	    "eyJzY29wZSI6WyJvcGVuaWQiXSwiYXV0aG9yaXphdGlvbl9kZXRhaWxzIjpbXSwiY2"
+	    "xpZW50X2lkX25hbWUiOiJyb19jbGllbnQiLCJVc2VybmFtZSI6ImpvZSIsIk9yZ05h"
+	    "bWUiOiJQaW5nIElkZW50aXR5IENvcnBvcmF0aW9uIiwiY25mIjp7ImprdCI6InZBcG"
+	    "RWSVBLenNwMXpzSzVjQ25JTmRLOEdKU0Z3VlNSeV9IZ1VFNDBYUGsifSwiZXhwIjox"
+	    "Njk5NDUyNDYzfQ.DihED2HcrAkW9ItLYIAqeweOEyI_"
+	    "qqcCfMVmHNEnIpvz7GeaYFQ6E3edj1AWU09NsUa3W3mV5Ze6-"
+	    "zgeSwXQf9yEs2TVO88Ye6zpv3F1SPlO8Zhue4qGZJpdKtyz_sPCGRd2v_"
+	    "1N6ji9m1IyNzJwiMD32molHWpcIRytke2hG9AZvxzcmJ1lwd0ReVyV8payUmxtVcwN"
+	    "yKzTmX-XNV7kNP6DZsnJTOYFgJ98punDpdorpIMFwjOTcFk8zMFdHO9rdR_"
+	    "jUI4NGXlfmLXtTrS-FdSd3bRDQFuJA5qGdNie-5vS-kfeIUCaAQZFXR6MsD-Dz_"
+	    "xKPhuDQecbDiIj5s726Q";
+	char *jwk =
+	    "{\"kty\":\"RSA\",\"kid\":\"k1\",\"use\":\"sig\",\"n\":"
+	    "\"hKvkosOyK33gznaRCNgakMLE2GHS5_7K34oqZRsAWC-7aC420eJNL2z_"
+	    "8Z7ouWXpJNZ2YHQcqxPe4UZGtiDiFYLdDbQPrCDiTpuRYybe1UmZJ3Kk5fBx9yXKU0"
+	    "zbdSKYPEeq1w5Fi7rt46YkZ6qwv3Yixo7eTxbglezJOx_YcS5sfXxcwBU1nYbGU_"
+	    "MgrBXAfy1Hea5tcUSPot-BTMcuj_doHLT_sEm4AZwaZiLhMiqfI-"
+	    "J6Gv5Hg6aBTXpYv50DEdcoZzkabMHxjHICS9w2FGWAzMt_"
+	    "AvW4ISlbAxlBroXhTEXC6GIJwoDTskuPlCO4CVa3axh0s1D49JFJoBYasw\","
+	    "\"e\":\"AQAB\"}";
 	char *dpop =
-	    "eyJ0eXAiOiJkcG9wK2p3dCIsImFsZyI6IkVTMjU2IiwiandrIjp7Imt0eSI6Ik"
-	    "VDIiwieCI6Imw4dEZyaHgtMzR0VjNoUklDUkRZOXpDa0RscEJoRjQyVVFVZldWQVdC"
-	    "R"
-	    "nMiLCJ5IjoiOVZFNGpmX09rX282NHpiVFRsY3VOSmFqSG10NnY5VERWclUwQ2R2R1J"
-	    "E"
-	    "QSIsImNydiI6IlAtMjU2In19."
-	    "eyJqdGkiOiJlMWozVl9iS2ljOC1MQUVCIiwiaHRtIj"
-	    "oiR0VUIiwiaHR1IjoiaHR0cHM6Ly9yZXNvdXJjZS5leGFtcGxlLm9yZy9wcm90ZWN0"
-	    "Z"
-	    "WRyZXNvdXJjZSIsImlhdCI6MTU2MjI2MjYxOH0."
-	    "lNhmpAX1WwmpBvwhok4E74kWCiGB"
-	    "NdavjLAeevGy32H3dbF0Jbri69Nm2ukkwb-uyUI4AUg1JSskfWIyo4UCbQ";
+	    "eyJ0eXAiOiJkcG9wK2p3dCIsImFsZyI6IlJTMjU2IiwiandrIjp7Imt0eSI6IlJTQS"
+	    "IsImUiOiJBUUFCIiwibiI6InJiOXZ5ekFJaVFqQUVFdGFTZnJnU2NSVHotVnNEZ2hp"
+	    "b1Z2ajNJNnlZbHJ2TFdaNHFWdEtzUDNQU3Z4dTNVejdWTWRwVFEyODc5WlRGVWh0LV"
+	    "9Cc3M1NHNtOUdJTTZQVGRZY3VDN3dOMHR2N2JHMDNsVGdOUFdvcmZrMzRhSVk1NHh1"
+	    "Tmo5SHNBVnJKRG1NWklWTnBOUGZabXcwcDVheFBVQ19OTEw4YVhUeDJnWFZFV3V4dG"
+	    "NXSjFzbzFHVE5pbXZPMXM1eklTaDZvTXlDVFRhQ1N2el9DYWVwektTeXZfc00yWk9Y"
+	    "VkhUVzZ2SEM4Q0tMY2VwT1NFLWx0UXV3TUF6MWxEU0szQ0hURFRTMVNzdEpVMklKam"
+	    "hobnFwVVgzVHNxQ0E5em9PQlk4aXVRd3hCTDBicFl4T0dVZ21oNXU0Sm90bFlzZkU0"
+	    "T3FMdG1ueGJuSzdydyJ9fQ."
+	    "eyJqdGkiOiIrSmJDS3hrazFUNXQ4bys1IiwiaHRtIjoiR0VUIiwiaHR1IjoiaHR0cH"
+	    "M6Ly9sb2NhbGhvc3Quem1hcnR6b25lLmV1L2FwaS8iLCJpYXQiOjE2OTk0NDUyNjMs"
+	    "ImF0aCI6Ikd6TkR1S1poVHd5dHppN09rd3VXMjhwQ0xTb0paZ2xmN1pNRG94SGQ2dk"
+	    "kifQ.K-"
+	    "xn9siYFnhi3y5gejKwwIEzD2uKmmtfqV0XDbHh7JZ2RNQJfBNpyiEhSUT5dXc5AY8h"
+	    "RzUyWmi4cmE0yW97FKphZdbeumFBGuLiTyMQNVTUWdjMOS7-uWV27bZXj-KaI3C9c_"
+	    "mNHjsuW_Ax5LSK35u8Iw_A25EXrJhezzAP74chiKJN1pw3eq_2EZlUF-"
+	    "ihz7Y045sW56EBf-4SCJUfOhGnrb7rHg3KXMiOcSdEnzFiaTSYOozlMZxFvY-"
+	    "VnaqksBZ17-mGMSi7K_"
+	    "9QdBac7ick7OQ7VecYittd5nmnvrRaGytJdJYOSfB5HDPtoaXFNGj24yaJan3IOr2H"
+	    "bg2t8A";
 	json_t *json_payload = NULL;
 	oauth2_http_request_t *request = NULL;
 	const char *rv = NULL;
@@ -681,9 +690,10 @@ START_TEST(test_oauth2_verify_jwk_dpop)
 
 	request = oauth2_http_request_init(_log);
 	oauth2_http_request_scheme_set(_log, request, "https");
-	oauth2_http_request_hostname_set(_log, request, "resource.example.org");
+	oauth2_http_request_hostname_set(_log, request,
+					 "localhost.zmartzone.eu");
 	// oauth2_http_request_port_set();
-	oauth2_http_request_path_set(_log, request, "/protectedresource");
+	oauth2_http_request_path_set(_log, request, "/api/");
 	oauth2_http_request_method_set(_log, request, OAUTH2_HTTP_METHOD_GET);
 
 	oauth2_http_request_header_set(_log, request, "DPoP", dpop);
