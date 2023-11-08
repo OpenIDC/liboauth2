@@ -31,6 +31,8 @@
 #define OAUTH_DPOP_HDR_JWK "jwk"
 #define OAUTH_DPOP_CLAIM_HTM "htm"
 #define OAUTH_DPOP_CLAIM_HTU "htu"
+#define OAUTH_DPOP_CLAIM_ATH "ath"
+#define OAUTH_DPOP_CLAIM_NONCE "nonce"
 #define OAUTH_DPOP_HDR_TYP_VALUE "dpop+jwt"
 
 static bool _oauth2_dpop_jwt_validate(oauth2_log_t *log, const char *s_dpop,
@@ -84,12 +86,13 @@ static bool _oauth2_dpop_claims_validate(oauth2_log_t *log, cjose_header_t *hdr,
 					 cjose_jwk_t **jwk,
 					 const char **hdr_typ,
 					 const char **hdr_alg, char **clm_htm,
-					 char **clm_htu, char **clm_jti)
+					 char **clm_htu, char **clm_jti,
+					 char **clm_ath, char **clm_nonce)
 {
 	bool rc = false;
 	cjose_err err;
 	char *hdr_jwk = NULL;
-	json_int_t clm_iat;
+	json_int_t clm_iat = 0;
 
 	*hdr_typ = cjose_header_get(hdr, OAUTH2_JOSE_HDR_TYP, &err);
 	if (*hdr_typ == NULL) {
@@ -121,36 +124,57 @@ static bool _oauth2_dpop_claims_validate(oauth2_log_t *log, cjose_header_t *hdr,
 		goto end;
 	}
 
-	if (oauth2_json_string_get(log, dpop_payload, OAUTH_DPOP_CLAIM_HTU,
-				   clm_htu, NULL) == false) {
+	if ((oauth2_json_string_get(log, dpop_payload, OAUTH_DPOP_CLAIM_HTU,
+				    clm_htu, NULL) == false) ||
+	    (*clm_htu == NULL)) {
 		oauth2_error(log,
 			     "required claim \"%s\" not found in DPOP payload",
 			     OAUTH_DPOP_CLAIM_HTU);
 		goto end;
 	}
 
-	if (oauth2_json_string_get(log, dpop_payload, OAUTH_DPOP_CLAIM_HTM,
-				   clm_htm, NULL) == false) {
+	if ((oauth2_json_string_get(log, dpop_payload, OAUTH_DPOP_CLAIM_HTM,
+				    clm_htm, NULL) == false) ||
+	    (*clm_htm == NULL)) {
 		oauth2_error(log,
 			     "required claim \"%s\" not found in DPOP payload",
 			     OAUTH_DPOP_CLAIM_HTM);
 		goto end;
 	}
 
-	if (oauth2_json_string_get(log, dpop_payload, OAUTH2_CLAIM_JTI, clm_jti,
-				   NULL) == false) {
+	if ((oauth2_json_string_get(log, dpop_payload, OAUTH2_CLAIM_JTI,
+				    clm_jti, NULL) == false) ||
+	    (*clm_jti == NULL)) {
 		oauth2_error(log,
 			     "required claim \"%s\" not found in DPOP payload",
 			     OAUTH2_CLAIM_JTI);
 		goto end;
 	}
 
-	if (oauth2_json_number_get(log, dpop_payload, OAUTH2_CLAIM_IAT,
-				   &clm_iat, 0) == false) {
+	if ((oauth2_json_number_get(log, dpop_payload, OAUTH2_CLAIM_IAT,
+				    &clm_iat, 0) == false) ||
+	    (clm_iat == 0)) {
 		oauth2_error(log,
 			     "required claim \"%s\" not found in DPOP payload",
 			     OAUTH2_CLAIM_IAT);
 		goto end;
+	}
+
+	if ((oauth2_json_string_get(log, dpop_payload, OAUTH_DPOP_CLAIM_ATH,
+				    clm_ath, NULL) == false) ||
+	    (*clm_ath == NULL)) {
+		oauth2_error(log,
+			     "required claim \"%s\" not found in DPOP payload",
+			     OAUTH_DPOP_CLAIM_ATH);
+		goto end;
+	}
+
+	if ((oauth2_json_string_get(log, dpop_payload, OAUTH_DPOP_CLAIM_NONCE,
+				    clm_nonce, NULL) == false) ||
+	    (*clm_nonce == NULL)) {
+		oauth2_debug(
+		    log, "(optional) claim \"%s\" not found in DPOP payload",
+		    OAUTH_DPOP_CLAIM_NONCE);
 	}
 
 	rc = true;
@@ -328,14 +352,99 @@ end:
 	return rc;
 }
 
+static bool(_oauth2_dpp_hdr_count)(oauth2_log_t *log, void *rec,
+				   const char *key, const char *value)
+{
+	int *n = (int *)rec;
+	if (strcasecmp(key, OAUTH2_HTTP_HDR_DPOP) == 0)
+		(*n)++;
+	return true;
+}
+
+static bool _oauth2_dpop_header_count(oauth2_log_t *log,
+				      oauth2_http_request_t *request)
+{
+	bool rc = false;
+	int n = 0;
+
+	oauth2_http_request_headers_loop(log, request, _oauth2_dpp_hdr_count,
+					 &n);
+
+	if (n > 1) {
+		oauth2_error(log, "more than one %s header found",
+			     OAUTH2_HTTP_HDR_DPOP);
+		goto end;
+	}
+
+	if (n == 0) {
+		oauth2_error(log, "no %s header found", OAUTH2_HTTP_HDR_DPOP);
+		goto end;
+	}
+
+	rc = true;
+
+end:
+
+	return rc;
+}
+
+static bool _oauth2_dpop_ath_validate(oauth2_log_t *log,
+				      oauth2_cfg_dpop_verify_t *verify,
+				      const char *clm_ath,
+				      const char *access_token)
+{
+	bool rc = false;
+	unsigned char *calc = NULL;
+	unsigned int calc_len = 0;
+	uint8_t *dec = NULL;
+	size_t dec_len = 0;
+
+	if ((clm_ath == NULL) || (access_token == NULL))
+		goto end;
+
+	if (oauth2_jose_hash_bytes(
+		log, "sha256", (const unsigned char *)access_token,
+		strlen(access_token), &calc, &calc_len) == false)
+		goto end;
+
+	if (oauth2_base64url_decode(log, clm_ath, &dec, &dec_len) == false)
+		goto end;
+
+	if ((calc_len != dec_len) || (memcmp(dec, calc, dec_len) != 0)) {
+		oauth2_error(log,
+			     "provided \"ath\" hash value (%s) does not match "
+			     "the calculated value (dec_len=%d, calc_len=%d)",
+			     clm_ath, dec_len, calc_len);
+		goto end;
+	}
+
+	oauth2_debug(log,
+		     "successfully validated the provided \"ath\" hash value "
+		     "(%s) against the calculated value",
+		     clm_ath);
+
+	rc = true;
+
+end:
+
+	if (dec)
+		oauth2_mem_free(dec);
+	if (calc)
+		oauth2_mem_free(calc);
+
+	return rc;
+}
+
 static bool _oauth2_dpop_parse_and_validate(oauth2_log_t *log,
 					    oauth2_cfg_dpop_verify_t *verify,
 					    oauth2_http_request_t *request,
+					    const char *access_token,
 					    cjose_jwk_t **jwk)
 {
 	bool rc = false;
 	const char *hdr_typ = NULL, *hdr_alg = NULL;
-	char *clm_htm = NULL, *clm_htu = NULL, *clm_jti = NULL;
+	char *clm_htm = NULL, *clm_htu = NULL, *clm_jti = NULL, *clm_ath = NULL,
+	     *clm_nonce = NULL;
 	const char *s_dpop = NULL;
 	cjose_jws_t *jws = NULL;
 	cjose_header_t *hdr = NULL;
@@ -343,6 +452,12 @@ static bool _oauth2_dpop_parse_and_validate(oauth2_log_t *log,
 	json_t *dpop_payload = NULL;
 
 	if ((request == NULL) || (verify == NULL) || (jwk == NULL))
+		goto end;
+
+	/*
+	 * 1.   that there is not more than one DPoP header in the request,
+	 */
+	if (_oauth2_dpop_header_count(log, request) == false)
 		goto end;
 
 	s_dpop =
@@ -355,70 +470,98 @@ static bool _oauth2_dpop_parse_and_validate(oauth2_log_t *log,
 		oauth2_debug(log, "DPOP header: %s", s_peek);
 
 	/*
-	 * 1. the string value is a well-formed JWT
+	 * 2.   the string value of the header field is a well-formed JWT,
 	 */
 	if (_oauth2_dpop_jwt_validate(log, s_dpop, &jws, &hdr, &dpop_payload) ==
 	    false)
 		goto end;
 
 	/*
-	 * 2.  all required claims are contained in the JWT,
+	 * 3.   all required claims per Section 4.2 are contained in the JWT,
 	 */
 	if (_oauth2_dpop_claims_validate(log, hdr, dpop_payload, jwk, &hdr_typ,
-					 &hdr_alg, &clm_htm, &clm_htu,
-					 &clm_jti) == false)
+					 &hdr_alg, &clm_htm, &clm_htu, &clm_jti,
+					 &clm_ath, &clm_nonce) == false)
 		goto end;
 
 	/*
-	 * 3.  the "typ" field in the header has the value "dpop+jwt",
+	 * 4.   the typ field in the header has the value dpop+jwt,
 	 */
 	if (_oauth2_dpop_hdr_typ_validate(log, hdr_typ) == false)
 		goto end;
 
 	/*
-	 * 4.  the algorithm in the header of the JWT indicates an asymmetric
-	 *    digital signature algorithm, is not "none", is supported by the
-	 *   application, and is deemed secure,
+	 * 5.   the algorithm in the header of the JWT indicates an asymmetric
+	 *      digital signature algorithm, is not none, is supported by the
+	 *      application, and is deemed secure,
 	 */
 	if (_oauth2_dpop_hdr_alg_validate(log, hdr_alg) == false)
 		goto end;
 
 	/*
-	 * 5.  that the JWT is signed using the public key contained in the
-	 *   "jwk" header of the JWT,
+	 * 6.   the JWT signature verifies with the public key contained in the
+	 *      jwk header of the JWT,
 	 */
 	if (_oauth2_dpop_sig_verify(log, jws, *jwk) == false)
 		goto end;
 
 	/*
-	 * 6.  the "htm" claim matches the HTTP method value of the HTTP request
-	 *  in which the JWT was received (case-insensitive),
+	 * 7.   the jwk header of the JWT does not contain a private key,
+	 */
+	// TODO:
+
+	/*
+	 * 8.   the htm claim matches the HTTP method value of the HTTP request
+	 *      in which the JWT was received,
 	 */
 	if (_oauth2_dpop_htm_validate(log, request, clm_htm) == false)
 		goto end;
 
 	/*
-	 * 7.  the "htu" claims matches the HTTP URI value for the HTTP request
-	 *    in which the JWT was received, ignoring any query and fragment
-	 *    parts,
+	 * 9.   the htu claim matches the HTTPS URI value for the HTTP request
+	 *      in which the JWT was received, ignoring any query and fragment
+	 *      parts,
 	 */
 	if (_oauth2_dpop_htu_validate(log, request, clm_htu) == false)
 		goto end;
 
 	/*
-	 * 8.  the token was issued within an acceptable timeframe (see
-	 *     Section 9.1), and
+	 * 10.  if the server provided a nonce value to the client, the nonce
+	 *      claim matches the server-provided nonce value,
+	 */
+	// TODO:
+
+	/*
+	 * 11.  the iat claim value is within an acceptable timeframe and,
+	 *      within a reasonable consideration of accuracy and resource
+	 *      utilization, a proof JWT with the same jti value has not
+	 *      previously been received at the same resource during that time
+	 *      period (see Section 11.1),
 	 */
 	if (_oauth2_dpop_iat_validate(log, verify, dpop_payload) == false)
 		goto end;
 
-	/*
-	 * 9.  that, within a reasonable consideration of accuracy and resource
-	 *     utilization, a JWT with the same "jti" value has not been
-	 *     received previously (see Section 9.1).
-	 */
-	if (_oauth2_dpop_jti_validate(log, verify, s_dpop, clm_jti) == false)
+	if (_oauth2_dpop_jti_validate(log, verify, clm_jti, s_dpop) == false)
 		goto end;
+
+	/*
+	 * 12.  if presented to a protected resource in conjunction with an
+	 *      access token,
+	 *
+	 *      1.  ensure that the value of the ath claim equals the hash of
+	 *          that access token,
+	 */
+	if (_oauth2_dpop_ath_validate(log, verify, clm_ath, access_token) ==
+	    false)
+		goto end;
+
+	/*
+	 *      2.  confirm that the public key to which the access token is
+	 *          bound matches the public key from the DPoP proof.
+	 *
+	 */
+	// done in the calling function oauth2_dpop_token_verify with the "jkt"
+	// claim
 
 	rc = true;
 
@@ -432,6 +575,10 @@ end:
 		oauth2_mem_free(clm_htm);
 	if (clm_jti)
 		oauth2_mem_free(clm_jti);
+	if (clm_ath)
+		oauth2_mem_free(clm_ath);
+	if (clm_nonce)
+		oauth2_mem_free(clm_nonce);
 	if (dpop_payload)
 		json_decref(dpop_payload);
 	if (jws)
@@ -446,7 +593,7 @@ end:
 bool oauth2_dpop_token_verify(oauth2_log_t *log,
 			      oauth2_cfg_dpop_verify_t *verify,
 			      oauth2_http_request_t *request,
-			      json_t *json_payload)
+			      const char *access_token, json_t *json_payload)
 {
 	bool rc = false;
 	cjose_jwk_t *jwk = NULL;
@@ -461,8 +608,8 @@ bool oauth2_dpop_token_verify(oauth2_log_t *log,
 	if ((request == NULL) || (json_payload == NULL))
 		goto end;
 
-	if (_oauth2_dpop_parse_and_validate(log, verify, request, &jwk) ==
-	    false)
+	if (_oauth2_dpop_parse_and_validate(log, verify, request, access_token,
+					    &jwk) == false)
 		goto end;
 
 	if (oauth2_jose_jwk_thumbprint(log, jwk, &hash_bytes,
@@ -490,7 +637,7 @@ bool oauth2_dpop_token_verify(oauth2_log_t *log,
 	    (memcmp(hash_bytes, dst, hash_bytes_len)) != 0) {
 		oauth2_error(log,
 			     "public key thumbprint in DPOP \"%s\" does not "
-			     "match \"%s\" claim \%s\" in JWT token",
+			     "match \"%s\" claim \%s\" for the access token",
 			     calc_thumb, OAUTH_DPOP_CLAIM_CNF_JKT, prov_thumb);
 		goto end;
 	}

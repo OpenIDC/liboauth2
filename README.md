@@ -21,8 +21,8 @@ Generic library to build C-based OAuth 2.x and OpenID Connect servers and client
 - JWT bearer token validation using JWK, JWKS URI, shared symmetric key, X.509 cert, and RSA public key ([RFC 6750](https://tools.ietf.org/html/rfc6750))
 - OAuth 2.0 Authorization Server Metadata ([RFC 8414](https://tools.ietf.org/html/rfc8414))
 - Proof Key for Code Exchange (PKCE) by OAuth Public Clients ([RFC 7636](https://tools.ietf.org/html/rfc7636))
-- OAuth 2.0 Mutual-TLS (MTLS) Certificate-Bound Access Tokens  ([RFC 8705](https://tools.ietf.org/html/rfc8705))
-- OAuth 2.0 Demonstration of Proof-of-Possession (DPoP) at the Application Layer ([Internet-Draft](https://tools.ietf.org/html/draft-ietf-oauth-dpop))
+- OAuth 2.0 Mutual-TLS (MTLS) Certificate-Bound Access Tokens ([RFC 8705](https://tools.ietf.org/html/rfc8705))
+- OAuth 2.0 Demonstrating Proof of Possession (DPoP) ([RFC9449](https://tools.ietf.org/html/rfc9449))
 - Amazon ALB [EC key URL based `x-amzn-oidc-data` JWT verification](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/listener-authenticate-users.html)
 - endpoint authentication methods: `client_secret_basic`, `client_secret_post`, [`client_secret_jwt`, `private_key_jwt`](https://tools.ietf.org/html/rfc7523), [TLS client certificate](https://tools.ietf.org/id/draft-ietf-oauth-mtls), and HTTP basic authentication
 - configurable cache backends: shared memory, file-based, memcache, and Redis
