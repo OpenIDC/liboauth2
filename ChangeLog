@@ -1,5 +1,6 @@
 12/06/2023
 - add support for the OAuth 2.0 Client Credentials grant type
+- use libcurl version macro that works on older platforms
 - release 1.6.0
 
 11/08/2023
