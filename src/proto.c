@@ -492,3 +492,67 @@ end:
 
 	return rc;
 }
+
+#define OAUTH2_PROTO_CC_GRANT_TYPE_VALUE "client_credentials"
+
+bool oauth2_cc_exec(oauth2_log_t *log, oauth2_cfg_cc_t *cfg, char **rtoken,
+		    oauth2_uint_t *status_code)
+{
+
+	bool rc = false;
+	oauth2_nv_list_t *params = NULL;
+	oauth2_http_call_ctx_t *ctx = NULL;
+	const char *client_id = oauth2_cfg_cc_get_client_id(cfg);
+	const oauth2_cfg_endpoint_t *token_endpoint =
+	    oauth2_cfg_cc_get_token_endpoint(cfg);
+
+	oauth2_debug(log, "enter");
+
+	if (cfg == NULL) {
+		oauth2_error(log, "token endpoint cfg is not set");
+		goto end;
+	}
+	if (token_endpoint == NULL) {
+		oauth2_warn(log, "token endpoint is not set");
+		goto end;
+	}
+	params = oauth2_nv_list_init(log);
+	oauth2_nv_list_add(log, params, OAUTH2_GRANT_TYPE,
+			   OAUTH2_PROTO_CC_GRANT_TYPE_VALUE);
+
+	if ((oauth2_cfg_endpoint_auth_type(oauth2_cfg_endpoint_get_auth(
+		 token_endpoint)) == OAUTH2_ENDPOINT_AUTH_NONE) &&
+	    (client_id != NULL))
+		oauth2_nv_list_add(log, params, OAUTH2_CLIENT_ID, client_id);
+
+	oauth2_nv_list_merge_into(
+	    log, oauth2_cfg_cc_get_request_parameters(cfg), params);
+
+	ctx = oauth2_http_call_ctx_init(log);
+	if (ctx == NULL)
+		goto end;
+
+	oauth2_http_call_ctx_ssl_verify_set(
+	    log, ctx, oauth2_cfg_endpoint_get_ssl_verify(token_endpoint));
+	oauth2_http_call_ctx_outgoing_proxy_set(
+	    log, ctx, oauth2_cfg_endpoint_get_outgoing_proxy(token_endpoint));
+
+	if (oauth2_http_ctx_auth_add(
+		log, ctx, oauth2_cfg_endpoint_get_auth(token_endpoint),
+		params) == false)
+		goto end;
+
+	rc = oauth2_proto_request(log, oauth2_cfg_cc_get_token_endpoint(cfg),
+				  ctx, params, rtoken, status_code);
+
+end:
+
+	if (params)
+		oauth2_nv_list_free(log, params);
+	if (ctx)
+		oauth2_http_call_ctx_free(log, ctx);
+
+	oauth2_debug(log, "leave: %d", rc);
+
+	return rc;
+}

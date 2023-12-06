@@ -34,4 +34,7 @@ bool oauth2_ropc_exec(oauth2_log_t *log, oauth2_cfg_ropc_t *cfg,
 		      const char *username, const char *password, char **rtoken,
 		      oauth2_uint_t *status_code);
 
+bool oauth2_cc_exec(oauth2_log_t *log, oauth2_cfg_cc_t *cfg, char **rtoken,
+		    oauth2_uint_t *status_code);
+
 #endif /* _OAUTH2_PROTO_H_ */

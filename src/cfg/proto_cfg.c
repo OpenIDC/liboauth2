@@ -24,6 +24,10 @@
 
 #include "cfg_int.h"
 
+/*
+ * endpoint
+ */
+
 oauth2_cfg_endpoint_t *oauth2_cfg_endpoint_init(oauth2_log_t *log)
 {
 	oauth2_cfg_endpoint_t *endpoint = NULL;
@@ -204,6 +208,10 @@ oauth2_cfg_endpoint_get_outgoing_proxy(const oauth2_cfg_endpoint_t *cfg)
 {
 	return cfg ? cfg->outgoing_proxy : NULL;
 }
+
+/*
+ * Resource Owner Password Credentials
+ */
 
 #define OAUTH2_CFG_ROPC_CLIENT_ID_DEFAULT NULL
 #define OAUTH2_CFG_ROPC_USERNAME_DEFAULT NULL
@@ -400,4 +408,159 @@ const char *oauth2_cfg_ropc_get_password(oauth2_cfg_ropc_t *cfg)
 	if ((cfg == NULL) || (cfg->password == NULL))
 		return OAUTH2_CFG_ROPC_PASSWORD_DEFAULT;
 	return cfg->password;
+}
+
+/*
+ * Client Credentials
+ */
+
+typedef struct oauth2_cfg_cc_t {
+	oauth2_cfg_endpoint_t *token_endpoint;
+	char *client_id;
+	oauth2_nv_list_t *request_parameters;
+} oauth2_cfg_cc_t;
+
+oauth2_cfg_cc_t *oauth2_cfg_cc_init(oauth2_log_t *log)
+{
+	oauth2_cfg_cc_t *cc = NULL;
+
+	cc = (oauth2_cfg_cc_t *)oauth2_mem_alloc(sizeof(oauth2_cfg_cc_t));
+	if (cc == NULL)
+		goto end;
+
+	cc->token_endpoint = NULL;
+	cc->client_id = NULL;
+	cc->request_parameters = NULL;
+
+end:
+
+	return cc;
+}
+
+void oauth2_cfg_cc_free(oauth2_log_t *log, oauth2_cfg_cc_t *cc)
+{
+	if (cc == NULL)
+		goto end;
+
+	if (cc->token_endpoint)
+		oauth2_cfg_endpoint_free(log, cc->token_endpoint);
+	if (cc->client_id)
+		oauth2_mem_free(cc->client_id);
+	if (cc->request_parameters)
+		oauth2_nv_list_free(log, cc->request_parameters);
+
+	oauth2_mem_free(cc);
+
+end:
+
+	return;
+}
+
+void oauth2_cfg_cc_merge(oauth2_log_t *log, oauth2_cfg_cc_t *dst,
+			 oauth2_cfg_cc_t *base, oauth2_cfg_cc_t *add)
+{
+
+	oauth2_cfg_cc_t *src = (add && add->token_endpoint != 0) ? add
+			       : base				 ? base
+								 : NULL;
+
+	if ((src == NULL) || (dst == NULL))
+		goto end;
+
+	dst->token_endpoint =
+	    oauth2_cfg_endpoint_clone(log, src->token_endpoint);
+	dst->client_id = oauth2_strdup(src->client_id);
+	dst->request_parameters =
+	    oauth2_nv_list_clone(log, src->request_parameters);
+
+end:
+
+	return;
+}
+
+oauth2_cfg_cc_t *oauth2_cfg_cc_clone(oauth2_log_t *log,
+				     const oauth2_cfg_cc_t *src)
+{
+	oauth2_cfg_cc_t *dst = NULL;
+
+	if (src == NULL)
+		goto end;
+
+	dst = oauth2_cfg_cc_init(log);
+	dst->token_endpoint =
+	    oauth2_cfg_endpoint_clone(log, src->token_endpoint);
+	dst->client_id = oauth2_strdup(src->client_id);
+	dst->request_parameters =
+	    oauth2_nv_list_clone(log, src->request_parameters);
+
+end:
+
+	return dst;
+}
+
+char *oauth2_cfg_set_cc(oauth2_log_t *log, oauth2_cfg_cc_t *cfg,
+			const char *url, const char *options)
+{
+	char *rv = NULL;
+	oauth2_nv_list_t *params = NULL;
+	const char *value = NULL;
+
+	if (cfg == NULL) {
+		rv = oauth2_strdup("struct is null");
+		goto end;
+	}
+
+	if (oauth2_parse_form_encoded_params(log, options, &params) == false)
+		goto end;
+
+	cfg->token_endpoint = oauth2_cfg_endpoint_init(log);
+	rv = oauth2_cfg_set_endpoint(log, cfg->token_endpoint, url, params,
+				     NULL);
+	if (rv)
+		goto end;
+
+	value = oauth2_nv_list_get(log, params, "client_id");
+	if (value) {
+		rv = oauth2_strdup(oauth2_cfg_set_str_slot(
+		    cfg, offsetof(oauth2_cfg_cc_t, client_id), value));
+		if (rv)
+			goto end;
+	}
+
+	value = oauth2_nv_list_get(log, params, "params");
+	if (value) {
+		if (oauth2_parse_form_encoded_params(
+			log, value, &cfg->request_parameters) == false) {
+			rv =
+			    oauth2_strdup("could not parse request parameters");
+			goto end;
+		}
+	}
+end:
+
+	if (params)
+		oauth2_nv_list_free(log, params);
+
+	oauth2_debug(log, "leave: %s", rv);
+
+	return rv;
+}
+
+const oauth2_cfg_endpoint_t *
+oauth2_cfg_cc_get_token_endpoint(oauth2_cfg_cc_t *cfg)
+{
+	return cfg ? cfg->token_endpoint : NULL;
+}
+
+const char *oauth2_cfg_cc_get_client_id(oauth2_cfg_cc_t *cfg)
+{
+	if ((cfg == NULL) || (cfg->client_id == NULL))
+		return NULL;
+	return cfg->client_id;
+}
+
+const oauth2_nv_list_t *
+oauth2_cfg_cc_get_request_parameters(oauth2_cfg_cc_t *cfg)
+{
+	return cfg->request_parameters;
 }

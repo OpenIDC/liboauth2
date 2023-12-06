@@ -22,10 +22,10 @@
  *
  **************************************************************************/
 
-//#pragma GCC diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
-//#pragma GCC diagnostic ignored
+// #pragma GCC diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
+// #pragma GCC diagnostic ignored
 //"-Wincompatible-pointer-types-discards-qualifiers"
-//#pragma GCC diagnostic ignored "-Wpointer-sign"
+// #pragma GCC diagnostic ignored "-Wpointer-sign"
 
 #include <check.h>
 

@@ -96,9 +96,12 @@ oauth2_cfg_accept_in_cookie_options_set(oauth2_log_t *log,
 	return rv;
 }
 
-typedef char *(oauth2_cfg_accept_token_in_set_options_cb_t)(
-    oauth2_log_t *log, oauth2_cfg_token_in_t *accept_in,
-    const oauth2_nv_list_t *params);
+typedef char *(
+    oauth2_cfg_accept_token_in_set_options_cb_t)(oauth2_log_t *log,
+						 oauth2_cfg_token_in_t
+						     *accept_in,
+						 const oauth2_nv_list_t
+						     *params);
 
 typedef struct oauth2_cfg_accept_token_in_set_options_ctx_t {
 	const char *method;

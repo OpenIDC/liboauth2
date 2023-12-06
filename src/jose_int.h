@@ -52,8 +52,9 @@ typedef enum oauth2_jose_jwks_provider_type_t {
 
 typedef struct oauth2_jose_jwks_provider_t oauth2_jose_jwks_provider_t;
 
-typedef oauth2_jose_jwk_list_t *(oauth2_jose_jwks_resolve_cb_t)(
-    oauth2_log_t *, oauth2_jose_jwks_provider_t *, bool *);
+typedef oauth2_jose_jwk_list_t *(
+    oauth2_jose_jwks_resolve_cb_t)(oauth2_log_t *,
+				   oauth2_jose_jwks_provider_t *, bool *);
 
 typedef struct oauth2_jose_jwks_provider_t {
 	oauth2_jose_jwks_provider_type_t type;

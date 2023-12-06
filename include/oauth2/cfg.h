@@ -282,4 +282,19 @@ const char *oauth2_cfg_ropc_get_password(oauth2_cfg_ropc_t *cfg);
 const oauth2_nv_list_t *
 oauth2_cfg_ropc_get_request_parameters(oauth2_cfg_ropc_t *cfg);
 
+/*
+ * client credentials
+ */
+
+OAUTH2_CFG_TYPE_DECLARE(cfg, cc)
+
+char *oauth2_cfg_set_cc(oauth2_log_t *log, oauth2_cfg_cc_t *cfg,
+			const char *url, const char *options);
+
+const oauth2_cfg_endpoint_t *
+oauth2_cfg_cc_get_token_endpoint(oauth2_cfg_cc_t *cfg);
+const char *oauth2_cfg_cc_get_client_id(oauth2_cfg_cc_t *cfg);
+const oauth2_nv_list_t *
+oauth2_cfg_cc_get_request_parameters(oauth2_cfg_cc_t *cfg);
+
 #endif /* _OAUTH2_CFG_H_ */

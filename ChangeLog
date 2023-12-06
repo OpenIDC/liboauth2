@@ -1,3 +1,7 @@
+12/06/2023
+- add support for the OAuth 2.0 Client Credentials grant type
+- release 1.6.0
+
 11/08/2023
 - update DPoP support to RFC 9449
 - release 1.5.2

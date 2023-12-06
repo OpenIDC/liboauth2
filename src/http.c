@@ -1007,11 +1007,9 @@ bool oauth2_http_call(oauth2_log_t *log, const char *url, const char *data,
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&buf);
 
 #ifndef LIBCURL_NO_CURLPROTO
-#if CURL_AT_LEAST_VERSION(7,85,0)
-	curl_easy_setopt(curl, CURLOPT_REDIR_PROTOCOLS_STR,
-			 "http,https");
-	curl_easy_setopt(curl, CURLOPT_PROTOCOLS_STR,
-			 "http,https");
+#if CURL_AT_LEAST_VERSION(7, 85, 0)
+	curl_easy_setopt(curl, CURLOPT_REDIR_PROTOCOLS_STR, "http,https");
+	curl_easy_setopt(curl, CURLOPT_PROTOCOLS_STR, "http,https");
 #else
 	curl_easy_setopt(curl, CURLOPT_REDIR_PROTOCOLS,
 			 CURLPROTO_HTTP | CURLPROTO_HTTPS);

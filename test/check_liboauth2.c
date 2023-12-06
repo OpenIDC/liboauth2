@@ -38,7 +38,7 @@
 
 #include "util_int.h"
 
-//#include <semaphore.h>
+// #include <semaphore.h>
 
 static int http_server_port = 8888;
 static int http_server_signal_delivered = 0;
