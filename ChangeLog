@@ -1,3 +1,6 @@
+03/08/2024
+- add support for RFC 8705 OAuth 2.0 Mutual-TLS Certificate-Bound Access Tokens to the NGINX binding
+
 03/04/2024
 - add support for Redis 6 ACL username based authentication; see: OpenIDC/mod_oauth2#63
 - bump to 1.6.1dev

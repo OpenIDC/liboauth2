@@ -176,6 +176,11 @@ bool oauth2_http_request_context_set(oauth2_log_t *log,
 	if (request == NULL)
 		goto end;
 
+	if (strcmp(name, OAUTH2_TLS_CERT_VAR_NAME) == 0)
+		oauth2_debug(
+		    log, "set SSL client certificate in request context: %s",
+		    value);
+
 	rc = oauth2_nv_list_set(log, request->_context, name, value);
 
 end:

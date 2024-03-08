@@ -51,6 +51,8 @@
 #define OAUTH2_HTTP_HDR_WWW_AUTHENTICATE "WWW-Authenticate"
 #define OAUTH2_HTTP_HDR_XML_HTTP_REQUEST "XMLHttpRequest"
 
+#define OAUTH2_TLS_CERT_VAR_NAME "SSL_CLIENT_CERT"
+
 /*
  * content type
  */

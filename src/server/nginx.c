@@ -198,6 +198,30 @@ end:
 	return;
 }
 
+static void _oauth2_nginx_ssl_cert_set(oauth2_nginx_request_context_t *ctx)
+{
+	ngx_str_t name;
+	ngx_uint_t key;
+	ngx_http_variable_value_t *vv = NULL;
+
+	char *s_key = "ssl_client_cert";
+
+	name.len = strlen(s_key);
+	name.data = ngx_palloc(ctx->r->pool, name.len);
+	memcpy(name.data, s_key, name.len);
+	key = ngx_hash_strlow(name.data, name.data, name.len);
+	vv = ngx_http_get_variable(ctx->r, &name, key);
+
+	if ((vv == NULL) || (vv->not_found))
+		return;
+
+	char *s = oauth2_strndup((char *)vv->data, vv->len);
+	oauth2_http_request_context_set(ctx->log, ctx->request,
+					OAUTH2_TLS_CERT_VAR_NAME, s);
+
+	ngx_pfree(ctx->r->pool, name.data);
+	oauth2_mem_free(s);
+}
 oauth2_nginx_request_context_t *
 oauth2_nginx_request_context_init(ngx_http_request_t *r)
 {
@@ -223,6 +247,8 @@ oauth2_nginx_request_context_init(ngx_http_request_t *r)
 	ctx->r = r;
 
 	_oauth2_nginx_request_copy(ctx);
+
+	_oauth2_nginx_ssl_cert_set(ctx);
 
 	oauth2_debug(ctx->log, "created NGINX request context: %p", ctx);
 
