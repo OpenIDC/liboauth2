@@ -1,3 +1,6 @@
+03/11/2024
+- release 1.6.1
+
 03/08/2024
 - add support for RFC 8705 OAuth 2.0 Mutual-TLS Certificate-Bound Access Tokens to the NGINX binding
 
