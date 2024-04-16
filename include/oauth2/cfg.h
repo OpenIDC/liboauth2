@@ -3,7 +3,7 @@
 
 /***************************************************************************
  *
- * Copyright (C) 2018-2023 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2024 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -281,5 +281,20 @@ const char *oauth2_cfg_ropc_get_username(oauth2_cfg_ropc_t *cfg);
 const char *oauth2_cfg_ropc_get_password(oauth2_cfg_ropc_t *cfg);
 const oauth2_nv_list_t *
 oauth2_cfg_ropc_get_request_parameters(oauth2_cfg_ropc_t *cfg);
+
+/*
+ * client credentials
+ */
+
+OAUTH2_CFG_TYPE_DECLARE(cfg, cc)
+
+char *oauth2_cfg_set_cc(oauth2_log_t *log, oauth2_cfg_cc_t *cfg,
+			const char *url, const char *options);
+
+const oauth2_cfg_endpoint_t *
+oauth2_cfg_cc_get_token_endpoint(oauth2_cfg_cc_t *cfg);
+const char *oauth2_cfg_cc_get_client_id(oauth2_cfg_cc_t *cfg);
+const oauth2_nv_list_t *
+oauth2_cfg_cc_get_request_parameters(oauth2_cfg_cc_t *cfg);
 
 #endif /* _OAUTH2_CFG_H_ */

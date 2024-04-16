@@ -3,7 +3,7 @@
 
 /***************************************************************************
  *
- * Copyright (C) 2018-2023 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2024 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -33,5 +33,8 @@ char *oauth2_get_source_token(oauth2_log_t *log, oauth2_cfg_source_token_t *cfg,
 bool oauth2_ropc_exec(oauth2_log_t *log, oauth2_cfg_ropc_t *cfg,
 		      const char *username, const char *password, char **rtoken,
 		      oauth2_uint_t *status_code);
+
+bool oauth2_cc_exec(oauth2_log_t *log, oauth2_cfg_cc_t *cfg, char **rtoken,
+		    oauth2_uint_t *status_code);
 
 #endif /* _OAUTH2_PROTO_H_ */

@@ -149,6 +149,12 @@ void *ngx_palloc(ngx_pool_t *pool, size_t size)
 	return p;
 }
 
+ngx_int_t ngx_pfree(ngx_pool_t *pool, void *p)
+{
+	oauth2_mem_free(p);
+	return NGX_OK;
+}
+
 void *ngx_list_push(ngx_list_t *l)
 {
 	void *elt;
@@ -181,6 +187,17 @@ void *ngx_list_push(ngx_list_t *l)
 	last->nelts++;
 
 	return elt;
+}
+
+ngx_http_variable_value_t *
+ngx_http_get_variable(ngx_http_request_t *r, ngx_str_t *name, ngx_uint_t key)
+{
+	return NULL;
+}
+
+ngx_uint_t ngx_hash_strlow(u_char *dst, u_char *src, size_t n)
+{
+	return 0;
 }
 
 #endif

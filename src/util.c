@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2023 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2024 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -80,12 +80,12 @@ void oauth2_shutdown(oauth2_log_t *log)
 	ERR_free_strings();
 	CRYPTO_cleanup_all_ex_data();
 
-//#if OPENSSL_API_COMPAT < 0x10100000L
-//#if OPENSSL_VERSION_NUMBER < 0x10000000L
+// #if OPENSSL_API_COMPAT < 0x10100000L
+// #if OPENSSL_VERSION_NUMBER < 0x10000000L
 //	SSL_COMP_free_compression_methods();
-//#endif
+// #endif
 #if (OPENSSL_VERSION_NUMBER < 0x10100000) || defined(LIBRESSL_VERSION_NUMBER)
-	//#if OPENSSL_API_COMPAT < 0x10100000L
+	// #if OPENSSL_API_COMPAT < 0x10100000L
 	ERR_remove_thread_state(NULL);
 #endif
 	oauth2_log_free(log);

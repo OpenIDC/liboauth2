@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2023 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2024 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -1850,8 +1850,9 @@ static oauth2_jose_jwk_list_t *oauth2_jose_jwks_list_resolve(
 	return oauth2_jose_jwk_list_clone(log, provider->jwks);
 }
 
-typedef oauth2_jose_jwk_list_t *(oauth2_jose_jwks_url_resolve_response_cb_t)(
-    oauth2_log_t *log, char *response);
+typedef oauth2_jose_jwk_list_t *(
+    oauth2_jose_jwks_url_resolve_response_cb_t)(oauth2_log_t *log,
+						char *response);
 
 // cater for the (Amazon ALB) use case that only a single EC(!) key is served
 // from the URL

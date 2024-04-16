@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2023 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2024 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -96,9 +96,12 @@ oauth2_cfg_accept_in_cookie_options_set(oauth2_log_t *log,
 	return rv;
 }
 
-typedef char *(oauth2_cfg_accept_token_in_set_options_cb_t)(
-    oauth2_log_t *log, oauth2_cfg_token_in_t *accept_in,
-    const oauth2_nv_list_t *params);
+typedef char *(
+    oauth2_cfg_accept_token_in_set_options_cb_t)(oauth2_log_t *log,
+						 oauth2_cfg_token_in_t
+						     *accept_in,
+						 const oauth2_nv_list_t
+						     *params);
 
 typedef struct oauth2_cfg_accept_token_in_set_options_ctx_t {
 	const char *method;

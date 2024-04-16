@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2023 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2024 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -38,7 +38,7 @@
 
 #include "util_int.h"
 
-//#include <semaphore.h>
+// #include <semaphore.h>
 
 static int http_server_port = 8888;
 static int http_server_signal_delivered = 0;

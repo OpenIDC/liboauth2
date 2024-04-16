@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2023 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2024 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -320,6 +320,7 @@ END_TEST
 static char *token_endpoint_path = "/token";
 
 static char *ropc_result_json = "{ \"access_token\": \"my_ropc_token\" }";
+static char *cc_result_json = "{ \"access_token\": \"my_cc_token\" }";
 
 static char *oauth2_check_proto_serve_post(const char *request)
 {
@@ -345,6 +346,9 @@ static char *oauth2_check_proto_serve_post(const char *request)
 		if ((grant_type) && (strcmp(grant_type, "password") == 0)) {
 			// TODO: check username password
 			rv = oauth2_strdup(ropc_result_json);
+		} else if ((grant_type) &&
+			   (strcmp(grant_type, "client_credentials") == 0)) {
+			rv = oauth2_strdup(cc_result_json);
 		} else {
 			rv = oauth2_strdup(
 			    "{ \"error\": \"unsupported grant_type\" }");
@@ -389,6 +393,32 @@ START_TEST(test_proto_ropc)
 }
 END_TEST
 
+START_TEST(test_proto_cc)
+{
+	bool rc = false;
+	oauth2_cfg_cc_t *cfg = NULL;
+	char *token = NULL;
+	oauth2_uint_t status_code = 0;
+	char *rv = NULL;
+	char *url = NULL;
+
+	url = oauth2_stradd(NULL, NULL, oauth2_check_http_base_url(),
+			    token_endpoint_path);
+
+	cfg = oauth2_cfg_cc_init(_log);
+	rv = oauth2_cfg_set_cc(_log, cfg, url, NULL);
+	ck_assert_ptr_eq(rv, NULL);
+
+	rc = oauth2_cc_exec(_log, cfg, &token, &status_code);
+	ck_assert_int_eq(rc, true);
+	ck_assert_str_eq(token, "my_cc_token");
+
+	oauth2_mem_free(token);
+	oauth2_cfg_cc_free(_log, cfg);
+	oauth2_mem_free(url);
+}
+END_TEST
+
 Suite *oauth2_check_proto_suite()
 {
 	Suite *s = suite_create("proto");
@@ -406,6 +436,7 @@ Suite *oauth2_check_proto_suite()
 	tcase_add_test(c, test_proto_get_source_token_post);
 	tcase_add_test(c, test_proto_get_source_token_basic);
 	tcase_add_test(c, test_proto_ropc);
+	tcase_add_test(c, test_proto_cc);
 
 	suite_add_tcase(s, c);
 

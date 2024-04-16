@@ -3,7 +3,7 @@
 
 /***************************************************************************
  *
- * Copyright (C) 2018-2023 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2024 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -64,8 +64,6 @@
 #define OAUTH2_CLAIM_EXP "exp"
 #define OAUTH2_CLAIM_AUD "aud"
 #define OAUTH2_CLAIM_IAT "iat"
-
-#define OAUTH2_TLS_CERT_VAR_NAME "SSL_CLIENT_CERT"
 
 typedef enum {
 	OAUTH2_UNAUTH_ACTION_UNDEFINED,
