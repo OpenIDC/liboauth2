@@ -3,7 +3,7 @@
 
 /***************************************************************************
  *
- * Copyright (C) 2018-2023 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2024 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -22,10 +22,10 @@
  *
  **************************************************************************/
 
-//#pragma GCC diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
-//#pragma GCC diagnostic ignored
+// #pragma GCC diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
+// #pragma GCC diagnostic ignored
 //"-Wincompatible-pointer-types-discards-qualifiers"
-//#pragma GCC diagnostic ignored "-Wpointer-sign"
+// #pragma GCC diagnostic ignored "-Wpointer-sign"
 
 #include <check.h>
 

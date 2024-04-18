@@ -1,3 +1,18 @@
+03/11/2024
+- release 1.6.1
+
+03/08/2024
+- add support for RFC 8705 OAuth 2.0 Mutual-TLS Certificate-Bound Access Tokens to the NGINX binding
+
+03/04/2024
+- add support for Redis 6 ACL username based authentication; see: OpenIDC/mod_oauth2#63
+- bump to 1.6.1dev
+
+12/06/2023
+- add support for the OAuth 2.0 Client Credentials grant type
+- use libcurl version macro that works on older platforms
+- release 1.6.0
+
 11/08/2023
 - update DPoP support to RFC 9449
 - release 1.5.2

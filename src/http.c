@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2023 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2024 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -175,6 +175,11 @@ bool oauth2_http_request_context_set(oauth2_log_t *log,
 
 	if (request == NULL)
 		goto end;
+
+	if (strcmp(name, OAUTH2_TLS_CERT_VAR_NAME) == 0)
+		oauth2_debug(
+		    log, "set SSL client certificate in request context: %s",
+		    value);
 
 	rc = oauth2_nv_list_set(log, request->_context, name, value);
 
@@ -1007,10 +1012,15 @@ bool oauth2_http_call(oauth2_log_t *log, const char *url, const char *data,
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&buf);
 
 #ifndef LIBCURL_NO_CURLPROTO
+#if LIBCURL_VERSION_NUM >= 0x075500
+	curl_easy_setopt(curl, CURLOPT_REDIR_PROTOCOLS_STR, "http,https");
+	curl_easy_setopt(curl, CURLOPT_PROTOCOLS_STR, "http,https");
+#else
 	curl_easy_setopt(curl, CURLOPT_REDIR_PROTOCOLS,
 			 CURLPROTO_HTTP | CURLPROTO_HTTPS);
 	curl_easy_setopt(curl, CURLOPT_PROTOCOLS,
 			 CURLPROTO_HTTP | CURLPROTO_HTTPS);
+#endif
 #endif
 
 	if (ctx) {

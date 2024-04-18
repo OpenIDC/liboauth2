@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2023 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2024 - ZmartZone Holding BV - www.zmartzone.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -34,6 +34,7 @@ typedef struct oauth2_cache_impl_redis_t {
 	oauth2_ipc_mutex_t *mutex;
 	char *host_str;
 	oauth2_uint_t port;
+	char *username;
 	char *passwd;
 	redisContext *ctx;
 } oauth2_cache_impl_redis_t;
@@ -68,6 +69,9 @@ static bool oauth2_cache_redis_init(oauth2_log_t *log, oauth2_cache_t *cache,
 
 	v = oauth2_nv_list_get(log, options, "port");
 	impl->port = oauth2_parse_uint(log, v, 6379);
+
+	v = oauth2_nv_list_get(log, options, "username");
+	impl->username = v ? oauth2_strdup(v) : NULL;
 
 	v = oauth2_nv_list_get(log, options, "password");
 	impl->passwd = v ? oauth2_strdup(v) : NULL;
@@ -110,6 +114,8 @@ static bool oauth2_cache_redis_free(oauth2_log_t *log, oauth2_cache_t *cache)
 
 	if (impl->host_str)
 		oauth2_mem_free(impl->host_str);
+	if (impl->username)
+		oauth2_mem_free(impl->username);
 	if (impl->passwd)
 		oauth2_mem_free(impl->passwd);
 
@@ -228,8 +234,13 @@ static redisReply *_oauth2_cache_redis_command(oauth2_log_t *log,
 			break;
 
 		if (impl->passwd != NULL) {
-			reply =
-			    redisCommand(impl->ctx, "AUTH %s", impl->passwd);
+			if (impl->username != NULL)
+				reply =
+				    redisCommand(impl->ctx, "AUTH %s %s",
+						 impl->username, impl->passwd);
+			else
+				reply = redisCommand(impl->ctx, "AUTH %s",
+						     impl->passwd);
 			if ((reply == NULL) ||
 			    (reply->type == REDIS_REPLY_ERROR))
 				oauth2_error(
