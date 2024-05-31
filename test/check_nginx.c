@@ -43,15 +43,17 @@ static void setup(void)
 	_request->schema_end = (u_char *)_url + strlen("https");
 	_request->host_start = (u_char *)_url + strlen("https://");
 	_request->host_end = (u_char *)_url + strlen("https://example.org");
-	_request->port_start = (u_char *)_url + strlen("https://example.org:");
-	_request->port_end =
-	    (u_char *)_url + strlen("https://example.org:8080");
 	_request->uri = _uri;
 	_request->method_name = _method_name;
 	_request->args = _args;
 	_request->pool = ngx_create_pool(1024, NULL);
 	_request->connection = oauth2_mem_alloc(sizeof(ngx_connection_t));
 	_request->connection->log = NULL;
+	_request->connection->sockaddr =
+	    oauth2_mem_alloc(sizeof(struct sockaddr_in));
+	_request->connection->sockaddr->sa_family = AF_INET;
+	((struct sockaddr_in *)_request->connection->sockaddr)->sin_port =
+	    htons(8080);
 	_request->http_connection =
 	    oauth2_mem_alloc(sizeof(ngx_http_connection_t));
 	_request->http_connection->ssl = 1;
@@ -97,6 +99,7 @@ static void teardown(void)
 	list_free(&_request->headers_out.headers);
 	list_free(&_request->headers_in.headers);
 	oauth2_mem_free(_request->http_connection);
+	oauth2_mem_free(_request->connection->sockaddr);
 	oauth2_mem_free(_request->connection);
 	ngx_destroy_pool(_request->pool);
 	oauth2_mem_free(_request);
