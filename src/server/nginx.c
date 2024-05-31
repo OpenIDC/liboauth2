@@ -100,7 +100,8 @@ static void _oauth2_nginx_host_copy(oauth2_nginx_request_context_t *ctx)
 static void _oauth2_nginx_port_copy(oauth2_nginx_request_context_t *ctx)
 {
 	in_port_t port = ngx_inet_get_port(ctx->r->connection->sockaddr);
-	oauth2_http_request_port_set(ctx->log, ctx->request, (unsigned long)port);
+	oauth2_http_request_port_set(ctx->log, ctx->request,
+				     (unsigned long)port);
 }
 
 static void _oauth2_nginx_path_copy(oauth2_nginx_request_context_t *ctx)

@@ -314,8 +314,7 @@ typedef struct oauth2_cfg_openidc_t {
 		dst = type##_init(log);
 
 #define _OAUTH2_CFG_CTX_CLONE_END                                              \
-	end:                                                                   \
-	return dst;                                                            \
+	end : return dst;                                                      \
 	}
 
 #define _OAUTH2_CFG_CTX_FREE_START(type)                                       \
