@@ -89,7 +89,7 @@ noinst_LTLIBRARIES = liboauth2_cache.la
 liboauth2_la_LIBADD += liboauth2_cache.la
 liboauth2_cache_la_SOURCES = src/cache.c
 liboauth2_cache_la_CPPFLAGS = $(AM_CPPFLAGS)
-liboauth2_cache_la_CFLAGS = @CURL_CFLAGS@ @CJOSE_CFLAGS@
+liboauth2_cache_la_CFLAGS = @CURL_CFLAGS@ @CJOSE_CFLAGS@ @PCRE2_CFLAGS@
 
 if HAVE_LIBMEMCACHE
 liboauth2_cache_la_CPPFLAGS += -DHAVE_LIBMEMCACHE
@@ -120,7 +120,7 @@ liboauth2_apache_la_pkgconfigdir = $(libdir)/pkgconfig
 liboauth2_apache_la_pkgconfig_DATA = liboauth2_apache.pc
 
 liboauth2_apache_la_CPPFLAGS = $(AM_CPPFLAGS) -DHAVE_APACHE
-liboauth2_apache_la_CFLAGS = @APACHE_CFLAGS@
+liboauth2_apache_la_CFLAGS = @APACHE_CFLAGS@ @PCRE2_CFLAGS@
 liboauth2_apache_la_LIBADD = liboauth2.la @APR_LIBS@ @JANSSON_LIBS@
 
 includesub_HEADERS += \
@@ -141,7 +141,7 @@ liboauth2_nginx_la_pkgconfigdir = $(libdir)/pkgconfig
 liboauth2_nginx_la_pkgconfig_DATA = liboauth2_nginx.pc
 
 liboauth2_nginx_la_CPPFLAGS = $(AM_CPPFLAGS) -DHAVE_NGINX
-liboauth2_nginx_la_CFLAGS = @NGINX_CFLAGS@
+liboauth2_nginx_la_CFLAGS = @NGINX_CFLAGS@ @PCRE2_CFLAGS@
 liboauth2_nginx_la_LIBADD = liboauth2.la @NGINX_LIBS@ @JANSSON_LIBS@
 
 includesub_HEADERS += \

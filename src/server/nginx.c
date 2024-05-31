@@ -99,14 +99,8 @@ static void _oauth2_nginx_host_copy(oauth2_nginx_request_context_t *ctx)
 
 static void _oauth2_nginx_port_copy(oauth2_nginx_request_context_t *ctx)
 {
-	char *v = NULL;
-	int len = ctx->r->port_end - ctx->r->port_start;
-	if (len > 0) {
-		v = oauth2_strndup((const char *)ctx->r->port_start, len);
-		oauth2_http_request_port_set(ctx->log, ctx->request,
-					     oauth2_parse_uint(NULL, v, 0));
-		oauth2_mem_free(v);
-	}
+	in_port_t port = ngx_inet_get_port(ctx->r->connection->sockaddr);
+	oauth2_http_request_port_set(ctx->log, ctx->request, (unsigned long)port);
 }
 
 static void _oauth2_nginx_path_copy(oauth2_nginx_request_context_t *ctx)
