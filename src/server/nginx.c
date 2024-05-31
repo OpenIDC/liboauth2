@@ -99,7 +99,27 @@ static void _oauth2_nginx_host_copy(oauth2_nginx_request_context_t *ctx)
 
 static void _oauth2_nginx_port_copy(oauth2_nginx_request_context_t *ctx)
 {
-	in_port_t port = ngx_inet_get_port(ctx->r->connection->sockaddr);
+	in_port_t port = 0;
+	struct sockaddr_in *sin;
+#if (NGX_HAVE_INET6)
+	struct sockaddr_in6 *sin6;
+#endif
+
+	switch (ctx->r->connection->sockaddr->sa_family) {
+#if (NGX_HAVE_INET6)
+	case AF_INET6:
+		sin6 = (struct sockaddr_in6 *)ctx->r->connection->sockaddr;
+		port = ntohs(sin6->sin6_port);
+#endif
+#if (NGX_HAVE_UNIX_DOMAIN)
+	case AF_UNIX:
+		port = 0;
+#endif
+	default: /* AF_INET */
+		sin = (struct sockaddr_in *)ctx->r->connection->sockaddr;
+		port = ntohs(sin->sin_port);
+	}
+
 	oauth2_http_request_port_set(ctx->log, ctx->request,
 				     (unsigned long)port);
 }
