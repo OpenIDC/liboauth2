@@ -9,7 +9,7 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     name: ${{ matrix.arch }}
 
     strategy:
@@ -19,13 +19,13 @@ jobs:
 #test/check_nginx.c:106:E:core:test_request_context:0: (after this point) Received signal 11 (Segmentation fault)
 #test/check_nginx.c:118:E:core:test_nginx_http_response_set:0: (after this point) Received signal 11 (Segmentation fault)  
 #          - arch: armv7
-#            distro: ubuntu_latest
+#            distro: ubuntu22.04
           - arch: aarch64
-            distro: ubuntu_latest
-#          - arch: ppc64le
-#            distro: ubuntu_latest
-#          - arch: s390x
-#            distro: ubuntu_latest
+            distro: ubuntu22.04
+          - arch: ppc64le
+            distro: ubuntu22.04
+          - arch: s390x
+            distro: ubuntu22.04
   
     steps:
     - uses: actions/checkout@v4
