@@ -22,8 +22,8 @@ jobs:
 #            distro: ubuntu_latest
           - arch: aarch64
             distro: ubuntu_latest
-          - arch: ppc64le
-            distro: ubuntu_latest
+#          - arch: ppc64le
+#            distro: ubuntu_latest
 #          - arch: s390x
 #            distro: ubuntu_latest
   
