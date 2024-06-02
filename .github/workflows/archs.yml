@@ -24,11 +24,11 @@ jobs:
             distro: ubuntu_latest
           - arch: ppc64le
             distro: ubuntu_latest
-          - arch: s390x
-            distro: ubuntu_latest
+#          - arch: s390x
+#            distro: ubuntu_latest
   
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: uraimo/run-on-arch-action@v2
       name: Build
       id: build
