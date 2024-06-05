@@ -49,10 +49,10 @@ static void setup(void)
 	_request->pool = ngx_create_pool(1024, NULL);
 	_request->connection = oauth2_mem_alloc(sizeof(ngx_connection_t));
 	_request->connection->log = NULL;
-	_request->connection->sockaddr =
+	_request->connection->local_sockaddr =
 	    oauth2_mem_alloc(sizeof(struct sockaddr_in));
-	_request->connection->sockaddr->sa_family = AF_INET;
-	((struct sockaddr_in *)_request->connection->sockaddr)->sin_port =
+	_request->connection->local_sockaddr->sa_family = AF_INET;
+	((struct sockaddr_in *)_request->connection->local_sockaddr)->sin_port =
 	    htons(8080);
 	_request->http_connection =
 	    oauth2_mem_alloc(sizeof(ngx_http_connection_t));

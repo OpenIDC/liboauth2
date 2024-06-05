@@ -105,10 +105,11 @@ static void _oauth2_nginx_port_copy(oauth2_nginx_request_context_t *ctx)
 	struct sockaddr_in6 *sin6;
 #endif
 
-	switch (ctx->r->connection->sockaddr->sa_family) {
+	switch (ctx->r->connection->local_sockaddr->sa_family) {
 #if (NGX_HAVE_INET6)
 	case AF_INET6:
-		sin6 = (struct sockaddr_in6 *)ctx->r->connection->sockaddr;
+		sin6 =
+		    (struct sockaddr_in6 *)ctx->r->connection->local_sockaddr;
 		port = ntohs(sin6->sin6_port);
 #endif
 #if (NGX_HAVE_UNIX_DOMAIN)
@@ -116,7 +117,7 @@ static void _oauth2_nginx_port_copy(oauth2_nginx_request_context_t *ctx)
 		port = 0;
 #endif
 	default: /* AF_INET */
-		sin = (struct sockaddr_in *)ctx->r->connection->sockaddr;
+		sin = (struct sockaddr_in *)ctx->r->connection->local_sockaddr;
 		port = ntohs(sin->sin_port);
 	}
 
