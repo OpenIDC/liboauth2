@@ -1,3 +1,6 @@
+06/05/2024
+- release 1.6.2
+
 05/31/2024
 - refactor NGINX port extraction so it works with NGINX >= 1.27.0; closes #49; thanks @anpin
 - add PCRE2_CFLAGS to cache/server object linking

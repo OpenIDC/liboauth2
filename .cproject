@@ -34,9 +34,11 @@
 							<tool id="org.eclipse.linuxtools.cdt.autotools.core.toolchain.tool.gcc.548331172" name="GCC C Compiler" superClass="org.eclipse.linuxtools.cdt.autotools.core.toolchain.tool.gcc">
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.c.compiler.option.include.paths.811285626" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/include&quot;"/>
-									<listOptionValue builtIn="false" value="/opt/local/include/apache2"/>
-									<listOptionValue builtIn="false" value="/opt/local/include"/>
-									<listOptionValue builtIn="false" value="/opt/local/include/apr-1"/>
+									<listOptionValue builtIn="false" value="/opt/homebrew/Cellar/apr/1.7.4/include/apr-1"/>
+									<listOptionValue builtIn="false" value="/opt/homebrew/Cellar/apr-util/1.6.3_1/include/apr-1"/>
+									<listOptionValue builtIn="false" value="/opt/homebrew/include"/>
+									<listOptionValue builtIn="false" value="/opt/homebrew/include/httpd"/>
+									<listOptionValue builtIn="false" value="/usr/local/include"/>
 									<listOptionValue builtIn="false" value="/Users/hzandbelt/projects/nginx/src/core"/>
 									<listOptionValue builtIn="false" value="/Users/hzandbelt/projects/nginx/src/http"/>
 									<listOptionValue builtIn="false" value="/Users/hzandbelt/projects/nginx/src/os/unix"/>
