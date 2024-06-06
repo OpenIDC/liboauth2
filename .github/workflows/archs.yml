@@ -9,8 +9,8 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-22.04
-    name: ${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    name: ${{ matrix.arch }}-${{ matrix.nginx_version }}
 
     strategy:
       matrix:
@@ -18,14 +18,18 @@ jobs:
 #test/check_cache.c:74:F:core:test_cache_redis:0: Assertion 'value == ((void *)0)' failed: value == 0x4006a290, ((void *)0) == 0
 #test/check_nginx.c:106:E:core:test_request_context:0: (after this point) Received signal 11 (Segmentation fault)
 #test/check_nginx.c:118:E:core:test_nginx_http_response_set:0: (after this point) Received signal 11 (Segmentation fault)  
-#          - arch: armv7
-#            distro: ubuntu22.04
+          - arch: armv7
+            distro: ubuntu-latest
+            nginx_version: 1.24.0
           - arch: aarch64
-            distro: ubuntu22.04
+            distro: ubuntu-latest
+            nginx_version: 1.24.0
           - arch: ppc64le
-            distro: ubuntu22.04
+            distro: ubuntu-latest
+            nginx_version: 1.24.0
           - arch: s390x
-            distro: ubuntu22.04
+            distro: ubuntu-latest
+            nginx_version: 1.24.0
   
     steps:
     - uses: actions/checkout@v4
@@ -41,11 +45,12 @@ jobs:
           apt-get install -y libjansson-dev libcurl4-openssl-dev libhiredis-dev libmemcached-dev redis-server memcached libpcre2-dev libpcre2-8-0
           apt-get install -y build-essential libpcre3 libpcre3-dev zlib1g zlib1g-dev libxml2 libxml2-dev uuid-dev
           cd /tmp
-          wget --no-check-certificate https://nginx.org/download/nginx-1.18.0.tar.gz
-          tar zxvf nginx-1.18.0.tar.gz
-          ln -s nginx-1.18.0 nginx
+          wget --no-check-certificate https://nginx.org/download/nginx-${{ matrix.nginx_version }}.tar.gz
+          tar zxvf nginx-${{ matrix.nginx_version }}.tar.gz
+          ln -s nginx-${{ matrix.nginx_version }} nginx
           cd /tmp/nginx && ./configure --with-debug
         run: |
           ./autogen.sh
           ./configure --with-nginx=/tmp/nginx
+          sed -i "s/-l/#-l/g" /etc/memcached.conf
           service memcached start && service redis-server start && make check || (cat test-suite.log && exit -1)
