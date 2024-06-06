@@ -10,7 +10,7 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-    name: ${{ matrix.arch }}-${{ matrix.nginx_version }}
+    name: ${{ matrix.arch }}-nginx-${{ matrix.nginx_version }}
 
     strategy:
       matrix:

@@ -7,7 +7,7 @@ jobs:
   build:
   
     runs-on: ubuntu-latest
-    name: ${{ matrix.nginx_version }}
+    name: NGINX v${{ matrix.nginx_version }}
 
     strategy:
       matrix:
