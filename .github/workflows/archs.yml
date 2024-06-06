@@ -19,16 +19,16 @@ jobs:
 #test/check_nginx.c:106:E:core:test_request_context:0: (after this point) Received signal 11 (Segmentation fault)
 #test/check_nginx.c:118:E:core:test_nginx_http_response_set:0: (after this point) Received signal 11 (Segmentation fault)  
           - arch: armv7
-            distro: ubuntu-latest
+            distro: ubuntu_latest
             nginx_version: 1.24.0
           - arch: aarch64
-            distro: ubuntu-latest
+            distro: ubuntu_latest
             nginx_version: 1.24.0
           - arch: ppc64le
-            distro: ubuntu-latest
+            distro: ubuntu_latest
             nginx_version: 1.24.0
           - arch: s390x
-            distro: ubuntu-latest
+            distro: ubuntu_latest
             nginx_version: 1.24.0
   
     steps:
