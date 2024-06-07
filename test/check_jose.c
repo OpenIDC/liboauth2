@@ -310,7 +310,7 @@ START_TEST(test_jwt_decrypt)
 	ck_assert_int_eq(rc, false);
 	ck_assert_ptr_eq(result, NULL);
 
-	rc = oauth2_jose_jwt_decrypt(_log, secret1, encrypted1, dummy);
+	rc = oauth2_jose_jwt_decrypt(_log, secret1, encrypted1, (json_t **)result);
 	ck_assert_int_eq(rc, false);
 }
 END_TEST
