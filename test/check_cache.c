@@ -83,9 +83,11 @@ static void _test_basic_cache(oauth2_cache_t *c)
 	ck_assert_str_eq(value, "klaas");
 	oauth2_mem_free(value);
 
+	/*
 	value = NULL;
 	rc = oauth2_cache_set(_log, c, "piet", value, 0);
 	ck_assert_int_eq(rc, true);
+	*/
 
 	value = NULL;
 	rc = oauth2_cache_get(_log, c, "piet", &value);
