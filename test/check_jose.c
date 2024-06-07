@@ -260,6 +260,7 @@ START_TEST(test_jwt_decrypt)
 	bool rc;
 	char *cser = NULL;
 	json_t *result = NULL;
+	char *dummy = NULL;
 
 	rc = oauth2_jose_jwt_decrypt(_log, secret1, encrypted1, &result);
 	ck_assert_int_eq(rc, true);
@@ -301,15 +302,15 @@ START_TEST(test_jwt_decrypt)
 	ck_assert_int_eq(rc, false);
 	ck_assert_ptr_eq(result, NULL);
 
-	rc = oauth2_jose_jwt_decrypt(_log, NULL, encrypted1, &result);
+	rc = oauth2_jose_jwt_decrypt(_log, dummy, encrypted1, &result);
 	ck_assert_int_eq(rc, false);
 	ck_assert_ptr_eq(result, NULL);
 
-	rc = oauth2_jose_jwt_decrypt(_log, secret1, NULL, &result);
+	rc = oauth2_jose_jwt_decrypt(_log, secret1, dummy, &result);
 	ck_assert_int_eq(rc, false);
 	ck_assert_ptr_eq(result, NULL);
 
-	rc = oauth2_jose_jwt_decrypt(_log, secret1, encrypted1, NULL);
+	rc = oauth2_jose_jwt_decrypt(_log, secret1, encrypted1, dummy);
 	ck_assert_int_eq(rc, false);
 }
 END_TEST

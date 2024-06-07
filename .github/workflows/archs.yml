@@ -16,18 +16,18 @@ jobs:
       matrix:
         include:
 # passing literal NULL as a function input paramter does not seem to work on armv7; need compile flag??
-#          - arch: armv7
+          - arch: armv7
+            distro: ubuntu_latest
+            nginx_version: 1.24.0
+#          - arch: aarch64
 #            distro: ubuntu_latest
 #            nginx_version: 1.24.0
-          - arch: aarch64
-            distro: ubuntu_latest
-            nginx_version: 1.24.0
-          - arch: ppc64le
-            distro: ubuntu_latest
-            nginx_version: 1.24.0
-          - arch: s390x
-            distro: ubuntu_latest
-            nginx_version: 1.24.0
+#          - arch: ppc64le
+#            distro: ubuntu_latest
+#            nginx_version: 1.24.0
+#          - arch: s390x
+#            distro: ubuntu_latest
+#            nginx_version: 1.24.0
   
     steps:
     - uses: actions/checkout@v4
