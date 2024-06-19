@@ -113,7 +113,7 @@
 #define OAUTH2_NGINX_CMD(take, module, directive, primitive)                   \
 	{                                                                      \
 		ngx_string(directive),                                         \
-		    NGX_HTTP_LOC_CONF | NGX_CONF_TAKE##take,                   \
+		    NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE##take,                   \
 		    ngx_##module##_set_##primitive, NGX_HTTP_LOC_CONF_OFFSET,  \
 		    0, NULL                                                    \
 	}
