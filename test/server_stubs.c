@@ -149,6 +149,12 @@ void *ngx_palloc(ngx_pool_t *pool, size_t size)
 	return p;
 }
 
+void *ngx_pnalloc(ngx_pool_t *pool, size_t size)
+{
+	void *p = (void *)oauth2_mem_alloc(size);
+	return p;
+}
+
 ngx_int_t ngx_pfree(ngx_pool_t *pool, void *p)
 {
 	oauth2_mem_free(p);
@@ -198,6 +204,48 @@ ngx_http_get_variable(ngx_http_request_t *r, ngx_str_t *name, ngx_uint_t key)
 ngx_uint_t ngx_hash_strlow(u_char *dst, u_char *src, size_t n)
 {
 	return 0;
+}
+
+ngx_uint_t ngx_cacheline_size = 64;
+
+ngx_uint_t ngx_hash_key(u_char *data, size_t len)
+{
+	return (ngx_uint_t)(*data);
+}
+
+u_char *ngx_pstrdup(ngx_pool_t *pool, ngx_str_t *src)
+{
+	u_char *dst = ngx_pnalloc(pool, src->len);
+	memcpy(dst, src->data, src->len);
+	return dst;
+}
+
+ngx_int_t ngx_hash_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names,
+			ngx_uint_t nelts)
+{
+	return 0;
+}
+
+ngx_int_t ngx_hash_keys_array_init(ngx_hash_keys_arrays_t *ha, ngx_uint_t type)
+{
+	return 0;
+}
+
+ngx_int_t ngx_hash_add_key(ngx_hash_keys_arrays_t *ha, ngx_str_t *key,
+			   void *value, ngx_uint_t flags)
+{
+	return 0;
+}
+
+void *ngx_hash_find(ngx_hash_t *hash, ngx_uint_t key, u_char *name, size_t len)
+{
+	return NULL;
+}
+
+ngx_http_variable_t *ngx_http_add_variable(ngx_conf_t *cf, ngx_str_t *name,
+					   ngx_uint_t flags)
+{
+	return NULL;
 }
 
 #endif

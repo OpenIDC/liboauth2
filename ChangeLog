@@ -1,3 +1,8 @@
+06/19/2024
+- add NGINX macros/functions for setting claim variables in the request context
+  see OpenIDC/ngx_oauth2_module#7; thanks @@smanolache and @pladen
+- bump to 1.6.3dev
+.
 06/05/2024
 - release 1.6.2
 
