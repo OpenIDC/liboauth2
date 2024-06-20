@@ -608,3 +608,46 @@ char *nginx_oauth2_set_require(ngx_conf_t *cf, ngx_array_t **requirements)
 
 	return NGX_CONF_OK;
 }
+
+static ngx_int_t
+nginx_oauth2_check_requirement(oauth2_nginx_request_context_t *ctx,
+			       ngx_http_complex_value_t *cv)
+{
+	ngx_str_t v;
+	ngx_int_t rc = ngx_http_complex_value(ctx->r, cv, &v);
+	if (rc != NGX_OK) {
+		ngx_log_error(NGX_LOG_ERR, ctx->r->connection->log, 0,
+			      "error %d evaluating expression %*.s", rc,
+			      (int)cv->value.len, cv->value.data);
+		return NGX_ERROR;
+	}
+
+	ngx_log_debug3(NGX_LOG_DEBUG_HTTP, ctx->r->connection->log, 0,
+		       "nginx_oauth2_check_requirement: expression \"%*.s\" "
+		       "evaluated to: %s",
+		       (int)cv->value.len, cv->value.data,
+		       (1 == v.len && '1' == *v.data)
+			   ? "NGX_OK"
+			   : "NGX_HTTP_UNAUTHORIZED");
+
+	return 1 == v.len && '1' == *v.data ? NGX_OK : NGX_HTTP_UNAUTHORIZED;
+}
+ngx_int_t nginx_oauth2_check_requirements(oauth2_nginx_request_context_t *ctx,
+					  ngx_array_t *requirements)
+{
+	int rc = NGX_OK;
+	ngx_uint_t i = 0;
+
+	if (requirements == NULL)
+		return NGX_OK;
+
+	for (i = 0; i < requirements->nelts; ++i) {
+		ngx_http_complex_value_t *cv =
+		    (ngx_http_complex_value_t *)requirements->elts + i;
+		rc = nginx_oauth2_check_requirement(ctx, cv);
+		if (rc != NGX_OK)
+			break;
+	}
+
+	return rc;
+}

@@ -179,5 +179,7 @@ ngx_int_t oauth2_nginx_set_target_variables(ngx_module_t module,
 					    oauth2_nginx_request_context_t *ctx,
 					    json_t *json_token);
 char *nginx_oauth2_set_require(ngx_conf_t *cf, ngx_array_t **requirements);
+ngx_int_t nginx_oauth2_check_requirements(oauth2_nginx_request_context_t *ctx,
+					  ngx_array_t *requirements);
 
 #endif /* _OAUTH2_NGINX_H_ */
