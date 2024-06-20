@@ -1,6 +1,10 @@
+06/20/2024
+- nginx: add nginx_oauth2_set_require to be used with OAuth2Require etc.
+  see OpenIDC/ngx_oauth2_module#7; thanks @smanolache and @pladen
+
 06/19/2024
 - add NGINX macros/functions for setting claim variables in the request context
-  see OpenIDC/ngx_oauth2_module#7; thanks @@smanolache and @pladen
+  see OpenIDC/ngx_oauth2_module#7; thanks @smanolache and @pladen
 - allow NGINX primitives in an if block within a location block in the http block
 - bump to 1.6.3dev
 .

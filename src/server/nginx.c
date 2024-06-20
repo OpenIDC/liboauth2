@@ -410,14 +410,14 @@ ngx_int_t oauth2_nginx_claim_variable(ngx_module_t module,
 	return NGX_OK;
 }
 
-static const size_t MAX_BUF = 128;
+static const size_t OAUTH2_NGINX_MAX_BUF = 128;
 
 char *oauth2_nginx_set_claim(ngx_module_t module,
 			     ngx_http_get_variable_pt handler, ngx_conf_t *cf,
 			     ngx_command_t *cmd, void *conf)
 {
 	ngx_http_variable_t *v;
-	char buf[MAX_BUF];
+	char buf[OAUTH2_NGINX_MAX_BUF];
 	int n = 0;
 	char *s = NULL;
 	ngx_str_t *value = cf->args->elts;
@@ -557,4 +557,54 @@ ngx_int_t oauth2_nginx_set_target_variables(ngx_module_t module,
 	}
 
 	return NGX_OK;
+}
+
+char *nginx_oauth2_set_require(ngx_conf_t *cf, ngx_array_t **requirements)
+{
+	ngx_http_complex_value_t *val = NULL;
+	ngx_http_compile_complex_value_t ccv;
+	ngx_str_t *var = NULL;
+	int rc = NGX_OK;
+	char *s = NULL;
+	char buf[OAUTH2_NGINX_MAX_BUF];
+
+	if (cf->args == NULL)
+		return NGX_CONF_ERROR;
+
+	if (*requirements == NULL) {
+		*requirements =
+		    ngx_array_create(cf->pool, cf->args->nelts,
+				     sizeof(ngx_http_complex_value_t));
+		if (*requirements == NULL) {
+			ngx_str_t msg = ngx_string("Out of memory");
+			s = oauth2_nginx_str2chr(cf->pool, &msg);
+			return s ? s : NGX_CONF_ERROR;
+		}
+	}
+
+	for (unsigned int i = 1; i < cf->args->nelts; ++i) {
+
+		var = (ngx_str_t *)cf->args->elts + i;
+		/* no allocation here because we've already dimensioned the
+		 * array upon its creation */
+		val = (ngx_http_complex_value_t *)ngx_array_push(*requirements);
+
+		ngx_memzero(&ccv, sizeof(ngx_http_compile_complex_value_t));
+		ccv.cf = cf;
+		ccv.value = var;
+		ccv.complex_value = val;
+
+		rc = ngx_http_compile_complex_value(&ccv);
+		if (rc != NGX_OK) {
+			int n = snprintf(buf, sizeof(buf),
+					 "Error %d compiling "
+					 "expression %.*s",
+					 rc, (int)var->len, var->data);
+			ngx_str_t msg = {n, (u_char *)&buf[0]};
+			s = oauth2_nginx_str2chr(cf->pool, &msg);
+			return s ? s : NGX_CONF_ERROR;
+		}
+	}
+
+	return NGX_CONF_OK;
 }

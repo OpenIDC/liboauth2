@@ -248,4 +248,19 @@ ngx_http_variable_t *ngx_http_add_variable(ngx_conf_t *cf, ngx_str_t *name,
 	return NULL;
 }
 
+ngx_array_t *ngx_array_create(ngx_pool_t *p, ngx_uint_t n, size_t size)
+{
+	return NULL;
+}
+
+void *ngx_array_push(ngx_array_t *a)
+{
+	return NULL;
+}
+
+ngx_int_t ngx_http_compile_complex_value(ngx_http_compile_complex_value_t *ccv)
+{
+	return 0;
+}
+
 #endif
