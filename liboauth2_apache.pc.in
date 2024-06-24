@@ -11,6 +11,6 @@ Name: liboauth2_apache
 URL: https://github.com/OpenIDC/liboauth2
 Description: Apache C bindings for liboauth2
 Version: @VERSION@
-Requires: liboauth2 >= 1.6.2, apr-1, apr-util-1
+Requires: liboauth2 >= 1.6.3, apr-1, apr-util-1
 Cflags: -I${includedir}
 Libs: -L${libdir} -loauth2_apache
