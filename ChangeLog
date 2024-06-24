@@ -1,4 +1,8 @@
 06/24/2024
+- allow to use local file through file:// protocol for metadata or jwks; see #51; thanks @pladen
+- bump to 1.6.4dev
+
+06/24/2024
 - release 1.6.3
 
 06/20/2024
