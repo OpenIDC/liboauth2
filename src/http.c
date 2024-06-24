@@ -1014,12 +1014,12 @@ bool oauth2_http_call(oauth2_log_t *log, const char *url, const char *data,
 #ifndef LIBCURL_NO_CURLPROTO
 #if LIBCURL_VERSION_NUM >= 0x075500
 	curl_easy_setopt(curl, CURLOPT_REDIR_PROTOCOLS_STR, "http,https");
-	curl_easy_setopt(curl, CURLOPT_PROTOCOLS_STR, "http,https");
+	curl_easy_setopt(curl, CURLOPT_PROTOCOLS_STR, "http,https,file");
 #else
 	curl_easy_setopt(curl, CURLOPT_REDIR_PROTOCOLS,
 			 CURLPROTO_HTTP | CURLPROTO_HTTPS);
 	curl_easy_setopt(curl, CURLOPT_PROTOCOLS,
-			 CURLPROTO_HTTP | CURLPROTO_HTTPS);
+			 CURLPROTO_HTTP | CURLPROTO_HTTPS | CURLPROTO_FILE);
 #endif
 #endif
 
