@@ -1,3 +1,23 @@
+06/24/2024
+- release 1.6.3
+
+06/20/2024
+- nginx: add nginx_oauth2_set_require to be used with OAuth2Require etc.
+  see OpenIDC/ngx_oauth2_module#7; thanks @smanolache and @pladen
+
+06/19/2024
+- add NGINX macros/functions for setting claim variables in the request context
+  see OpenIDC/ngx_oauth2_module#7; thanks @smanolache and @pladen
+- allow NGINX primitives in an if block within a location block in the http block
+- bump to 1.6.3dev
+.
+06/05/2024
+- release 1.6.2
+
+05/31/2024
+- refactor NGINX port extraction so it works with NGINX >= 1.27.0; closes #49; thanks @anpin
+- add PCRE2_CFLAGS to cache/server object linking
+
 03/11/2024
 - release 1.6.1
 
