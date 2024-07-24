@@ -63,6 +63,12 @@
 	return rv ? NGX_CONF_ERROR : NGX_CONF_OK;                              \
 	}
 
+#define OAUTH2_NGINX_CFG_FUNC_RET1(module, type, primitive, func, member)      \
+	OAUTH2_NGINX_CFG_FUNC_START(module, type, primitive)                   \
+	(void)value;                                                           \
+	rv = func(cf, &cfg->member);                                           \
+	OAUTH2_NGINX_CFG_FUNC_END(cf, rv)
+
 #define OAUTH2_NGINX_CFG_FUNC_ARGS1(module, type, primitive, func, member)     \
 	OAUTH2_NGINX_CFG_FUNC_START(module, type, primitive)                   \
 	char *v1 = cf->args->nelts > 1                                         \
@@ -113,7 +119,8 @@
 #define OAUTH2_NGINX_CMD(take, module, directive, primitive)                   \
 	{                                                                      \
 		ngx_string(directive),                                         \
-		    NGX_HTTP_LOC_CONF | NGX_CONF_TAKE##take,                   \
+		    NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF |                    \
+			NGX_CONF_TAKE##take,                                   \
 		    ngx_##module##_set_##primitive, NGX_HTTP_LOC_CONF_OFFSET,  \
 		    0, NULL                                                    \
 	}
@@ -139,5 +146,40 @@ void oauth2_nginx_request_context_free(void *rec);
 ngx_int_t oauth2_nginx_http_response_set(oauth2_log_t *log,
 					 oauth2_http_response_t *response,
 					 ngx_http_request_t *r);
+
+//
+
+char *oauth2_nginx_str2chr(ngx_pool_t *p, const ngx_str_t *str);
+
+#define OAUTH2_NGINX_CMD_SET_IMPL(module, primitive)                           \
+	static ngx_int_t ngx_##module##_##primitive##_variable(                \
+	    ngx_http_request_t *r, ngx_http_variable_value_t *v,               \
+	    uintptr_t data)                                                    \
+	{                                                                      \
+		return oauth2_nginx_##primitive##_variable(                    \
+		    ngx_##module##_module, r, v, data);                        \
+	}                                                                      \
+                                                                               \
+	static char *ngx_##module##_set_##primitive(                           \
+	    ngx_conf_t *cf, ngx_command_t *cmd, void *conf)                    \
+	{                                                                      \
+		return oauth2_nginx_set_##primitive(                           \
+		    ngx_##module##_module,                                     \
+		    ngx_##module##_##primitive##_variable, cf, cmd, conf);     \
+	}
+
+ngx_int_t oauth2_nginx_claim_variable(ngx_module_t module,
+				      ngx_http_request_t *r,
+				      ngx_http_variable_value_t *v,
+				      uintptr_t data);
+char *oauth2_nginx_set_claim(ngx_module_t module,
+			     ngx_http_get_variable_pt handler, ngx_conf_t *cf,
+			     ngx_command_t *cmd, void *conf);
+ngx_int_t oauth2_nginx_set_target_variables(ngx_module_t module,
+					    oauth2_nginx_request_context_t *ctx,
+					    json_t *json_token);
+char *nginx_oauth2_set_require(ngx_conf_t *cf, ngx_array_t **requirements);
+ngx_int_t nginx_oauth2_check_requirements(oauth2_nginx_request_context_t *ctx,
+					  ngx_array_t *requirements);
 
 #endif /* _OAUTH2_NGINX_H_ */
