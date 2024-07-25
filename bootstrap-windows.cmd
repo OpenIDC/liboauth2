@@ -1,7 +1,20 @@
 @ECHO Requires git installed and an account on github
 @SET STARTTIME=%time% 
 
-git submodule update --init --recursive
+SET /P TRUSTSUBMODULE=Do you want to reset all submodules? (Choose Y first time you run or retest) (Y/[N])?
+IF /I "%TRUSTSUBMODULE%" NEQ "Y" GOTO SKIP_SUBMODULE
+
+REM Remove all untracked content of the module
+git submodule foreach --recursive git clean -xfd
+REM Force all changed track files to be default values.
+git submodule foreach --recursive git reset --hard
+REM Update to the Latest and greatest in the submodule
+git submodule update --recursive --remote
+
+@ECHO Copy over changes to cjose and mod_auth_openidc so they compile on windows
+xcopy changes\*.* /r /q /y /s
+
+:SKIP_SUBMODULE
 
 @ECHO Checking for VS2019 Enterprise
 if "%VSINSTALLDIR%"=="" call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsx86_amd64.bat"
@@ -49,9 +62,6 @@ set ERROR_CODE=1
 exit
 
 :continue
-@ECHO Over changes to cjose and mod_auth_openidc so they compile on windows
-xcopy changes\*.* /r /q /y /s
-
 @ECHO Downloading Apache http x64 zip files.
 
 if exist ".\target\httpd-latest" goto APACHE_DOWNLOADED
