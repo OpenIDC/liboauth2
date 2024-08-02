@@ -116,6 +116,7 @@
 
 // commands
 
+// clang-format off
 #define OAUTH2_NGINX_CMD(take, module, directive, primitive)                   \
 	{                                                                      \
 		ngx_string(directive),                                         \
@@ -124,6 +125,7 @@
 		    ngx_##module##_set_##primitive, NGX_HTTP_LOC_CONF_OFFSET,  \
 		    0, NULL                                                    \
 	}
+// clang-format on
 
 // logging
 

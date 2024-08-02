@@ -1080,7 +1080,7 @@ _oauth2_jose_jwt_validate_iss(oauth2_log_t *log, const json_t *json_payload,
 	if (strcmp(iss, value) != 0) {
 		oauth2_error(log,
 			     "requested issuer (%s) does not match received "
-			     "\"%s\" value in id_token (%s)",
+			     "\"%s\" value in JWT (%s)",
 			     iss, OAUTH2_JOSE_JWT_ISS, value);
 		goto end;
 	}
