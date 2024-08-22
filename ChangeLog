@@ -1,3 +1,7 @@
+08/22/2024
+- change LICENSE to Apache 2.0
+- release 2.0.0
+
 08/02/2024
 - correct error log upon mismatch in "iss" claim: id_token->JWT
 
