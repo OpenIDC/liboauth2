@@ -113,6 +113,31 @@
 	oauth2_mem_free(v1);                                                   \
 	OAUTH2_NGINX_CFG_FUNC_END(cf, rv)
 
+#define OAUTH2_NGINX_CFG_FUNC_ARGS4(module, type, primitive, func, member)     \
+	OAUTH2_NGINX_CFG_FUNC_START(module, type, primitive)                   \
+	char *v1 = cf->args->nelts > 1                                         \
+		       ? oauth2_strndup((const char *)value[1].data,           \
+					(size_t)value[1].len)                  \
+		       : NULL;                                                 \
+	char *v2 = cf->args->nelts > 2                                         \
+		       ? oauth2_strndup((const char *)value[2].data,           \
+					(size_t)value[2].len)                  \
+		       : NULL;                                                 \
+	char *v3 = cf->args->nelts > 3                                         \
+		       ? oauth2_strndup((const char *)value[3].data,           \
+					(size_t)value[3].len)                  \
+		       : NULL;                                                 \
+	char *v4 = cf->args->nelts > 4                                         \
+		       ? oauth2_strndup((const char *)value[3].data,           \
+					(size_t)value[4].len)                  \
+		       : NULL;                                                 \
+	rv = func(cfg->log, member, v1, v2, v3, v4);                           \
+	oauth2_mem_free(v4);                                                   \
+	oauth2_mem_free(v3);                                                   \
+	oauth2_mem_free(v2);                                                   \
+	oauth2_mem_free(v1);                                                   \
+	OAUTH2_NGINX_CFG_FUNC_END(cf, rv)
+
 // commands
 
 // clang-format off

@@ -110,10 +110,12 @@ static void _oauth2_nginx_port_copy(oauth2_nginx_request_context_t *ctx)
 		sin6 =
 		    (struct sockaddr_in6 *)ctx->r->connection->local_sockaddr;
 		port = ntohs(sin6->sin6_port);
+		break;
 #endif
 #if (NGX_HAVE_UNIX_DOMAIN)
 	case AF_UNIX:
 		port = 0;
+		break;
 #endif
 	default: /* AF_INET */
 		sin = (struct sockaddr_in *)ctx->r->connection->local_sockaddr;
