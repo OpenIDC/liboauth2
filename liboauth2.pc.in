@@ -11,6 +11,6 @@ Name: liboauth2
 URL: https://github.com/OpenIDC/liboauth2
 Description: OAuth 2.0 / OpenID Connect implementation for C
 Version: @VERSION@
-Requires: cjose >= 0.5.1, jansson >= 2.3, libcurl, libpcre2-8, libssl, libcrypto >= 1.0.1@MEMCACHE_PC@@HIREDIS_PC@
-Cflags: -I${includedir}
+Requires: cjose >= 0.5.1, jansson >= 2.3, libcurl, libpcre2-8, libssl, libcrypto >= 1.0.1@MEMCACHE_PC@@HIREDIS_PC@@JQ_LIBS_PC@
+Cflags: -I${includedir}@JQ_CFLAGS_PC@
 Libs: -L${libdir} -loauth2

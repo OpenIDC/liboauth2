@@ -98,7 +98,7 @@ static void teardown(void)
 	list_free(&_request->headers_out.headers);
 	list_free(&_request->headers_in.headers);
 	oauth2_mem_free(_request->http_connection);
-	oauth2_mem_free(_request->connection->sockaddr);
+	oauth2_mem_free(_request->connection->local_sockaddr);
 	oauth2_mem_free(_request->connection);
 	ngx_destroy_pool(_request->pool);
 	oauth2_mem_free(_request);

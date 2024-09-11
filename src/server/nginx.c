@@ -227,8 +227,10 @@ static void _oauth2_nginx_ssl_cert_set(oauth2_nginx_request_context_t *ctx)
 	key = ngx_hash_strlow(name.data, name.data, name.len);
 	vv = ngx_http_get_variable(ctx->r, &name, key);
 
-	if ((vv == NULL) || (vv->not_found))
+	if ((vv == NULL) || (vv->not_found)) {
+		ngx_pfree(ctx->r->pool, name.data);
 		return;
+	}
 
 	char *s = oauth2_strndup((char *)vv->data, vv->len);
 	oauth2_http_request_context_set(ctx->log, ctx->request,

@@ -420,7 +420,7 @@ START_TEST(test_jwt_verify)
 
 	jwt = oauth2_jwt_create(_log, jwk->jwk, CJOSE_HDR_ALG_HS256, "my_iss",
 				"my_sub", "my_client_id", "my_aud", 60, true,
-				true);
+				true, NULL);
 	ck_assert_ptr_ne(jwt, NULL);
 	oauth2_jose_jwk_release(jwk);
 

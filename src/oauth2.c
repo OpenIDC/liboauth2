@@ -55,7 +55,7 @@ static bool _oauth2_add_signed_jwt(oauth2_log_t *log, cjose_jwk_t *jwk,
 	oauth2_debug(log, "enter");
 
 	jwt = oauth2_jwt_create(log, jwk, alg, client_id, client_id, client_id,
-				aud, 60, true, true);
+				aud, 60, true, true, NULL);
 	if (jwt == NULL)
 		goto end;
 

@@ -1,4 +1,4 @@
-AC_INIT([liboauth2],[2.0.0],[hans.zandbelt@openidc.com])
+AC_INIT([liboauth2],[2.1.0dev],[hans.zandbelt@openidc.com])
 
 AM_INIT_AUTOMAKE([foreign no-define subdir-objects])
 AC_CONFIG_MACRO_DIR([m4])
@@ -41,7 +41,6 @@ if test x"$have_memcache" = "xyes"; then
 fi
 AC_SUBST(MEMCACHE_PC)
 
-
 AC_ARG_WITH([redis], AS_HELP_STRING([--with-redis], [build with Redis cache support [default=autodetect]]),)
 if test "x$with_redis" != "xno"; then
 	PKG_CHECK_MODULES([HIREDIS], [hiredis], [have_redis="yes"], [have_redis="no"])
@@ -53,6 +52,44 @@ if test x"$have_redis" = "xyes"; then
 	HIREDIS_PC=', hiredis'
 fi
 AC_SUBST(HIREDIS_PC)
+
+have_jq=no
+AC_ARG_WITH([jq],
+	AS_HELP_STRING([--with-jq=PATH], [location of your libjq installation])])
+if test -n "$with_jq" ; then
+	if test "x$with_jq" != "xno"; then
+		if test "x$with_jq" = "xyes"; then
+			PKG_CHECK_MODULES([JQ], [libjq >= 1.6], [have_jq="yes"], [have_jq="no"])
+		else
+			if test "$JQ_CFLAGS" = ""; then
+				JQ_CFLAGS="-I$with_jq/include"
+			fi
+			if test "$JQ_LIBS" = ""; then
+				JQ_LIBS="-L$with_jq/lib -ljq"
+			fi
+			CPPFLAGS="$JQ_CFLAGS $CPPFLAGS"
+			AC_CHECK_HEADER([jq.h], [have_jq=yes], [have_jq=no])
+
+			LDFLAGS="$JQ_LIBS $LDFLAGS"
+			AC_CHECK_LIB([jq], [jq_init], [have_jq=yes], [have_jq=no])
+			if test "x$have_jq" = "xno" ; then
+				AC_MSG_WARN("cannot find library for -ljq.")
+				JQ_CFLAGS=
+				JQ_LIBS=
+			fi
+		fi
+	fi
+fi
+AM_CONDITIONAL(HAVE_LIBJQ, [test x"$have_jq" = "xyes"])
+AC_SUBST(JQ_CFLAGS)
+AC_SUBST(JQ_LIBS)
+if test x"$have_jq" = "xyes"; then
+	# note the leading comma and space(s)
+	JQ_LIBS_PC=', libjq >= 1.6'
+	JQ_CFLAGS_PC=' -DOAUTH2_WITH_JQ'
+fi
+AC_SUBST(JQ_LIBS_PC)
+AC_SUBST(JQ_CFLAGS_PC)
 
 AC_ARG_WITH([apache], AS_HELP_STRING([--with-apache], [build with Apache support [default=autodetect]]),)
 AC_ARG_WITH([apxs],

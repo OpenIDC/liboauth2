@@ -261,6 +261,8 @@ const char *
 oauth2_cfg_target_pass_get_authn_header(oauth2_cfg_target_pass_t *cfg);
 const char *
 oauth2_cfg_target_get_remote_user_claim(oauth2_cfg_target_pass_t *cfg);
+const char *
+oauth2_cfg_target_get_json_payload_claim(oauth2_cfg_target_pass_t *cfg);
 
 /*
  * resource owner password credentials

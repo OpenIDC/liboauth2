@@ -504,7 +504,7 @@ end:
 char *oauth2_jwt_create(oauth2_log_t *log, cjose_jwk_t *jwk, const char *alg,
 			const char *iss, const char *sub, const char *client_id,
 			const char *aud, oauth2_uint_t exp, bool include_iat,
-			bool include_jti)
+			bool include_jti, const json_t *json_payload)
 {
 	char *rv = NULL;
 	char *payload = NULL;
@@ -520,7 +520,10 @@ char *oauth2_jwt_create(oauth2_log_t *log, cjose_jwk_t *jwk, const char *alg,
 	if (jwk == NULL)
 		goto end;
 
-	assertion = json_object();
+	if (json_payload)
+		assertion = json_deep_copy(json_payload);
+	else
+		assertion = json_object();
 	if (include_jti) {
 		jti = oauth2_rand_str(log, OAUTH2_JTI_LENGTH);
 		json_object_set_new(assertion, OAUTH2_CLAIM_JTI,
@@ -535,8 +538,9 @@ char *oauth2_jwt_create(oauth2_log_t *log, cjose_jwk_t *jwk, const char *alg,
 	if (aud)
 		json_object_set_new(assertion, OAUTH2_CLAIM_AUD,
 				    json_string(aud));
-	json_object_set_new(assertion, OAUTH2_CLAIM_EXP,
-			    json_integer(oauth2_time_now_sec() + exp));
+	if (exp > 0)
+		json_object_set_new(assertion, OAUTH2_CLAIM_EXP,
+				    json_integer(oauth2_time_now_sec() + exp));
 	if (include_iat)
 		json_object_set_new(assertion, OAUTH2_CLAIM_IAT,
 				    json_integer(oauth2_time_now_sec()));
