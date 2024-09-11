@@ -64,6 +64,38 @@ static int oauth2_jq_filter_cache_ttl(oauth2_log_t *log)
 	return OAUTH2_JQ_FILTER_EXPIRE_DEFAULT;
 }
 
+bool oauth2_jq_filter_compile(oauth2_log_t *log, const char *filter,
+			      jq_state **r_jq)
+{
+
+	bool rc = false;
+
+	jq_state *jq = jq_init();
+	if (jq == NULL) {
+		oauth2_error(log, "jq_init failed");
+		goto end;
+	}
+
+	if (jq_compile(jq, filter) == 0) {
+		oauth2_error(log, "jq_compile failed");
+		goto end;
+	}
+
+	if (r_jq != NULL)
+		*r_jq = jq;
+
+	rc = true;
+
+end:
+
+	if ((rc == false) || (r_jq == NULL)) {
+		if (jq != NULL)
+			jq_teardown(&jq);
+	}
+
+	return rc;
+}
+
 bool oauth2_jq_filter(oauth2_log_t *log, oauth2_cache_t *cache,
 		      const char *input, const char *filter, char **result)
 {
@@ -105,16 +137,8 @@ bool oauth2_jq_filter(oauth2_log_t *log, oauth2_cache_t *cache,
 		}
 	}
 
-	jq = jq_init();
-	if (jq == NULL) {
-		oauth2_error(log, "jq_init returned NULL");
+	if (oauth2_jq_filter_compile(log, filter, &jq) == false)
 		goto end;
-	}
-
-	if (jq_compile(jq, filter) == 0) {
-		oauth2_error(log, "jq_compile returned an error");
-		goto end;
-	}
 
 	parser = jv_parser_new(0);
 	if (parser == NULL) {

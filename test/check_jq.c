@@ -36,7 +36,18 @@ static void teardown(void)
 	oauth2_shutdown(_log);
 }
 
-START_TEST(test_jq)
+START_TEST(test_jq_compile)
+{
+	bool rc = false;
+
+	rc = oauth2_jq_filter_compile(_log, ".add + 1", NULL);
+	ck_assert_int_eq(rc, true);
+
+	rc = oauth2_jq_filter_compile(_log, "bla", NULL);
+	ck_assert_int_eq(rc, false);
+}
+
+START_TEST(test_jq_filter)
 {
 	bool rc = false;
 	oauth2_cache_t *c = NULL;
@@ -73,7 +84,8 @@ Suite *oauth2_check_jq_suite()
 
 	tcase_add_checked_fixture(c, setup, teardown);
 
-	tcase_add_test(c, test_jq);
+	tcase_add_test(c, test_jq_compile);
+	tcase_add_test(c, test_jq_filter);
 
 	suite_add_tcase(s, c);
 

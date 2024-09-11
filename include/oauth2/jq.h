@@ -24,6 +24,10 @@
 #include "oauth2/cache.h"
 #include "oauth2/log.h"
 
+typedef struct jq_state jq_state;
+
+bool oauth2_jq_filter_compile(oauth2_log_t *log, const char *filter,
+			      jq_state **r_jq);
 bool oauth2_jq_filter(oauth2_log_t *log, oauth2_cache_t *cache,
 		      const char *input, const char *filter, char **result);
 
