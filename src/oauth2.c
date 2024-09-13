@@ -273,22 +273,27 @@ end:
 
 _OAUTH2_CFG_CTX_TYPE_START(oauth2_introspect_ctx)
 oauth2_cfg_endpoint_t *endpoint;
+char *token_param_name;
 oauth2_nv_list_t *params;
 _OAUTH2_CFG_CTX_TYPE_END(oauth2_introspect_ctx)
 
 _OAUTH2_CFG_CTX_INIT_START(oauth2_introspect_ctx)
 ctx->endpoint = NULL;
+ctx->token_param_name = NULL;
 ctx->params = NULL;
 _OAUTH2_CFG_CTX_INIT_END
 
 _OAUTH2_CFG_CTX_CLONE_START(oauth2_introspect_ctx)
 dst->endpoint = oauth2_cfg_endpoint_clone(log, src->endpoint);
+dst->token_param_name = oauth2_strdup(src->token_param_name);
 dst->params = oauth2_nv_list_clone(log, src->params);
 _OAUTH2_CFG_CTX_CLONE_END
 
 _OAUTH2_CFG_CTX_FREE_START(oauth2_introspect_ctx)
 if (ctx->endpoint)
 	oauth2_cfg_endpoint_free(log, ctx->endpoint);
+if (ctx->token_param_name)
+	oauth2_mem_free(ctx->token_param_name);
 if (ctx->params)
 	oauth2_nv_list_free(log, ctx->params);
 _OAUTH2_CFG_CTX_FREE_END
@@ -331,7 +336,10 @@ static bool _oauth2_introspect_verify(oauth2_log_t *log,
 	if (params == NULL)
 		goto end;
 
-	oauth2_nv_list_add(log, params, OAUTH2_INTROSPECT_TOKEN, token);
+	oauth2_nv_list_add(log, params,
+			   ctx->token_param_name ? ctx->token_param_name
+						 : OAUTH2_INTROSPECT_TOKEN,
+			   token);
 	oauth2_nv_list_add(log, params, OAUTH2_INTROSPECT_TOKEN_TYPE_HINT,
 			   OAUTH2_INTROSPECT_TOKEN_TYPE_HINT_ACCESS_TOKEN);
 
@@ -441,6 +449,9 @@ static char *_oauth2_verify_options_set_introspect_url_ctx(
 	ctx->endpoint = oauth2_cfg_endpoint_init(log);
 	rv = oauth2_cfg_set_endpoint(log, ctx->endpoint, url, params,
 				     "introspect");
+
+	ctx->token_param_name = oauth2_strdup(
+	    oauth2_nv_list_get(log, params, "introspect.token_param_name"));
 
 	if (oauth2_parse_form_encoded_params(
 		log, oauth2_nv_list_get(log, params, "introspect.params"),

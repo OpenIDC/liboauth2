@@ -1,3 +1,6 @@
+09/13/2024
+- add support for introspection.token_param_name; closes #57
+
 09/11/2024
 - add (optional) JQ support with caching in oauth2_jq_filter
 - add "json_payload_claim" claim option to oauth2_cfg_target_pass_t
