@@ -11,7 +11,7 @@ jobs:
 
     strategy:
       matrix:
-        nginx_version: [1.18.0, 1.24.0, 1.26.0, 1.27.0]
+        nginx_version: [1.18.0, 1.24.0, 1.26.2, 1.27.3]
 
     services:
 
