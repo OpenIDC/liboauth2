@@ -11,26 +11,25 @@ on: [push, pull_request]
 jobs:
   build:
 
-    # TODO: see if we solve the make check crashes on ubuntu-latest/ubuntu24.04 with uraimo/run-on-arch-action
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     name: ${{ matrix.arch }}
 
     strategy:
       fail-fast: false
       matrix:
         include:
- #         - arch: armv6
- #           distro: bookworm
+          - arch: armv6
+            distro: bookworm
           - arch: armv7
-            distro: ubuntu22.04
-#          - arch: aarch64
-#            distro: ubuntu22.04
-#          - arch: riscv64
-#            distro: ubuntu22.04
-#          - arch: s390x
-#            distro: ubuntu22.04
-#          - arch: ppc64le
-#            distro: ubuntu22.04
+            distro: ubuntu_latest
+          - arch: aarch64
+            distro: ubuntu_latest
+          - arch: riscv64
+            distro: ubuntu_latest
+          - arch: s390x
+            distro: ubuntu_latest
+          - arch: ppc64le
+            distro: ubuntu_latest
   
     steps:
     - uses: actions/checkout@v4
@@ -61,6 +60,6 @@ jobs:
           ln -s nginx-$(cat /tmp/nginx-version) nginx
         run: |
           ./autogen.sh
-          CFLAGS="-g -O2 -fstack-protector-strong -Wformat -Werror=format-security -fPIC -Wdate-time -D_FORTIFY_SOURCE=2" LDFLAGS="-Wl,-Bsymbolic-functions -Wl,-z,relro -Wl,-z,now -fPIC" ./configure --with-nginx=/tmp/nginx --with-jq=/usr
+          ./configure --with-nginx=/tmp/nginx --with-jq=/usr
           sed -i "s/-l/#-l/g" /etc/memcached.conf
           service memcached start && service redis-server start && make check || (cat test-suite.log && exit -1)
