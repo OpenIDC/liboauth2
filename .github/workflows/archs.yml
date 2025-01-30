@@ -41,7 +41,7 @@ jobs:
         arch: ${{ matrix.arch }}
         distro: ${{ matrix.distro }}
         install: |
-          apk update && apk add --no-cache wget jansson hiredis cjose cjose-dev autoconf build-base automake curl-dev pcre-dev pcre2-dev libtool
+          apk update && apk add --no-cache wget jansson hiredis cjose cjose-dev autoconf build-base automake apache2-dev curl-dev pcre-dev pcre2-dev libtool
           #apt-get update -y
           #apt-get install -y apache2-dev libcjose-dev libssl-dev check pkg-config wget
           #apt-get install -y libjansson-dev libcurl4-openssl-dev libhiredis-dev libmemcached-dev redis-server memcached libpcre2-dev libpcre2-8-0 libjq-dev
