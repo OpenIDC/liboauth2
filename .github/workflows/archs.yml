@@ -49,7 +49,9 @@ jobs:
           cd /tmp
           #apt-get install -y nginx
           #apt-get install -y libghc-regex-pcre-dev libxslt-dev libgd-dev libgeoip-dev
+          apk update && apk add memcached-dev memcached hiredis-dev redis jansson-dev
           apk update && apk add nginx
+          apk update && apk add libxslt-dev gd-dev geoip-dev
           nginx -V 2>&1 | grep -m1 version | cut -d: -f2 | cut -d/ -f2 > /tmp/nginx-version
           
           nginx -V 2>&1 | grep configure | cut -d: -f2- > /tmp/nginx-args
@@ -66,6 +68,6 @@ jobs:
         run: |
           ./autogen.sh
           ./configure --with-nginx=/tmp/nginx --with-jq=/usr
-          sed -i "s/-l/#-l/g" /etc/memcached.conf
+          #sed -i "s/-l/#-l/g" /etc/memcached.conf
           #service memcached start && service redis-server start && make check || (cat test-suite.log && exit -1)
-          rc-service memcached start && rc-service redis-server start && make check || (cat test-suite.log && exit -1)
+          memcached -d && redis-server --daemonize yes && make check || (cat test-suite.log && exit -1)
