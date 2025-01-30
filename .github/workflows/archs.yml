@@ -21,21 +21,22 @@ jobs:
         include:
           - arch: armv6
             distro: bookworm
+            nginx_version: 1.22.1
           - arch: armv7
-            distro: ubuntu_latest
-            nginx_version: 1.24.0
+            distro: ubuntu22.04
+            nginx_version: 1.18.0
           - arch: aarch64
-            distro: ubuntu_latest
-            nginx_version: 1.24.0
+            distro: ubuntu22.04
+            nginx_version: 1.18.0
           - arch: riscv64
-            # ubuntu22.04 / OpenSSL 3.0.2 seems to have an issue with EVP_PKEY_fromdata(EVP_PKEY_KEYPAIR)
-            distro: ubuntu_latest
+            distro: ubuntu22.04
+            nginx_version: 1.18.0
           - arch: s390x
-            distro: ubuntu_latest
-            nginx_version: 1.24.0
+            distro: ubuntu22.04
+            nginx_version: 1.18.0
           - arch: ppc64le
-            distro: ubuntu_latest
-            nginx_version: 1.24.0
+            distro: ubuntu22.04
+            nginx_version: 1.18.0
   
     steps:
     - uses: actions/checkout@v4
