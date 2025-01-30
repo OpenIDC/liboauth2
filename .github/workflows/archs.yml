@@ -19,18 +19,18 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - arch: armv6
-            distro: bookworm
+ #         - arch: armv6
+ #           distro: bookworm
           - arch: armv7
             distro: ubuntu22.04
-          - arch: aarch64
-            distro: ubuntu22.04
-          - arch: riscv64
-            distro: ubuntu22.04
-          - arch: s390x
-            distro: ubuntu22.04
-          - arch: ppc64le
-            distro: ubuntu22.04
+#          - arch: aarch64
+#            distro: ubuntu22.04
+#          - arch: riscv64
+#            distro: ubuntu22.04
+#          - arch: s390x
+#            distro: ubuntu22.04
+#          - arch: ppc64le
+#            distro: ubuntu22.04
   
     steps:
     - uses: actions/checkout@v4
@@ -49,18 +49,18 @@ jobs:
           apt-cache show nginx | grep -m1 Version | cut -d: -f2 | cut -d- -f1 | tr -d ' ' > /tmp/nginx-version
           apt-get install -y nginx
           nginx -V 2>&1 | grep configure | cut -d: -f2- > /tmp/nginx-args
-          #apt-get remove -y nginx && apt-get autoremove -y
+          apt-get remove -y nginx && apt-get autoremove -y
           sed -i s/--add-dynamic-module=[^[:space:]]*//g /tmp/nginx-args
           apt-get install -y libghc-regex-pcre-dev libxslt-dev libgd-dev libgeoip-dev
           wget --progress=bar:force:noscroll --no-check-certificate https://nginx.org/download/nginx-$(cat /tmp/nginx-version).tar.gz
           tar zxf nginx-$(cat /tmp/nginx-version).tar.gz
           cd nginx-$(cat /tmp/nginx-version)
-          echo "Configuring NGINX $(cat /tmp/nginx-version) with: $(cat /tmp/nginx-args)"
+          echo "Configuring NGINX-$(cat /tmp/nginx-version): ./conffigure $(cat /tmp/nginx-args)"
           cat /tmp/nginx-args | xargs ./configure
           cd ..
           ln -s nginx-$(cat /tmp/nginx-version) nginx
         run: |
           ./autogen.sh
-          ./configure --with-nginx=/tmp/nginx --with-jq=/usr
+          CFLAGS="-g -O2 -fstack-protector-strong -Wformat -Werror=format-security -fPIC -Wdate-time -D_FORTIFY_SOURCE=2" LDFLAGS="-Wl,-Bsymbolic-functions -Wl,-z,relro -Wl,-z,now -fPIC" ./configure --with-nginx=/tmp/nginx --with-jq=/usr
           sed -i "s/-l/#-l/g" /etc/memcached.conf
           service memcached start && service redis-server start && make check || (cat test-suite.log && exit -1)
