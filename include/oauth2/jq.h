@@ -1,3 +1,6 @@
+#ifndef _OAUTH2_JQ_H
+#define _OAUTH2_JQ_H
+
 /***************************************************************************
  *
  * Copyright (C) 2018-2025 - ZmartZone Holding BV
@@ -18,14 +21,14 @@
  *
  **************************************************************************/
 
-#include <oauth2/version.h>
+#include "oauth2/cache.h"
+#include "oauth2/log.h"
 
-const char *oauth2_version()
-{
-	return OAUTH2_PACKAGE_VERSION;
-}
+typedef struct jq_state jq_state;
 
-const char *oauth2_package_string()
-{
-	return OAUTH2_PACKAGE_NAME "-" OAUTH2_PACKAGE_VERSION;
-}
+bool oauth2_jq_filter_compile(oauth2_log_t *log, const char *filter,
+			      jq_state **r_jq);
+bool oauth2_jq_filter(oauth2_log_t *log, oauth2_cache_t *cache,
+		      const char *input, const char *filter, char **result);
+
+#endif /* _OAUTH2_JQ_H */

@@ -1,19 +1,18 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2024 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2025 - ZmartZone Holding BV
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
  * @Author: Hans Zandbelt - hans.zandbelt@openidc.com
  *
@@ -686,8 +685,12 @@ void oauth2_apache_target_pass(oauth2_apache_request_ctx_t *ctx,
 			       const char *target_token, json_t *json_token)
 {
 	const char *authn_hdr = NULL;
+	const char *json_payload_claim = NULL;
+	char *s_compact = NULL;
 
 	authn_hdr = oauth2_cfg_target_pass_get_authn_header(target_pass);
+	json_payload_claim =
+	    oauth2_cfg_target_get_json_payload_claim(target_pass);
 
 	if ((ctx->r->user != NULL) && (authn_hdr != NULL))
 		oauth2_apache_request_header_set(ctx->log, ctx->r, authn_hdr,
@@ -700,6 +703,14 @@ void oauth2_apache_target_pass(oauth2_apache_request_ctx_t *ctx,
 		// configurable...?
 		oauth2_apache_set_target_info(ctx, target_pass, "access_token",
 					      target_token);
+	}
+
+	if (json_payload_claim != NULL) {
+		s_compact = oauth2_json_encode(
+		    ctx->log, json_token, JSON_PRESERVE_ORDER | JSON_COMPACT);
+		oauth2_apache_set_target_info(ctx, target_pass,
+					      json_payload_claim, s_compact);
+		oauth2_mem_free(s_compact);
 	}
 
 	// TODO: strip cookies according to config setting

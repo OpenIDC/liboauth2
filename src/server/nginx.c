@@ -1,19 +1,18 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2024 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2025 - ZmartZone Holding BV
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
  * @Author: Hans Zandbelt - hans.zandbelt@openidc.com
  *
@@ -111,10 +110,12 @@ static void _oauth2_nginx_port_copy(oauth2_nginx_request_context_t *ctx)
 		sin6 =
 		    (struct sockaddr_in6 *)ctx->r->connection->local_sockaddr;
 		port = ntohs(sin6->sin6_port);
+		break;
 #endif
 #if (NGX_HAVE_UNIX_DOMAIN)
 	case AF_UNIX:
 		port = 0;
+		break;
 #endif
 	default: /* AF_INET */
 		sin = (struct sockaddr_in *)ctx->r->connection->local_sockaddr;
@@ -228,8 +229,10 @@ static void _oauth2_nginx_ssl_cert_set(oauth2_nginx_request_context_t *ctx)
 	key = ngx_hash_strlow(name.data, name.data, name.len);
 	vv = ngx_http_get_variable(ctx->r, &name, key);
 
-	if ((vv == NULL) || (vv->not_found))
+	if ((vv == NULL) || (vv->not_found)) {
+		ngx_pfree(ctx->r->pool, name.data);
 		return;
+	}
 
 	char *s = oauth2_strndup((char *)vv->data, vv->len);
 	oauth2_http_request_context_set(ctx->log, ctx->request,
@@ -343,4 +346,311 @@ ngx_int_t oauth2_nginx_http_response_set(oauth2_log_t *log,
 end:
 
 	return nrc;
+}
+
+typedef struct oauth2_nginx_claim_hash_t {
+	ngx_hash_keys_arrays_t keys;
+	ngx_hash_t h;
+} oauth2_nginx_claim_hash_t;
+
+static inline ngx_str_t oauth2_nginx_chr2str(ngx_pool_t *p, const char *k)
+{
+	ngx_str_t in = {strlen(k), (u_char *)k};
+	ngx_str_t out = {in.len, ngx_pstrdup(p, &in)};
+	return out;
+}
+
+char *oauth2_nginx_str2chr(ngx_pool_t *p, const ngx_str_t *str)
+{
+	char *s = ngx_pnalloc(p, str->len + 1);
+	if (s != NULL) {
+		memcpy(s, str->data, str->len);
+		s[str->len] = '\0';
+	}
+	return s;
+}
+
+static inline char *oauth2_nginx_chr2chr(ngx_pool_t *p, const char *str)
+{
+	ngx_str_t s = {strlen(str), (u_char *)str};
+	return oauth2_nginx_str2chr(p, &s);
+}
+
+ngx_int_t oauth2_nginx_claim_variable(ngx_module_t module,
+				      ngx_http_request_t *r,
+				      ngx_http_variable_value_t *v,
+				      uintptr_t data)
+{
+	oauth2_nginx_claim_hash_t *claims = NULL;
+	const char *value = NULL;
+	ngx_str_t key = {strlen((const char *)data), (u_char *)data};
+
+	claims =
+	    (oauth2_nginx_claim_hash_t *)ngx_http_get_module_ctx(r, module);
+
+	if (claims == NULL) {
+		v->not_found = 1;
+		return NGX_OK;
+	}
+
+	value = (const char *)ngx_hash_find(
+	    &claims->h, ngx_hash_key(key.data, key.len), key.data, key.len);
+
+	if (value != NULL) {
+		ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+			       "oauth2_nginx_claim_variable: %V=%s", &key,
+			       value);
+		v->data = (u_char *)value;
+		v->len = strlen(value);
+		v->no_cacheable = 1;
+		v->not_found = 0;
+	} else {
+		ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+			       "oauth2_nginx_claim_variable: %V=(null)", &key);
+		v->not_found = 1;
+	}
+
+	return NGX_OK;
+}
+
+static const size_t OAUTH2_NGINX_MAX_BUF = 128;
+
+char *oauth2_nginx_set_claim(ngx_module_t module,
+			     ngx_http_get_variable_pt handler, ngx_conf_t *cf,
+			     ngx_command_t *cmd, void *conf)
+{
+	ngx_http_variable_t *v;
+	char buf[OAUTH2_NGINX_MAX_BUF];
+	int n = 0;
+	char *s = NULL;
+	ngx_str_t *value = cf->args->elts;
+
+	if (value[2].len <= 1 || value[2].data[0] != '$') {
+		n = snprintf(buf, sizeof(buf), "Invalid variable name %.*s",
+			     (int)value[2].len, value[2].data);
+		ngx_str_t msg = {n, (u_char *)&buf[0]};
+		s = oauth2_nginx_str2chr(cf->pool, &msg);
+		return s ? s : NGX_CONF_ERROR;
+	}
+
+	value[2].len--;
+	value[2].data++;
+
+	v = ngx_http_add_variable(cf, &value[2], NGX_HTTP_VAR_CHANGEABLE);
+	if (!v) {
+		ngx_str_t msg = ngx_string("ngx_http_add_variable failed");
+		s = oauth2_nginx_str2chr(cf->pool, &msg);
+		return s ? s : NGX_CONF_ERROR;
+	}
+
+	v->get_handler = handler;
+	char *claim = oauth2_nginx_str2chr(cf->pool, &value[1]);
+	if (!claim) {
+		ngx_str_t msg = ngx_string("Out of memory");
+		s = oauth2_nginx_str2chr(cf->pool, &msg);
+		return s ? s : NGX_CONF_ERROR;
+	}
+	v->data = (uintptr_t)claim;
+
+	return NGX_CONF_OK;
+}
+
+static ngx_int_t ngx_set_target_variable(oauth2_nginx_claim_hash_t *claims,
+					 oauth2_nginx_request_context_t *ctx,
+					 const char *k, const char *v)
+{
+	ngx_str_t key = oauth2_nginx_chr2str(claims->keys.pool, k);
+	if (key.data == NULL)
+		return NGX_ERROR;
+	const char *value = oauth2_nginx_chr2chr(claims->keys.pool, v);
+	if (value == NULL)
+		return NGX_ERROR;
+	return ngx_hash_add_key(&claims->keys, &key, (char *)value,
+				NGX_HASH_READONLY_KEY);
+}
+
+static ngx_int_t ngx_oauth2_init_keys(ngx_pool_t *pool,
+				      oauth2_nginx_claim_hash_t *claims)
+{
+	claims->keys.pool = pool;
+	claims->keys.temp_pool = pool;
+	return ngx_hash_keys_array_init(&claims->keys, NGX_HASH_SMALL);
+}
+
+static ngx_int_t ngx_oauth2_init_hash(ngx_pool_t *pool,
+				      oauth2_nginx_claim_hash_t *claims)
+{
+	ngx_hash_init_t init;
+	init.hash = &claims->h;
+	init.key = ngx_hash_key;
+	init.max_size = 64;
+	init.bucket_size = ngx_align(64, ngx_cacheline_size);
+	init.name = "claims";
+	init.pool = pool;
+	init.temp_pool = pool;
+	return ngx_hash_init(&init, claims->keys.keys.elts,
+			     claims->keys.keys.nelts);
+}
+
+ngx_int_t oauth2_nginx_set_target_variables(ngx_module_t module,
+					    oauth2_nginx_request_context_t *ctx,
+					    json_t *json_token)
+{
+	void *iter = NULL;
+	const char *key = NULL, *val = NULL;
+	json_t *value = NULL;
+	oauth2_nginx_claim_hash_t *claims = NULL;
+	int rc = NGX_OK;
+
+	claims = (oauth2_nginx_claim_hash_t *)ngx_http_get_module_ctx(ctx->r,
+								      module);
+
+	if (claims == NULL) {
+
+		claims = ngx_palloc(ctx->r->pool, sizeof(*claims));
+
+		if (claims == NULL) {
+			oauth2_error(ctx->log, "error allocating claims hash");
+			return NGX_ERROR;
+		}
+
+		rc = ngx_oauth2_init_keys(ctx->r->pool, claims);
+
+		if (rc != NGX_OK) {
+			oauth2_error(ctx->log,
+				     "error %d initializing hash keys", rc);
+			return rc;
+		}
+
+		ngx_http_set_ctx(ctx->r, claims, module);
+	}
+
+	iter = json_object_iter(json_token);
+	while (iter) {
+
+		key = json_object_iter_key(iter);
+		value = json_object_iter_value(iter);
+
+		if (json_is_string(value)) {
+			rc = ngx_set_target_variable(claims, ctx, key,
+						     json_string_value(value));
+		} else {
+			val = oauth2_json_encode(ctx->log, value,
+						 JSON_ENCODE_ANY);
+			rc = ngx_set_target_variable(claims, ctx, key, val);
+			oauth2_mem_free((char *)val);
+		}
+
+		if (rc != NGX_OK) {
+			oauth2_error(
+			    ctx->log,
+			    "error %d setting value of key %s in claims hash",
+			    rc, key);
+			return rc;
+		}
+
+		iter = json_object_iter_next(json_token, iter);
+	}
+
+	rc = ngx_oauth2_init_hash(ctx->r->pool, claims);
+
+	if (rc != NGX_OK) {
+		oauth2_error(ctx->log, "error %d initializing claims hash", rc);
+		return rc;
+	}
+
+	return NGX_OK;
+}
+
+char *nginx_oauth2_set_require(ngx_conf_t *cf, ngx_array_t **requirements)
+{
+	ngx_http_complex_value_t *val = NULL;
+	ngx_http_compile_complex_value_t ccv;
+	ngx_str_t *var = NULL;
+	int rc = NGX_OK;
+	char *s = NULL;
+	char buf[OAUTH2_NGINX_MAX_BUF];
+
+	if (cf->args == NULL)
+		return NGX_CONF_ERROR;
+
+	if (*requirements == NULL) {
+		*requirements =
+		    ngx_array_create(cf->pool, cf->args->nelts,
+				     sizeof(ngx_http_complex_value_t));
+		if (*requirements == NULL) {
+			ngx_str_t msg = ngx_string("Out of memory");
+			s = oauth2_nginx_str2chr(cf->pool, &msg);
+			return s ? s : NGX_CONF_ERROR;
+		}
+	}
+
+	for (unsigned int i = 1; i < cf->args->nelts; ++i) {
+
+		var = (ngx_str_t *)cf->args->elts + i;
+		/* no allocation here because we've already dimensioned the
+		 * array upon its creation */
+		val = (ngx_http_complex_value_t *)ngx_array_push(*requirements);
+
+		ngx_memzero(&ccv, sizeof(ngx_http_compile_complex_value_t));
+		ccv.cf = cf;
+		ccv.value = var;
+		ccv.complex_value = val;
+
+		rc = ngx_http_compile_complex_value(&ccv);
+		if (rc != NGX_OK) {
+			int n = snprintf(buf, sizeof(buf),
+					 "Error %d compiling "
+					 "expression %.*s",
+					 rc, (int)var->len, var->data);
+			ngx_str_t msg = {n, (u_char *)&buf[0]};
+			s = oauth2_nginx_str2chr(cf->pool, &msg);
+			return s ? s : NGX_CONF_ERROR;
+		}
+	}
+
+	return NGX_CONF_OK;
+}
+
+static ngx_int_t
+nginx_oauth2_check_requirement(oauth2_nginx_request_context_t *ctx,
+			       ngx_http_complex_value_t *cv)
+{
+	ngx_str_t v;
+	ngx_int_t rc = ngx_http_complex_value(ctx->r, cv, &v);
+	if (rc != NGX_OK) {
+		ngx_log_error(NGX_LOG_ERR, ctx->r->connection->log, 0,
+			      "error %d evaluating expression %*.s", rc,
+			      (int)cv->value.len, cv->value.data);
+		return NGX_ERROR;
+	}
+
+	ngx_log_debug3(NGX_LOG_DEBUG_HTTP, ctx->r->connection->log, 0,
+		       "nginx_oauth2_check_requirement: expression \"%*.s\" "
+		       "evaluated to: %s",
+		       (int)cv->value.len, cv->value.data,
+		       (1 == v.len && '1' == *v.data)
+			   ? "NGX_OK"
+			   : "NGX_HTTP_UNAUTHORIZED");
+
+	return 1 == v.len && '1' == *v.data ? NGX_OK : NGX_HTTP_UNAUTHORIZED;
+}
+ngx_int_t nginx_oauth2_check_requirements(oauth2_nginx_request_context_t *ctx,
+					  ngx_array_t *requirements)
+{
+	int rc = NGX_OK;
+	ngx_uint_t i = 0;
+
+	if (requirements == NULL)
+		return NGX_OK;
+
+	for (i = 0; i < requirements->nelts; ++i) {
+		ngx_http_complex_value_t *cv =
+		    (ngx_http_complex_value_t *)requirements->elts + i;
+		rc = nginx_oauth2_check_requirement(ctx, cv);
+		if (rc != NGX_OK)
+			break;
+	}
+
+	return rc;
 }

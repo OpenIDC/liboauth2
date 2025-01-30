@@ -1,3 +1,40 @@
+01/02/2024
+- update copyright year to 2025
+
+09/13/2024
+- add support for introspection.token_param_name; closes #57
+
+09/11/2024
+- add (optional) JQ support with caching in oauth2_jq_filter
+- add "json_payload_claim" claim option to oauth2_cfg_target_pass_t
+- make oauth2_jwt_create public in jose.h and add a json_payload parameter
+- nginx: fix memory leak in _oauth2_nginx_ssl_cert_set
+- bump to 2.1.0dev
+
+08/22/2024
+- change LICENSE to Apache 2.0
+- release 2.0.0
+
+08/02/2024
+- correct error log upon mismatch in "iss" claim: id_token->JWT
+
+06/24/2024
+- allow to use local file through file:// protocol for metadata or jwks; see #51; thanks @pladen
+- bump to 1.6.4dev
+
+06/24/2024
+- release 1.6.3
+
+06/20/2024
+- nginx: add nginx_oauth2_set_require to be used with OAuth2Require etc.
+  see OpenIDC/ngx_oauth2_module#7; thanks @smanolache and @pladen
+
+06/19/2024
+- add NGINX macros/functions for setting claim variables in the request context
+  see OpenIDC/ngx_oauth2_module#7; thanks @smanolache and @pladen
+- allow NGINX primitives in an if block within a location block in the http block
+- bump to 1.6.3dev
+
 06/05/2024
 - release 1.6.2
 

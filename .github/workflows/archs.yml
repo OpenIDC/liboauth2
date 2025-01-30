@@ -11,25 +11,25 @@ on: [push, pull_request]
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    # TODO: see if we solve the make check crashes on ubuntu-latest/ubuntu24.04 with uraimo/run-on-arch-action
+    runs-on: ubuntu-22.04
     name: ${{ matrix.arch }}-nginx-${{ matrix.nginx_version }}
 
     strategy:
       matrix:
         include:
-# passing literal NULL as a function input paramter does not seem to work on armv7; need compile flag??
           - arch: armv7
             distro: ubuntu_latest
             nginx_version: 1.24.0
-#          - arch: aarch64
-#            distro: ubuntu_latest
-#            nginx_version: 1.24.0
-#          - arch: ppc64le
-#            distro: ubuntu_latest
-#            nginx_version: 1.24.0
-#          - arch: s390x
-#            distro: ubuntu_latest
-#            nginx_version: 1.24.0
+          - arch: aarch64
+            distro: ubuntu_latest
+            nginx_version: 1.24.0
+          - arch: ppc64le
+            distro: ubuntu_latest
+            nginx_version: 1.24.0
+          - arch: s390x
+            distro: ubuntu_latest
+            nginx_version: 1.24.0
   
     steps:
     - uses: actions/checkout@v4
@@ -42,7 +42,7 @@ jobs:
         install: |
           apt-get update -y
           apt-get install -y apache2-dev libcjose-dev libssl-dev check pkg-config wget
-          apt-get install -y libjansson-dev libcurl4-openssl-dev libhiredis-dev libmemcached-dev redis-server memcached libpcre2-dev libpcre2-8-0
+          apt-get install -y libjansson-dev libcurl4-openssl-dev libhiredis-dev libmemcached-dev redis-server memcached libpcre2-dev libpcre2-8-0 libjq-dev
           apt-get install -y build-essential libpcre3 libpcre3-dev zlib1g zlib1g-dev libxml2 libxml2-dev uuid-dev
           cd /tmp
           wget --no-check-certificate https://nginx.org/download/nginx-${{ matrix.nginx_version }}.tar.gz
@@ -51,6 +51,6 @@ jobs:
           cd /tmp/nginx && ./configure --with-debug
         run: |
           ./autogen.sh
-          ./configure --with-nginx=/tmp/nginx
+          ./configure --with-nginx=/tmp/nginx --with-jq=/usr
           sed -i "s/-l/#-l/g" /etc/memcached.conf
           service memcached start && service redis-server start && make check || (cat test-suite.log && exit -1)

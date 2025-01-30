@@ -1,19 +1,18 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2024 - ZmartZone Holding BV - www.zmartzone.eu
+ * Copyright (C) 2018-2025 - ZmartZone Holding BV
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
  * @Author: Hans Zandbelt - hans.zandbelt@openidc.com
  *
@@ -28,6 +27,7 @@
 #define OAUTH2_CFG_PASS_TARGET_PREFIX_DEFAULT "OAUTH2_CLAIM_"
 #define OAUTH2_CFG_PASS_TARGET_AUTHN_HEADER_DEFAULT NULL
 #define OAUTH2_CFG_PASS_TARGET_REMOTE_USER_CLAIM_DEFAULT "sub"
+#define OAUTH2_CFG_PASS_TARGET_JSON_PAYLOAD_CLAIM_DEFAULT NULL
 
 typedef struct oauth2_cfg_target_pass_t {
 	oauth2_flag_t as_envvars;
@@ -35,6 +35,7 @@ typedef struct oauth2_cfg_target_pass_t {
 	char *authn_header;
 	char *prefix;
 	char *remote_user_claim;
+	char *json_payload_claim;
 } oauth2_cfg_target_pass_t;
 
 oauth2_cfg_target_pass_t *oauth2_cfg_target_pass_init(oauth2_log_t *log)
@@ -51,6 +52,7 @@ oauth2_cfg_target_pass_t *oauth2_cfg_target_pass_init(oauth2_log_t *log)
 	pass->authn_header = NULL;
 	pass->prefix = NULL;
 	pass->remote_user_claim = NULL;
+	pass->json_payload_claim = NULL;
 
 end:
 
@@ -69,6 +71,8 @@ void oauth2_cfg_target_pass_free(oauth2_log_t *log,
 		oauth2_mem_free(pass->prefix);
 	if (pass->remote_user_claim)
 		oauth2_mem_free(pass->remote_user_claim);
+	if (pass->json_payload_claim)
+		oauth2_mem_free(pass->json_payload_claim);
 	oauth2_mem_free(pass);
 
 end:
@@ -97,6 +101,9 @@ void oauth2_cfg_target_pass_merge(oauth2_log_t *log,
 	cfg->remote_user_claim = oauth2_strdup(add->remote_user_claim != NULL
 						   ? add->remote_user_claim
 						   : base->remote_user_claim);
+	cfg->json_payload_claim = oauth2_strdup(add->json_payload_claim != NULL
+						    ? add->json_payload_claim
+						    : base->json_payload_claim);
 
 end:
 
@@ -163,6 +170,15 @@ char *oauth2_cfg_set_target_pass_options(oauth2_log_t *log,
 			goto end;
 	}
 
+	value = oauth2_nv_list_get(log, params, "json_payload_claim");
+	if (value) {
+		rv = oauth2_strdup(oauth2_cfg_set_str_slot(
+		    cfg, offsetof(oauth2_cfg_target_pass_t, json_payload_claim),
+		    value));
+		if (rv)
+			goto end;
+	}
+
 end:
 
 	if (params)
@@ -210,4 +226,12 @@ oauth2_cfg_target_get_remote_user_claim(oauth2_cfg_target_pass_t *cfg)
 	if (cfg->remote_user_claim == NULL)
 		return OAUTH2_CFG_PASS_TARGET_REMOTE_USER_CLAIM_DEFAULT;
 	return cfg->remote_user_claim;
+}
+
+const char *
+oauth2_cfg_target_get_json_payload_claim(oauth2_cfg_target_pass_t *cfg)
+{
+	if (cfg->json_payload_claim == NULL)
+		return OAUTH2_CFG_PASS_TARGET_JSON_PAYLOAD_CLAIM_DEFAULT;
+	return cfg->json_payload_claim;
 }

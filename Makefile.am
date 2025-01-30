@@ -34,6 +34,11 @@ includesub_HEADERS = \
 	include/oauth2/util.h \
 	include/oauth2/version.h
 
+if HAVE_LIBJQ
+includesub_HEADERS += \
+	include/oauth2/jq.h
+endif
+
 #
 # liboauth
 #
@@ -80,6 +85,13 @@ liboauth2_la_SOURCES = \
 	src/openidc/client.c \
 	src/openidc/state.c \
 	src/openidc/openidc.c
+
+if HAVE_LIBJQ
+AM_CPPFLAGS += -DHAVE_LIBJQ
+liboauth2_la_CFLAGS += @JQ_CFLAGS@
+liboauth2_la_LIBADD += @JQ_LIBS@
+liboauth2_la_SOURCES += src/jq.c
+endif
 
 #
 # cache
@@ -161,7 +173,7 @@ TESTS = check_liboauth2
 check_PROGRAMS = $(TESTS)
 
 check_liboauth2_CPPFLAGS = $(liboauth2_cache_la_CPPFLAGS)
-check_liboauth2_CFLAGS = @OPENSSL_CFLAGS@ @CURL_CFLAGS@ @CJOSE_CFLAGS@ @PCRE2_CFLAGS@ @CHECK_CFLAGS@
+check_liboauth2_CFLAGS = @OPENSSL_CFLAGS@ @CURL_CFLAGS@ @CJOSE_CFLAGS@ @PCRE2_CFLAGS@ @JQ_CFLAGS@ @CHECK_CFLAGS@
 check_liboauth2_LDADD = liboauth2.la
 if HAVE_APACHE
 check_liboauth2_CPPFLAGS += $(liboauth2_apache_la_CPPFLAGS)
@@ -193,6 +205,11 @@ check_liboauth2_SOURCES = \
 	test/server_stubs.c \
 	test/provider.json \
 	test/client.json
+
+if HAVE_LIBJQ
+check_liboauth2_SOURCES += \
+	test/check_jq.c
+endif
 if HAVE_APACHE
 check_liboauth2_SOURCES += \
 	test/check_apache.c
@@ -216,7 +233,7 @@ test: check
 TAG=liboauth2/test
 
 docker: clean
-	docker build -f test/Dockerfile . -t $(TAG)
+	docker build --progress plain -f test/Dockerfile . -t $(TAG)
 	
 docker-check: docker
 	docker run -it --rm $(TAG):latest /bin/bash -c "./start.sh && make check"
