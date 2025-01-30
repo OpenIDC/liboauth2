@@ -60,10 +60,10 @@ jobs:
           apt-get install -y libghc-regex-pcre-dev libxslt-dev libgd-dev libgeoip-dev
           wget --progress=bar:force:noscroll --no-check-certificate https://nginx.org/download/nginx-${{ matrix.nginx_version }}.tar.gz
           tar zxvf nginx-${{ matrix.nginx_version }}.tar.gz
-          cd nginx && cat /tmp/nginx-args | xargs ./configure
+          cd nginx-${{ matrix.nginx_version }} && cat /tmp/nginx-args | xargs ./configure
           
           #tar zxvf nginx-${{ matrix.nginx_version }}.tar.gz
-          #cd nginx && ./configure --with-debug         
+          #cd nginx-${{ matrix.nginx_version }} && ./configure --with-debug         
           
           ln -s nginx-${{ matrix.nginx_version }} nginx          
         run: |
