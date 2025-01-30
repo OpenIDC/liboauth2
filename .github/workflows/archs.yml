@@ -57,6 +57,11 @@ jobs:
           nginx -V 2>&1 | grep configure | cut -d: -f2- > /tmp/nginx-args
           #apt-get remove -y nginx && apt-get autoremove -y
           sed -i s/--add-dynamic-module=[^[:space:]]*//g /tmp/nginx-args
+          #sed -i s/--with-http_xslt_module=[^[:space:]]*//g /tmp/nginx-args
+          #sed -i s/--with-http_geoip_module=[^[:space:]]*//g /tmp/nginx-args
+          #sed -i s/--with-stream_geoip_module=[^[:space:]]*//g /tmp/nginx-args
+          #sed -i s/--with-http_image_filter_module=[^[:space:]]*//g /tmp/nginx-args
+          
           wget --progress=bar:force:noscroll --no-check-certificate https://nginx.org/download/nginx-$(cat /tmp/nginx-version).tar.gz
           tar zxf nginx-$(cat /tmp/nginx-version).tar.gz
           cd nginx-$(cat /tmp/nginx-version)
@@ -70,4 +75,4 @@ jobs:
           ./configure --with-nginx=/tmp/nginx --with-jq=/usr
           #sed -i "s/-l/#-l/g" /etc/memcached.conf
           #service memcached start && service redis-server start && make check || (cat test-suite.log && exit -1)
-          memcached -d && redis-server --daemonize yes && make check || (cat test-suite.log && exit -1)
+          memcached -u memcached -d && redis-server --daemonize yes && make check || (cat test-suite.log && exit -1)
