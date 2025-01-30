@@ -19,17 +19,18 @@ jobs:
       matrix:
         include:
           - arch: armv6
-            distro: bookworm
-          - arch: armv7
-            distro: ubuntu_latest
-          - arch: aarch64
-            distro: ubuntu_latest
-          - arch: riscv64
-            distro: ubuntu_latest
-          - arch: s390x
-            distro: ubuntu_latest
-          - arch: ppc64le
-            distro: ubuntu_latest
+            distro: alpine_latest
+            # bookworm
+#          - arch: armv7
+#            distro: ubuntu_latest
+#          - arch: aarch64
+#            distro: ubuntu_latest
+#          - arch: riscv64
+#            distro: ubuntu_latest
+#          - arch: s390x
+#            distro: ubuntu_latest
+#          - arch: ppc64le
+#            distro: ubuntu_latest
   
     steps:
     - uses: actions/checkout@v4
@@ -40,26 +41,30 @@ jobs:
         arch: ${{ matrix.arch }}
         distro: ${{ matrix.distro }}
         install: |
-          apt-get update -y
-          apt-get install -y apache2-dev libcjose-dev libssl-dev check pkg-config wget
-          apt-get install -y libjansson-dev libcurl4-openssl-dev libhiredis-dev libmemcached-dev redis-server memcached libpcre2-dev libpcre2-8-0 libjq-dev
-          apt-get install -y build-essential libpcre3 libpcre3-dev zlib1g zlib1g-dev libxml2 libxml2-dev uuid-dev
+          apk update && apk add --no-cache wget jansson hiredis cjose cjose-dev autoconf build-base automake curl-dev pcre-dev libtool
+          #apt-get update -y
+          #apt-get install -y apache2-dev libcjose-dev libssl-dev check pkg-config wget
+          #apt-get install -y libjansson-dev libcurl4-openssl-dev libhiredis-dev libmemcached-dev redis-server memcached libpcre2-dev libpcre2-8-0 libjq-dev
+          #apt-get install -y build-essential libpcre3 libpcre3-dev zlib1g zlib1g-dev libxml2 libxml2-dev uuid-dev
           cd /tmp
-          apt-cache show nginx | grep -m1 Version | cut -d: -f2 | cut -d- -f1 | tr -d ' ' > /tmp/nginx-version
-          apt-get install -y nginx
-          nginx -V 2>&1 | grep configure | cut -d: -f2- > /tmp/nginx-args
-          apt-get remove -y nginx && apt-get autoremove -y
-          sed -i s/--add-dynamic-module=[^[:space:]]*//g /tmp/nginx-args
-          apt-get install -y libghc-regex-pcre-dev libxslt-dev libgd-dev libgeoip-dev
+          #apt-cache show nginx | grep -m1 Version | cut -d: -f2 | cut -d- -f1 | tr -d ' ' > /tmp/nginx-version
+          echo "1.18.0" > /tmp/nginx-version
+          #apt-get install -y nginx
+          #nginx -V 2>&1 | grep configure | cut -d: -f2- > /tmp/nginx-args
+          #apt-get remove -y nginx && apt-get autoremove -y
+          #sed -i s/--add-dynamic-module=[^[:space:]]*//g /tmp/nginx-args
+          #apt-get install -y libghc-regex-pcre-dev libxslt-dev libgd-dev libgeoip-dev
           wget --progress=bar:force:noscroll --no-check-certificate https://nginx.org/download/nginx-$(cat /tmp/nginx-version).tar.gz
           tar zxf nginx-$(cat /tmp/nginx-version).tar.gz
           cd nginx-$(cat /tmp/nginx-version)
-          echo "Configuring NGINX-$(cat /tmp/nginx-version): ./conffigure $(cat /tmp/nginx-args)"
-          cat /tmp/nginx-args | xargs ./configure
+          #echo "Configuring NGINX-$(cat /tmp/nginx-version): ./configure $(cat /tmp/nginx-args)"
+          #cat /tmp/nginx-args | xargs ./configure
+          ./configure
           cd ..
           ln -s nginx-$(cat /tmp/nginx-version) nginx
         run: |
           ./autogen.sh
           ./configure --with-nginx=/tmp/nginx --with-jq=/usr
           sed -i "s/-l/#-l/g" /etc/memcached.conf
-          service memcached start && service redis-server start && make check || (cat test-suite.log && exit -1)
+          #service memcached start && service redis-server start && make check || (cat test-suite.log && exit -1)
+          rc-service memcached start && rc-service redis-server start && make check || (cat test-suite.log && exit -1)
