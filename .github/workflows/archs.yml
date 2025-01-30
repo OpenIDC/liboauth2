@@ -47,19 +47,20 @@ jobs:
           #apt-get install -y libjansson-dev libcurl4-openssl-dev libhiredis-dev libmemcached-dev redis-server memcached libpcre2-dev libpcre2-8-0 libjq-dev
           #apt-get install -y build-essential libpcre3 libpcre3-dev zlib1g zlib1g-dev libxml2 libxml2-dev uuid-dev
           cd /tmp
-          #apt-cache show nginx | grep -m1 Version | cut -d: -f2 | cut -d- -f1 | tr -d ' ' > /tmp/nginx-version
-          echo "1.18.0" > /tmp/nginx-version
           #apt-get install -y nginx
-          #nginx -V 2>&1 | grep configure | cut -d: -f2- > /tmp/nginx-args
-          #apt-get remove -y nginx && apt-get autoremove -y
-          #sed -i s/--add-dynamic-module=[^[:space:]]*//g /tmp/nginx-args
           #apt-get install -y libghc-regex-pcre-dev libxslt-dev libgd-dev libgeoip-dev
+          apk update && apk add nginx
+          apk update && libxslt-dev gd-dev geoip-dev
+          nginx -V | grep -m1 version | cut -d: -f2 | cut -d/ -f2 > /tmp/nginx-version
+          
+          nginx -V 2>&1 | grep configure | cut -d: -f2- > /tmp/nginx-args
+          #apt-get remove -y nginx && apt-get autoremove -y
+          sed -i s/--add-dynamic-module=[^[:space:]]*//g /tmp/nginx-args
           wget --progress=bar:force:noscroll --no-check-certificate https://nginx.org/download/nginx-$(cat /tmp/nginx-version).tar.gz
           tar zxf nginx-$(cat /tmp/nginx-version).tar.gz
           cd nginx-$(cat /tmp/nginx-version)
-          #echo "Configuring NGINX-$(cat /tmp/nginx-version): ./configure $(cat /tmp/nginx-args)"
-          #cat /tmp/nginx-args | xargs ./configure
-          ./configure
+          echo "Configuring NGINX-$(cat /tmp/nginx-version): ./configure $(cat /tmp/nginx-args)"
+          cat /tmp/nginx-args | xargs ./configure
           cd ..
           ln -s nginx-$(cat /tmp/nginx-version) nginx
         run: |
