@@ -49,7 +49,7 @@ jobs:
           cd /tmp
           #apt-get install -y nginx
           #apt-get install -y libghc-regex-pcre-dev libxslt-dev libgd-dev libgeoip-dev
-          apk update && apk add memcached-dev memcached hiredis-dev redis jansson-dev
+          apk update && apk add memcached-dev memcached hiredis-dev redis jansson-dev jq-dev
           apk update && apk add nginx
           apk update && apk add libxslt-dev gd-dev geoip-dev
           nginx -V 2>&1 | grep -m1 version | cut -d: -f2 | cut -d/ -f2 > /tmp/nginx-version
