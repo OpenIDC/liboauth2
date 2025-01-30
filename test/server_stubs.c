@@ -134,17 +134,16 @@ void ngx_log_error_core(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
 
 void *ngx_palloc(ngx_pool_t *pool, size_t size)
 {
-	void *p = (void *)aligned_alloc(8, size);
-	memset(p, 0, size);
-	// void *p = oauth2_mem_alloc(size);
+	//void *p = (void *)aligned_alloc(8, size);
+	//memset(p, 0, size);
+	void *p = oauth2_mem_alloc(size);
 	return p;
 }
 
 ngx_int_t ngx_pfree(ngx_pool_t *pool, void *p)
 {
-	if (p)
-		free(p);
-	// oauth2_mem_free(p);
+	//if (p) free(p);
+	oauth2_mem_free(p);
 	return NGX_OK;
 }
 
