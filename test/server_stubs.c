@@ -132,45 +132,40 @@ void ngx_log_error_core(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
 {
 }
 
-ngx_pool_t *ngx_create_pool(size_t size, ngx_log_t *log)
-{
-	ngx_pool_t *pool = (ngx_pool_t *)oauth2_mem_alloc(size);
-	return pool;
-}
-
-void ngx_destroy_pool(ngx_pool_t *pool)
-{
-	oauth2_mem_free(pool);
-}
-
 void *ngx_palloc(ngx_pool_t *pool, size_t size)
 {
-	void *p = (void *)oauth2_mem_alloc(size);
-	return p;
-}
-
-void *ngx_pnalloc(ngx_pool_t *pool, size_t size)
-{
-	void *p = (void *)oauth2_mem_alloc(size);
+	void *p = (void *)aligned_alloc(8, size);
+	memset(p, 0, size);
+	// void *p = oauth2_mem_alloc(size);
 	return p;
 }
 
 ngx_int_t ngx_pfree(ngx_pool_t *pool, void *p)
 {
-	oauth2_mem_free(p);
+	if (p)
+		free(p);
+	// oauth2_mem_free(p);
 	return NGX_OK;
+}
+
+ngx_pool_t *ngx_create_pool(size_t size, ngx_log_t *log)
+{
+	return ngx_palloc(NULL, size);
+}
+
+void ngx_destroy_pool(ngx_pool_t *pool)
+{
+	ngx_pfree(NULL, pool);
 }
 
 void *ngx_list_push(ngx_list_t *l)
 {
-	void *elt;
+	void *elt = NULL;
 	ngx_list_part_t *last;
 
 	last = l->last;
 
 	if (last->nelts == l->nalloc) {
-
-		/* the last part is full, allocate a new list part */
 
 		last = ngx_palloc(l->pool, sizeof(ngx_list_part_t));
 		if (last == NULL) {
@@ -215,7 +210,7 @@ ngx_uint_t ngx_hash_key(u_char *data, size_t len)
 
 u_char *ngx_pstrdup(ngx_pool_t *pool, ngx_str_t *src)
 {
-	u_char *dst = ngx_pnalloc(pool, src->len);
+	u_char *dst = ngx_palloc(pool, src->len);
 	memcpy(dst, src->data, src->len);
 	return dst;
 }

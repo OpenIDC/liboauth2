@@ -56,11 +56,9 @@ static void setup(void)
 	_request->http_connection =
 	    oauth2_mem_alloc(sizeof(ngx_http_connection_t));
 	_request->http_connection->ssl = 1;
-    ngx_memzero(&_request->headers_out, sizeof (ngx_http_headers_out));
 	_request->headers_out.status = NGX_OK;
 	ngx_list_init(&_request->headers_out.headers, _request->pool, 20,
 		      sizeof(ngx_table_elt_t));
-    ngx_memzero(&_request->headers_in, sizeof (ngx_http_headers_in));
 	ngx_list_init(&_request->headers_in.headers, _request->pool, 20,
 		      sizeof(ngx_table_elt_t));
 	h = ngx_list_push(&_request->headers_in.headers);
@@ -89,10 +87,10 @@ static void list_free(ngx_list_t *list)
 			h = part->elts;
 			i = 0;
 		}
-		oauth2_mem_free(h[i].value.data);
-		oauth2_mem_free(h[i].key.data);
+		ngx_pfree(NULL, h[i].value.data);
+		ngx_pfree(NULL, h[i].key.data);
 	}
-	oauth2_mem_free(list->part.elts);
+	ngx_pfree(NULL, list->part.elts);
 }
 
 static void teardown(void)

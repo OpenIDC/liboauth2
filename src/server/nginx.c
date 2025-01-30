@@ -302,7 +302,9 @@ static bool oauth2_nginx_response_header_set(oauth2_log_t *log, void *rec,
 	if (h == NULL)
 		goto end;
 
-	h->hash = 1;
+	h->hash = name[0];
+	for (int i = 1; i < strlen(name); i++)
+		h->hash = ngx_hash(h->hash, name[i]);
 	h->key.len = strlen(name);
 	h->key.data = ngx_palloc(r->pool, h->key.len);
 	memcpy(h->key.data, name, h->key.len);
@@ -362,7 +364,7 @@ static inline ngx_str_t oauth2_nginx_chr2str(ngx_pool_t *p, const char *k)
 
 char *oauth2_nginx_str2chr(ngx_pool_t *p, const ngx_str_t *str)
 {
-	char *s = ngx_pnalloc(p, str->len + 1);
+	char *s = ngx_palloc(p, str->len + 1);
 	if (s != NULL) {
 		memcpy(s, str->data, str->len);
 		s[str->len] = '\0';

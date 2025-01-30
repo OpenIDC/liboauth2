@@ -204,8 +204,7 @@ START_TEST(test_cache_redis)
 	char *rv = 0;
 
 	//&password=foobared
-	rv = oauth2_cfg_set_cache(_log, 0, "redis",
-				  "name=redis");
+	rv = oauth2_cfg_set_cache(_log, 0, "redis", "name=redis");
 	ck_assert_ptr_eq(rv, 0);
 	c = oauth2_cache_obtain(_log, "redis");
 	ck_assert_ptr_ne(c, 0);
