@@ -49,7 +49,7 @@ jobs:
           apt-cache show nginx | grep -m1 Version | cut -d: -f2 | cut -d- -f1 | tr -d ' ' > /tmp/nginx-version
           apt-get install -y nginx
           nginx -V 2>&1 | grep configure | cut -d: -f2- > /tmp/nginx-args
-          apt-get remove -y nginx && apt-get autoremove -y
+          #apt-get remove -y nginx && apt-get autoremove -y
           sed -i s/--add-dynamic-module=[^[:space:]]*//g /tmp/nginx-args
           apt-get install -y libghc-regex-pcre-dev libxslt-dev libgd-dev libgeoip-dev
           wget --progress=bar:force:noscroll --no-check-certificate https://nginx.org/download/nginx-$(cat /tmp/nginx-version).tar.gz
