@@ -50,6 +50,7 @@ jobs:
           #apt-get install -y nginx
           #apt-get install -y libghc-regex-pcre-dev libxslt-dev libgd-dev libgeoip-dev
           apk update && apk add nginx
+          apk update && apk add libxslt
           nginx -V 2>&1 | grep -m1 version | cut -d: -f2 | cut -d/ -f2 > /tmp/nginx-version
           
           nginx -V 2>&1 | grep configure | cut -d: -f2- > /tmp/nginx-args
