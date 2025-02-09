@@ -47,9 +47,8 @@ jobs:
           apt-get install -y build-essential libpcre3 libpcre3-dev zlib1g zlib1g-dev libxml2 libxml2-dev uuid-dev
           cd /tmp
           apt-get install -y nginx
-          apt-get install -y libghc-regex-pcre-dev libxslt-dev libgd-dev libgeoip-dev
 
-          nginx -V 2>&1 | grep -m1 version | cut -d: -f2 | cut -d/ -f2 > /tmp/nginx-version
+          nginx -V 2>&1 | grep -m1 version | cut -d: -f2 | cut -d/ -f2 | cut -d" " -f1 > /tmp/nginx-version
           nginx -V 2>&1 | grep configure | cut -d: -f2- > /tmp/nginx-args
           apt-get remove -y nginx && apt-get autoremove -y
           sed -i s/--add-dynamic-module=[^[:space:]]*//g /tmp/nginx-args
