@@ -11,7 +11,7 @@ on: [push, pull_request]
 jobs:
   build:
 
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     name: ${{ matrix.arch }}
 
     strategy:
@@ -41,7 +41,6 @@ jobs:
         arch: ${{ matrix.arch }}
         distro: ${{ matrix.distro }}
         install: |
-          #apk update && apk add --no-cache wget jansson hiredis cjose cjose-dev autoconf build-base automake apache2-dev curl-dev pcre-dev pcre2-dev libtool
           apt-get update -y
           apt-get install -y apache2-dev libcjose-dev libssl-dev check pkg-config wget
           apt-get install -y libjansson-dev libcurl4-openssl-dev libhiredis-dev libmemcached-dev redis-server memcached libpcre2-dev libpcre2-8-0 libjq-dev
@@ -49,13 +48,10 @@ jobs:
           cd /tmp
           apt-get install -y nginx
           apt-get install -y libghc-regex-pcre-dev libxslt-dev libgd-dev libgeoip-dev
-          #apk update && apk add memcached-dev memcached hiredis-dev redis jansson-dev jq-dev check-dev
-          #apk update && apk add nginx
-          #apk update && apk add libxslt-dev gd-dev geoip-dev
 
           nginx -V 2>&1 | grep -m1 version | cut -d: -f2 | cut -d/ -f2 > /tmp/nginx-version
           nginx -V 2>&1 | grep configure | cut -d: -f2- > /tmp/nginx-args
-          #apt-get remove -y nginx && apt-get autoremove -y
+          apt-get remove -y nginx && apt-get autoremove -y
           sed -i s/--add-dynamic-module=[^[:space:]]*//g /tmp/nginx-args
           sed -i s/--with-http_xslt_module=[^[:space:]]*//g /tmp/nginx-args
           sed -i s/--with-http_geoip_module=[^[:space:]]*//g /tmp/nginx-args
@@ -69,9 +65,9 @@ jobs:
           cat /tmp/nginx-args | xargs ./configure
           cd ..
           ln -s nginx-$(cat /tmp/nginx-version) nginx
+
         run: |
           ./autogen.sh
           ./configure --with-nginx=/tmp/nginx --with-jq=/usr
           sed -i "s/-l/#-l/g" /etc/memcached.conf
           service memcached start && service redis-server start && make check || (cat test-suite.log && exit -1)
-          #memcached -u memcached -d && redis-server --daemonize yes && make check || (cat test-suite.log && exit -1)
