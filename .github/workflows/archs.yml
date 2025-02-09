@@ -72,6 +72,6 @@ jobs:
         run: |
           ./autogen.sh
           ./configure --with-nginx=/tmp/nginx --with-jq=/usr
-          #sed -i "s/-l/#-l/g" /etc/memcached.conf
-          #service memcached start && service redis-server start && make check || (cat test-suite.log && exit -1)
-          memcached -u memcached -d && redis-server --daemonize yes && make check || (cat test-suite.log && exit -1)
+          sed -i "s/-l/#-l/g" /etc/memcached.conf
+          service memcached start && service redis-server start && make check || (cat test-suite.log && exit -1)
+          #memcached -u memcached -d && redis-server --daemonize yes && make check || (cat test-suite.log && exit -1)
