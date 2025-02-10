@@ -2276,6 +2276,7 @@ oauth2_jose_jwks_aws_alb_resolve(oauth2_log_t *log,
     }
 
     // TODO - determine if theres a better place for this?
+    // TODO - maybe needed? timing safe compare?
     if (strcmp(signer, provider->alb_arn) != 0) {
         oauth2_error(log, "signer does not match configured ARN: signer=%s, arn=%s", signer, provider->alb_arn);
         return NULL;
