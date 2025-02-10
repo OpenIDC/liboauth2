@@ -1217,11 +1217,17 @@ end:
 static bool
 _oauth2_jose_jwt_payload_validate(oauth2_log_t *log,
 				  oauth2_jose_jwt_verify_ctx_t *jwt_verify_ctx,
-				  const json_t *json_payload)
+				  const json_t *json_payload,
+				  cjose_header_t *hdr)
 {
 	bool rc = false;
+	cjose_err err;
 
 	oauth2_debug(log, "enter");
+
+    if (jwt_verify_ctx->jwks_provider->type == OAUTH2_JOSE_JWKS_PROVIDER_AWS_ALB) {
+        // TODO, VERIFY SIGNER
+    }
 
 	if (_oauth2_jose_jwt_validate_iss(
 		log, json_payload, jwt_verify_ctx->issuer,
@@ -1267,7 +1273,6 @@ bool oauth2_jose_jwt_verify(oauth2_log_t *log,
 	uint8_t *plaintext = NULL;
 	size_t plaintext_len = 0;
 	bool refresh = false;
-	const char *kid = NULL;
 
 	peek = oauth2_jose_jwt_header_peek(log, token, NULL);
 	oauth2_debug(log, "enter: JWT token header=%s", peek);
@@ -1290,15 +1295,14 @@ bool oauth2_jose_jwt_verify(oauth2_log_t *log,
 	}
 
     hdr = cjose_jws_get_protected(jws);
-    if (hdr == NULL)
+    if (hdr == NULL) {
         goto end;
-
-    kid = cjose_header_get(hdr, "kid", &err);
+    }
 
 	if (jwt_verify_ctx) {
 
 		ctx.jws = jws;
-		ctx.kid = kid;
+		ctx.kid = cjose_header_get(hdr, "kid", &err);
 		ctx.verified = false;
 
 		keys = jwt_verify_ctx->jwks_provider->resolve(
@@ -1345,8 +1349,7 @@ bool oauth2_jose_jwt_verify(oauth2_log_t *log,
 	}
 
 	if (jwt_verify_ctx) {
-		if (_oauth2_jose_jwt_payload_validate(log, jwt_verify_ctx,
-						      *json_payload) == false) {
+		if (_oauth2_jose_jwt_payload_validate(log, jwt_verify_ctx, *json_payload, hdr) == false) {
 			json_decref(*json_payload);
 			*json_payload = NULL;
 			oauth2_mem_free(*s_payload);
@@ -2245,20 +2248,24 @@ static oauth2_jose_jwk_list_t *oauth2_jose_jwks_aws_alb_resolve(
 )
 {
     const char *arn = oauth2_cfg_endpoint_get_url(provider->jwks_uri->endpoint);
-    const char *region = _oauth2_jose_jwks_aws_alb_region(arn);
+    if (arn == NULL) {
+        oauth2_error(log, "failed to fetch ARN");
+        return NULL;
+    }
 
-    if (!region) {
+    const char *region = _oauth2_jose_jwks_aws_alb_region(arn);
+    if (region == NULL) {
         oauth2_error(log, "failed to extract region from ARN: %s", arn);
         return NULL;
     }
 
     const char *kid = ctx ? ctx->kid : NULL;
-    if (!kid) {
+    if (kid == NULL) {
         oauth2_error(log, "token kid missing on ctx");
         return NULL;
     }
 
-    oauth2_debug(log, "using AWS region: %s", region);
+    oauth2_debug(log, "aws_alb using: arn=%s, region=%s, kid=%s", arn, region, kid);
 
     const char *url_template = "https://public-keys.auth.elb.%s.amazonaws.com/%s";
     size_t url_len = strlen("https://public-keys.auth.elb.") +
