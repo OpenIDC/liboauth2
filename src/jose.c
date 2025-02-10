@@ -2214,7 +2214,7 @@ static oauth2_jose_jwk_list_t *oauth2_jose_jwks_eckey_url_resolve(
 	);
 }
 
-static const char *oauth2_jose_jwks_aws_alb_region(const char *arn) {
+static const char *_oauth2_jose_jwks_aws_alb_region(const char *arn) {
     if (!arn) return NULL;
 
     char *arn_copy = oauth2_strdup(arn);
@@ -2226,7 +2226,7 @@ static const char *oauth2_jose_jwks_aws_alb_region(const char *arn) {
 
     while (token) {
         if (count == 3) {
-            region = oauth2_strdup(token);  // Duplicate before freeing arn_copy
+            region = oauth2_strdup(token);
             break;
         }
         token = strtok(NULL, ":");
@@ -2245,11 +2245,16 @@ static oauth2_jose_jwk_list_t *oauth2_jose_jwks_aws_alb_resolve(
 )
 {
     const char *arn = oauth2_cfg_endpoint_get_url(provider->jwks_uri->endpoint);
-    const char *region = oauth2_jose_jwks_aws_alb_region(arn);
-    const char *kid = "c9efe2e3-177c-403d-bad6-7d9778e3408d"; // TODO replace with actual kid when available
+    const char *region = _oauth2_jose_jwks_aws_alb_region(arn);
 
     if (!region) {
         oauth2_error(log, "failed to extract region from ARN: %s", arn);
+        return NULL;
+    }
+
+    const char *kid = ctx ? ctx->kid : NULL;
+    if (!kid) {
+        oauth2_error(log, "token kid missing on ctx");
         return NULL;
     }
 
