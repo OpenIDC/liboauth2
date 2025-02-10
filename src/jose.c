@@ -707,16 +707,16 @@ void oauth2_jose_jwk_list_free(oauth2_log_t *log, oauth2_jose_jwk_list_t *keys)
 
 static oauth2_jose_jwk_list_t *
 oauth2_jose_jwks_list_resolve(oauth2_log_t *, oauth2_jose_jwks_provider_t *,
-			      bool *);
+			      bool *, oauth2_jose_jwt_verify_jwk_ctx_t *ctx);
 static oauth2_jose_jwk_list_t *
 oauth2_jose_jwks_uri_resolve(oauth2_log_t *, oauth2_jose_jwks_provider_t *,
-			     bool *);
+			     bool *, oauth2_jose_jwt_verify_jwk_ctx_t *ctx);
 static oauth2_jose_jwk_list_t *
 oauth2_jose_jwks_eckey_url_resolve(oauth2_log_t *,
-				   oauth2_jose_jwks_provider_t *, bool *);
+				   oauth2_jose_jwks_provider_t *, bool *, oauth2_jose_jwt_verify_jwk_ctx_t *ctx);
 static oauth2_jose_jwk_list_t *
 oauth2_jose_jwks_aws_alb_resolve(oauth2_log_t *,
-				   oauth2_jose_jwks_provider_t *, bool *);
+				   oauth2_jose_jwks_provider_t *, bool *, oauth2_jose_jwt_verify_jwk_ctx_t *ctx);
 
 static oauth2_jose_jwks_provider_t *
 _oauth2_jose_jwks_provider_init(oauth2_log_t *log,
@@ -928,12 +928,6 @@ bool oauth2_jose_jwt_verify_set_options(
 	// TODO: calculate rc based on previous calls
 	return true;
 }
-
-typedef struct oauth2_jose_jwt_verify_jwk_ctx_t {
-	cjose_jws_t *jws;
-	const char *kid;
-	bool verified;
-} oauth2_jose_jwt_verify_jwk_ctx_t;
 
 static bool _oauth2_jose_jwt_verify_jwk(oauth2_log_t *log, void *rec,
 					const char *kid,
@@ -1303,12 +1297,12 @@ bool oauth2_jose_jwt_verify(oauth2_log_t *log,
 
 	if (jwt_verify_ctx) {
 
-		keys = jwt_verify_ctx->jwks_provider->resolve(
-		    log, jwt_verify_ctx->jwks_provider, &refresh);
-
 		ctx.jws = jws;
 		ctx.kid = kid;
 		ctx.verified = false;
+
+		keys = jwt_verify_ctx->jwks_provider->resolve(
+		    log, jwt_verify_ctx->jwks_provider, &refresh, &ctx);
 
 		_oauth2_jose_verification_keys_loop(
 		    log, keys, _oauth2_jose_jwt_verify_jwk, &ctx);
@@ -1321,7 +1315,7 @@ bool oauth2_jose_jwt_verify(oauth2_log_t *log,
 			if (keys)
 				oauth2_jose_jwk_list_free(log, keys);
 			keys = jwt_verify_ctx->jwks_provider->resolve(
-			    log, jwt_verify_ctx->jwks_provider, &refresh);
+			    log, jwt_verify_ctx->jwks_provider, &refresh, &ctx);
 			_oauth2_jose_verification_keys_loop(
 			    log, keys, _oauth2_jose_jwt_verify_jwk, &ctx);
 
@@ -1867,7 +1861,7 @@ _OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_aws_alb)
 }
 
 static oauth2_jose_jwk_list_t *oauth2_jose_jwks_list_resolve(
-    oauth2_log_t *log, oauth2_jose_jwks_provider_t *provider, bool *refresh)
+    oauth2_log_t *log, oauth2_jose_jwks_provider_t *provider, bool *refresh, oauth2_jose_jwt_verify_jwk_ctx_t *ctx)
 {
 	*refresh = false;
 	return oauth2_jose_jwk_list_clone(log, provider->jwks);
@@ -2108,8 +2102,11 @@ end:
 	return result;
 }
 
-char *oauth2_jose_resolve_from_uri(oauth2_log_t *log, oauth2_uri_ctx_t *uri_ctx,
-				   bool *refresh)
+char *oauth2_jose_resolve_from_uri(
+    oauth2_log_t *log,
+    oauth2_uri_ctx_t *uri_ctx,
+	bool *refresh
+)
 {
 	bool rc = false;
 	oauth2_http_call_ctx_t *ctx = NULL;
@@ -2122,16 +2119,12 @@ char *oauth2_jose_resolve_from_uri(oauth2_log_t *log, oauth2_uri_ctx_t *uri_ctx,
 		goto end;
 
 	if (*refresh == false) {
-
-		oauth2_cache_get(log, uri_ctx->cache,
-				 oauth2_cfg_endpoint_get_url(uri_ctx->endpoint),
-				 &response);
+		oauth2_cache_get(log, uri_ctx->cache,oauth2_cfg_endpoint_get_url(uri_ctx->endpoint),&response);
 
 		*refresh = true;
 	}
 
 	if (response == NULL) {
-
 		*refresh = false;
 
 		ctx = oauth2_http_call_ctx_init(log);
@@ -2169,7 +2162,7 @@ end:
 }
 
 static oauth2_jose_jwk_list_t *_oauth2_jose_jwks_resolve_from_uri(
-    oauth2_log_t *log, oauth2_jose_jwks_provider_t *provider, bool *refresh,
+    oauth2_log_t *log, oauth2_jose_jwks_provider_t *provider, bool *refresh, oauth2_jose_jwt_verify_jwk_ctx_t *ctx,
     oauth2_jose_jwks_url_resolve_response_cb_t *resolve_response_cb)
 {
 
@@ -2192,19 +2185,33 @@ end:
 }
 
 static oauth2_jose_jwk_list_t *oauth2_jose_jwks_uri_resolve(
-    oauth2_log_t *log, oauth2_jose_jwks_provider_t *provider, bool *refresh)
+    oauth2_log_t *log, oauth2_jose_jwks_provider_t *provider,
+    bool *refresh, oauth2_jose_jwt_verify_jwk_ctx_t *ctx
+)
 {
 	return _oauth2_jose_jwks_resolve_from_uri(
-	    log, provider, refresh,
-	    _oauth2_jose_jwks_uri_resolve_response_callback);
+	    log,
+	    provider,
+	    refresh,
+	    ctx,
+	    _oauth2_jose_jwks_uri_resolve_response_callback
+    );
 }
 
 static oauth2_jose_jwk_list_t *oauth2_jose_jwks_eckey_url_resolve(
-    oauth2_log_t *log, oauth2_jose_jwks_provider_t *provider, bool *refresh)
+    oauth2_log_t *log,
+    oauth2_jose_jwks_provider_t *provider,
+    bool *refresh,
+    oauth2_jose_jwt_verify_jwk_ctx_t *ctx
+)
 {
 	return _oauth2_jose_jwks_resolve_from_uri(
-	    log, provider, refresh,
-	    _oauth2_jose_jwks_eckey_url_resolve_response_callback);
+	    log,
+	    provider,
+	    refresh,
+	    ctx,
+	    _oauth2_jose_jwks_eckey_url_resolve_response_callback
+	);
 }
 
 static const char *oauth2_jose_jwks_aws_alb_region(const char *arn) {
@@ -2233,7 +2240,8 @@ static const char *oauth2_jose_jwks_aws_alb_region(const char *arn) {
 static oauth2_jose_jwk_list_t *oauth2_jose_jwks_aws_alb_resolve(
     oauth2_log_t *log,
     oauth2_jose_jwks_provider_t *provider,
-    bool *refresh
+    bool *refresh,
+    oauth2_jose_jwt_verify_jwk_ctx_t *ctx
 )
 {
     const char *arn = oauth2_cfg_endpoint_get_url(provider->jwks_uri->endpoint);
@@ -2264,7 +2272,13 @@ static oauth2_jose_jwk_list_t *oauth2_jose_jwks_aws_alb_resolve(
     oauth2_cfg_endpoint_set_url(provider->jwks_uri->endpoint, url);
     oauth2_mem_free(url);
 
-    return _oauth2_jose_jwks_resolve_from_uri(log, provider, refresh, _oauth2_jose_jwks_eckey_url_resolve_response_callback);
+    return _oauth2_jose_jwks_resolve_from_uri(
+        log,
+        provider,
+        refresh,
+        ctx,
+        _oauth2_jose_jwks_eckey_url_resolve_response_callback
+    );
 }
 
 /*

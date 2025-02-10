@@ -37,6 +37,12 @@ typedef struct oauth2_jose_jwk_list_t {
 	struct oauth2_jose_jwk_list_t *next;
 } oauth2_jose_jwk_list_t;
 
+typedef struct oauth2_jose_jwt_verify_jwk_ctx_t {
+	cjose_jws_t *jws;
+	const char *kid;
+	bool verified;
+} oauth2_jose_jwt_verify_jwk_ctx_t;
+
 typedef struct oauth2_uri_ctx_t {
 	oauth2_cfg_endpoint_t *endpoint;
 	oauth2_cache_t *cache;
@@ -54,7 +60,7 @@ typedef struct oauth2_jose_jwks_provider_t oauth2_jose_jwks_provider_t;
 
 typedef oauth2_jose_jwk_list_t *(
     oauth2_jose_jwks_resolve_cb_t)(oauth2_log_t *,
-				   oauth2_jose_jwks_provider_t *, bool *);
+				   oauth2_jose_jwks_provider_t *, bool *, oauth2_jose_jwt_verify_jwk_ctx_t *);
 
 typedef struct oauth2_jose_jwks_provider_t {
 	oauth2_jose_jwks_provider_type_t type;
