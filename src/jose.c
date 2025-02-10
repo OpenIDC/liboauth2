@@ -2204,12 +2204,60 @@ static oauth2_jose_jwk_list_t *oauth2_jose_jwks_eckey_url_resolve(
 	    _oauth2_jose_jwks_eckey_url_resolve_response_callback);
 }
 
-static oauth2_jose_jwk_list_t *oauth2_jose_jwks_aws_alb_resolve(
-    oauth2_log_t *log, oauth2_jose_jwks_provider_t *provider, bool *refresh)
+static const char *oauth2_jose_jwks_aws_alb_region(const char *arn) {
+    if (!arn) return NULL;
+
+    char *arn_copy = oauth2_strdup(arn);
+    if (!arn_copy) return NULL;
+
+    char *token = strtok(arn_copy, ":");
+    int count = 0;
+    const char *region = NULL;
+
+    while (token) {
+        if (count == 3) {
+            region = oauth2_strdup(token);  // Duplicate before freeing arn_copy
+            break;
+        }
+        token = strtok(NULL, ":");
+        count++;
+    }
+
+    oauth2_mem_free(arn_copy);
+    return region;
+}
+
+static oauth2_jose_jwk_list_t *oauth2_jose_jwks_aws_alb_resolve(oauth2_log_t *log, oauth2_jose_jwks_provider_t *provider, bool *refresh)
 {
-	return _oauth2_jose_jwks_resolve_from_uri(
-	    log, provider, refresh,
-	    _oauth2_jose_jwks_eckey_url_resolve_response_callback);
+    const char *arn = oauth2_cfg_endpoint_get_url(provider->jwks_uri->endpoint);
+    const char *region = oauth2_jose_jwks_aws_alb_region(arn);
+    const char *kid = "c9efe2e3-177c-403d-bad6-7d9778e3408d"; // TODO replace with actual kid when available
+
+    if (!region) {
+        oauth2_error(log, "failed to extract region from ARN: %s", arn);
+        return NULL;
+    }
+
+    oauth2_debug(log, "using AWS region: %s", region);
+
+    const char *url_template = "https://public-keys.auth.elb.%s.amazonaws.com/%s";
+    size_t url_len = strlen("https://public-keys.auth.elb.") +
+                     strlen(region) +
+                     strlen(".amazonaws.com/") +
+                     strlen(kid) + 1;
+
+    char *url = oauth2_mem_alloc(url_len);
+    if (!url) {
+        oauth2_error(log, "memory allocation failed for URL");
+        return NULL;
+    }
+
+    oauth2_snprintf(url, url_len, url_template, region, kid);
+    oauth2_debug(log, "using AWS public key URL: %s", url);
+    oauth2_cfg_endpoint_set_url(provider->jwks_uri->endpoint, url);
+    oauth2_mem_free(url);
+
+    return _oauth2_jose_jwks_resolve_from_uri(log, provider, refresh, _oauth2_jose_jwks_eckey_url_resolve_response_callback);
 }
 
 /*
