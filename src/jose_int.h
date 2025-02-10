@@ -46,14 +46,16 @@ typedef struct oauth2_uri_ctx_t {
 typedef enum oauth2_jose_jwks_provider_type_t {
 	OAUTH2_JOSE_JWKS_PROVIDER_LIST,
 	OAUTH2_JOSE_JWKS_PROVIDER_JWKS_URI,
-	OAUTH2_JOSE_JWKS_PROVIDER_ECKEY_URI
+	OAUTH2_JOSE_JWKS_PROVIDER_ECKEY_URI,
+	OAUTH2_JOSE_JWKS_PROVIDER_AWS_ALB
 } oauth2_jose_jwks_provider_type_t;
 
 typedef struct oauth2_jose_jwks_provider_t oauth2_jose_jwks_provider_t;
 
 typedef oauth2_jose_jwk_list_t *(
     oauth2_jose_jwks_resolve_cb_t)(oauth2_log_t *,
-				   oauth2_jose_jwks_provider_t *, bool *);
+				   oauth2_jose_jwks_provider_t *, bool *,
+				   const cjose_header_t *hdr);
 
 typedef struct oauth2_jose_jwks_provider_t {
 	oauth2_jose_jwks_provider_type_t type;
@@ -61,6 +63,7 @@ typedef struct oauth2_jose_jwks_provider_t {
 	union {
 		oauth2_uri_ctx_t *jwks_uri;
 		oauth2_jose_jwk_list_t *jwks;
+		char *alb_arn;
 	};
 	// struct oauth2_jose_jwks_provider_t *next;
 } oauth2_jose_jwks_provider_t;
@@ -88,6 +91,7 @@ _OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_pubkey);
 _OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_jwk);
 _OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_jwks_uri);
 _OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_eckey_uri);
+_OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_aws_alb);
 
 char *oauth2_jose_resolve_from_uri(oauth2_log_t *log, oauth2_uri_ctx_t *uri_ctx,
 				   bool *refresh);

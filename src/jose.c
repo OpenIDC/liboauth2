@@ -707,13 +707,17 @@ void oauth2_jose_jwk_list_free(oauth2_log_t *log, oauth2_jose_jwk_list_t *keys)
 
 static oauth2_jose_jwk_list_t *
 oauth2_jose_jwks_list_resolve(oauth2_log_t *, oauth2_jose_jwks_provider_t *,
-			      bool *);
+			      bool *, const cjose_header_t *);
 static oauth2_jose_jwk_list_t *
 oauth2_jose_jwks_uri_resolve(oauth2_log_t *, oauth2_jose_jwks_provider_t *,
-			     bool *);
+			     bool *, const cjose_header_t *);
 static oauth2_jose_jwk_list_t *
 oauth2_jose_jwks_eckey_url_resolve(oauth2_log_t *,
-				   oauth2_jose_jwks_provider_t *, bool *);
+				   oauth2_jose_jwks_provider_t *, bool *,
+				   const cjose_header_t *);
+static oauth2_jose_jwk_list_t *
+oauth2_jose_jwks_aws_alb_resolve(oauth2_log_t *, oauth2_jose_jwks_provider_t *,
+				 bool *, const cjose_header_t *);
 
 static oauth2_jose_jwks_provider_t *
 _oauth2_jose_jwks_provider_init(oauth2_log_t *log,
@@ -736,6 +740,10 @@ _oauth2_jose_jwks_provider_init(oauth2_log_t *log,
 	case OAUTH2_JOSE_JWKS_PROVIDER_ECKEY_URI:
 		provider->jwks_uri = oauth2_uri_ctx_init(log);
 		provider->resolve = oauth2_jose_jwks_eckey_url_resolve;
+		break;
+	case OAUTH2_JOSE_JWKS_PROVIDER_AWS_ALB:
+		provider->resolve = oauth2_jose_jwks_aws_alb_resolve;
+		provider->alb_arn = NULL;
 		break;
 	}
 
@@ -765,6 +773,9 @@ _oauth2_jose_jwks_provider_clone(oauth2_log_t *log,
 	case OAUTH2_JOSE_JWKS_PROVIDER_ECKEY_URI:
 		dst->jwks_uri = oauth2_uri_ctx_clone(log, src->jwks_uri);
 		break;
+	case OAUTH2_JOSE_JWKS_PROVIDER_AWS_ALB:
+		dst->alb_arn = oauth2_strdup(src->alb_arn);
+		break;
 	}
 
 end:
@@ -789,6 +800,10 @@ _oauth2_jose_jwks_provider_free(oauth2_log_t *log,
 	case OAUTH2_JOSE_JWKS_PROVIDER_ECKEY_URI:
 		if (provider->jwks_uri)
 			oauth2_uri_ctx_free(log, provider->jwks_uri);
+		break;
+	case OAUTH2_JOSE_JWKS_PROVIDER_AWS_ALB:
+		if (provider->alb_arn)
+			oauth2_mem_free(provider->alb_arn);
 		break;
 	}
 
@@ -1292,7 +1307,7 @@ bool oauth2_jose_jwt_verify(oauth2_log_t *log,
 	if (jwt_verify_ctx) {
 
 		keys = jwt_verify_ctx->jwks_provider->resolve(
-		    log, jwt_verify_ctx->jwks_provider, &refresh);
+		    log, jwt_verify_ctx->jwks_provider, &refresh, hdr);
 
 		ctx.jws = jws;
 		ctx.kid = cjose_header_get(hdr, "kid", &err);
@@ -1309,7 +1324,7 @@ bool oauth2_jose_jwt_verify(oauth2_log_t *log,
 			if (keys)
 				oauth2_jose_jwk_list_free(log, keys);
 			keys = jwt_verify_ctx->jwks_provider->resolve(
-			    log, jwt_verify_ctx->jwks_provider, &refresh);
+			    log, jwt_verify_ctx->jwks_provider, &refresh, hdr);
 			_oauth2_jose_verification_keys_loop(
 			    log, keys, _oauth2_jose_jwt_verify_jwk, &ctx);
 
@@ -1846,8 +1861,38 @@ _OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_eckey_uri)
 	    "eckey_uri");
 }
 
-static oauth2_jose_jwk_list_t *oauth2_jose_jwks_list_resolve(
-    oauth2_log_t *log, oauth2_jose_jwks_provider_t *provider, bool *refresh)
+_OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_aws_alb)
+{
+	oauth2_cfg_token_verify_t *verify = (oauth2_cfg_token_verify_t *)ctx;
+	char *rv = NULL;
+	oauth2_jose_jwt_verify_ctx_t *ptr = NULL;
+
+	oauth2_debug(log, "enter");
+
+	verify->callback = _oauth2_jose_jwt_verify_callback;
+	verify->ctx->callbacks = &oauth2_jose_jwt_verify_ctx_funcs;
+	verify->ctx->ptr = verify->ctx->callbacks->init(log);
+	ptr = (oauth2_jose_jwt_verify_ctx_t *)verify->ctx->ptr;
+
+	if (oauth2_jose_jwt_verify_set_options(
+		log, ptr, OAUTH2_JOSE_JWKS_PROVIDER_AWS_ALB, params) == false) {
+		rv = oauth2_strdup("oauth2_jose_jwt_verify_set_options failed");
+		goto end;
+	}
+
+	ptr->jwks_provider->alb_arn = oauth2_strdup(value);
+
+end:
+
+	oauth2_debug(log, "leave: %s", rv);
+
+	return rv;
+}
+
+static oauth2_jose_jwk_list_t *
+oauth2_jose_jwks_list_resolve(oauth2_log_t *log,
+			      oauth2_jose_jwks_provider_t *provider,
+			      bool *refresh, const cjose_header_t *hdr)
 {
 	*refresh = false;
 	return oauth2_jose_jwk_list_clone(log, provider->jwks);
@@ -2171,20 +2216,53 @@ end:
 	return dst;
 }
 
-static oauth2_jose_jwk_list_t *oauth2_jose_jwks_uri_resolve(
-    oauth2_log_t *log, oauth2_jose_jwks_provider_t *provider, bool *refresh)
+static oauth2_jose_jwk_list_t *
+oauth2_jose_jwks_uri_resolve(oauth2_log_t *log,
+			     oauth2_jose_jwks_provider_t *provider,
+			     bool *refresh, const cjose_header_t *hdr)
 {
 	return _oauth2_jose_jwks_resolve_from_uri(
 	    log, provider, refresh,
 	    _oauth2_jose_jwks_uri_resolve_response_callback);
 }
 
-static oauth2_jose_jwk_list_t *oauth2_jose_jwks_eckey_url_resolve(
-    oauth2_log_t *log, oauth2_jose_jwks_provider_t *provider, bool *refresh)
+static oauth2_jose_jwk_list_t *
+oauth2_jose_jwks_eckey_url_resolve(oauth2_log_t *log,
+				   oauth2_jose_jwks_provider_t *provider,
+				   bool *refresh, const cjose_header_t *hdr)
 {
 	return _oauth2_jose_jwks_resolve_from_uri(
 	    log, provider, refresh,
 	    _oauth2_jose_jwks_eckey_url_resolve_response_callback);
+}
+
+static oauth2_jose_jwk_list_t *
+oauth2_jose_jwks_aws_alb_resolve(oauth2_log_t *log,
+				 oauth2_jose_jwks_provider_t *provider,
+				 bool *refresh, const cjose_header_t *hdr)
+{
+	/*
+	 * 1. pull the 'signer' and `kid` claims from the header (a typedef-ed
+	 * JSON object)
+	 * 2. check it against the configured provider->arb_arn value, and if
+	 * they match:
+	 * 3. construct the EC keys URL:
+	 *      https://public-keys.auth.elb.<region from
+	 *      ALB_ARN>.amazonaws.com/<kid>
+	 *    TODO: make the base URL configurable in
+	 * oauth2_jose_verify_options_jwk_set_aws_alb and add a member
+	 * alb_arn_base_url to oauth2_jose_jwks_provider_t
+	 * 4. construct a temporary provider->jwks_uri
+	 * 5. call:
+	 *      _oauth2_jose_jwks_resolve_from_uri(log, provider, refresh,
+	 * oauth2_jose_jwks_eckey_url_resolve_response_callback);
+	 * and save the result (oauth2_jose_jwk_list_t *)
+	 * 6. free the temporary provider->jwks_uri (TODO: caching?)
+	 * 7. return the result
+	 *
+	 * add unit tests
+	 */
+	return NULL;
 }
 
 /*

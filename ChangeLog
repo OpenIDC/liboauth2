@@ -1,3 +1,7 @@
+02/10/2025
+- add skeleton for updated AWS ALB JWK retrieval which supports key rotation
+  see: https://github.com/OpenIDC/mod_oauth2/issues/73
+
 01/02/2024
 - update copyright year to 2025
 
