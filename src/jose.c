@@ -2236,33 +2236,77 @@ oauth2_jose_jwks_eckey_url_resolve(oauth2_log_t *log,
 	    _oauth2_jose_jwks_eckey_url_resolve_response_callback);
 }
 
+static const char *_oauth2_jose_jwks_aws_alb_region(const char *arn) {
+    if (!arn) return NULL;
+
+    char *arn_copy = oauth2_strdup(arn);
+    if (!arn_copy) return NULL;
+
+    char *token = strtok(arn_copy, ":");
+    int count = 0;
+    const char *region = NULL;
+
+    while (token) {
+        if (count == 3) {
+            region = oauth2_strdup(token);
+            break;
+        }
+        token = strtok(NULL, ":");
+        count++;
+    }
+
+    oauth2_mem_free(arn_copy);
+    return region;
+}
+
 static oauth2_jose_jwk_list_t *
 oauth2_jose_jwks_aws_alb_resolve(oauth2_log_t *log,
 				 oauth2_jose_jwks_provider_t *provider,
 				 bool *refresh, const cjose_header_t *hdr)
 {
-	/*
-	 * 1. pull the 'signer' and `kid` claims from the header (a typedef-ed
-	 * JSON object)
-	 * 2. check it against the configured provider->arb_arn value, and if
-	 * they match:
-	 * 3. construct the EC keys URL:
-	 *      https://public-keys.auth.elb.<region from
-	 *      ALB_ARN>.amazonaws.com/<kid>
-	 *    TODO: make the base URL configurable in
-	 * oauth2_jose_verify_options_jwk_set_aws_alb and add a member
-	 * alb_arn_base_url to oauth2_jose_jwks_provider_t
-	 * 4. construct a temporary provider->jwks_uri
-	 * 5. call:
-	 *      _oauth2_jose_jwks_resolve_from_uri(log, provider, refresh,
-	 * oauth2_jose_jwks_eckey_url_resolve_response_callback);
-	 * and save the result (oauth2_jose_jwk_list_t *)
-	 * 6. free the temporary provider->jwks_uri (TODO: caching?)
-	 * 7. return the result
-	 *
-	 * add unit tests
-	 */
-	return NULL;
+    cjose_err err;
+
+    // TODO - error here, issue with const cjose_header_t *hdr
+    const char *signer = cjose_header_get(hdr, "signer", &err);
+    const char *kid = cjose_header_get(hdr, "kid", &err);
+
+    if (!signer || !kid) {
+        oauth2_error(log, "missing 'signer' or 'kid' in JWT header: signer=%s, kid=%s", signer, kid);
+        return NULL;
+    }
+
+    // TODO - determine if theres a better place for this?
+    if (strcmp(signer, provider->alb_arn) != 0) {
+        oauth2_error(log, "signer does not match configured ARN: signer=%s, arn=%s", signer, provider->alb_arn);
+        return NULL;
+    }
+
+    const char *region = _oauth2_jose_jwks_aws_alb_region(provider->alb_arn);
+    if (!region) {
+        oauth2_error(log, "failed to extract region from ARN: arn=%s", provider->alb_arn);
+        return NULL;
+    }
+
+    size_t url_len = strlen("https://public-keys.auth.elb.") + strlen(region) + strlen(".amazonaws.com/") + strlen(kid) + 1;
+    char *url = oauth2_mem_alloc(url_len);
+    if (!url) {
+        oauth2_error(log, "oauth2_mem_alloc failed for JWKS URL");
+        return NULL;
+    }
+
+    oauth2_snprintf(url, url_len, "https://public-keys.auth.elb.%s.amazonaws.com/%s", region, kid);
+    oauth2_debug(log, "constructed JWKS URL: %s", url);
+
+    // TODO - should probably be a copy of provider?
+    oauth2_cfg_endpoint_set_url(provider->jwks_uri->endpoint, url);
+
+    oauth2_jose_jwk_list_t *result = _oauth2_jose_jwks_resolve_from_uri(
+        log, provider, refresh, oauth2_jose_jwks_eckey_url_resolve_response_callback
+    );
+
+    oauth2_mem_free(url);
+
+    return result;
 }
 
 /*
