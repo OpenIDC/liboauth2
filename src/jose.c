@@ -714,6 +714,9 @@ oauth2_jose_jwks_uri_resolve(oauth2_log_t *, oauth2_jose_jwks_provider_t *,
 static oauth2_jose_jwk_list_t *
 oauth2_jose_jwks_eckey_url_resolve(oauth2_log_t *,
 				   oauth2_jose_jwks_provider_t *, bool *);
+static oauth2_jose_jwk_list_t *
+oauth2_jose_jwks_aws_alb_resolve(oauth2_log_t *,
+				   oauth2_jose_jwks_provider_t *, bool *);
 
 static oauth2_jose_jwks_provider_t *
 _oauth2_jose_jwks_provider_init(oauth2_log_t *log,
@@ -739,7 +742,7 @@ _oauth2_jose_jwks_provider_init(oauth2_log_t *log,
 		break;
     case OAUTH2_JOSE_JWKS_PROVIDER_AWS_ALB:
         provider->jwks_uri = oauth2_uri_ctx_init(log);
-        provider->resolve = oauth2_jose_jwks_eckey_url_resolve;
+        provider->resolve = oauth2_jose_jwks_aws_alb_resolve;
         break;
     }
 
@@ -2194,6 +2197,14 @@ static oauth2_jose_jwk_list_t *oauth2_jose_jwks_uri_resolve(
 }
 
 static oauth2_jose_jwk_list_t *oauth2_jose_jwks_eckey_url_resolve(
+    oauth2_log_t *log, oauth2_jose_jwks_provider_t *provider, bool *refresh)
+{
+	return _oauth2_jose_jwks_resolve_from_uri(
+	    log, provider, refresh,
+	    _oauth2_jose_jwks_eckey_url_resolve_response_callback);
+}
+
+static oauth2_jose_jwk_list_t *oauth2_jose_jwks_aws_alb_resolve(
     oauth2_log_t *log, oauth2_jose_jwks_provider_t *provider, bool *refresh)
 {
 	return _oauth2_jose_jwks_resolve_from_uri(
