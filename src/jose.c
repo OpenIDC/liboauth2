@@ -1273,6 +1273,7 @@ bool oauth2_jose_jwt_verify(oauth2_log_t *log,
 	uint8_t *plaintext = NULL;
 	size_t plaintext_len = 0;
 	bool refresh = false;
+	const char *kid = NULL;
 
 	peek = oauth2_jose_jwt_header_peek(log, token, NULL);
 	oauth2_debug(log, "enter: JWT token header=%s", peek);
@@ -1294,9 +1295,11 @@ bool oauth2_jose_jwt_verify(oauth2_log_t *log,
 		goto end;
 	}
 
-	hdr = cjose_jws_get_protected(jws);
-	if (hdr == NULL)
-		goto end;
+    hdr = cjose_jws_get_protected(jws);
+    if (hdr == NULL)
+        goto end;
+
+    kid = cjose_header_get(hdr, "kid", &err);
 
 	if (jwt_verify_ctx) {
 
@@ -1304,7 +1307,7 @@ bool oauth2_jose_jwt_verify(oauth2_log_t *log,
 		    log, jwt_verify_ctx->jwks_provider, &refresh);
 
 		ctx.jws = jws;
-		ctx.kid = cjose_header_get(hdr, "kid", &err);
+		ctx.kid = kid;
 		ctx.verified = false;
 
 		_oauth2_jose_verification_keys_loop(
@@ -2227,7 +2230,11 @@ static const char *oauth2_jose_jwks_aws_alb_region(const char *arn) {
     return region;
 }
 
-static oauth2_jose_jwk_list_t *oauth2_jose_jwks_aws_alb_resolve(oauth2_log_t *log, oauth2_jose_jwks_provider_t *provider, bool *refresh)
+static oauth2_jose_jwk_list_t *oauth2_jose_jwks_aws_alb_resolve(
+    oauth2_log_t *log,
+    oauth2_jose_jwks_provider_t *provider,
+    bool *refresh
+)
 {
     const char *arn = oauth2_cfg_endpoint_get_url(provider->jwks_uri->endpoint);
     const char *region = oauth2_jose_jwks_aws_alb_region(arn);
