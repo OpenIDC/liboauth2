@@ -32,3 +32,5 @@
 /config.sub~
 /configure~
 /install-sh~
+.idea
+liboauth2.iml

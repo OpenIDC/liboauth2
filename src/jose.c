@@ -737,7 +737,11 @@ _oauth2_jose_jwks_provider_init(oauth2_log_t *log,
 		provider->jwks_uri = oauth2_uri_ctx_init(log);
 		provider->resolve = oauth2_jose_jwks_eckey_url_resolve;
 		break;
-	}
+    case OAUTH2_JOSE_JWKS_PROVIDER_AWS_ALB:
+        provider->jwks_uri = oauth2_uri_ctx_init(log);
+        provider->resolve = oauth2_jose_jwks_eckey_url_resolve;
+        break;
+    }
 
 	return provider;
 }
@@ -763,6 +767,7 @@ _oauth2_jose_jwks_provider_clone(oauth2_log_t *log,
 		break;
 	case OAUTH2_JOSE_JWKS_PROVIDER_JWKS_URI:
 	case OAUTH2_JOSE_JWKS_PROVIDER_ECKEY_URI:
+	case OAUTH2_JOSE_JWKS_PROVIDER_AWS_ALB:
 		dst->jwks_uri = oauth2_uri_ctx_clone(log, src->jwks_uri);
 		break;
 	}
@@ -787,6 +792,7 @@ _oauth2_jose_jwks_provider_free(oauth2_log_t *log,
 		break;
 	case OAUTH2_JOSE_JWKS_PROVIDER_JWKS_URI:
 	case OAUTH2_JOSE_JWKS_PROVIDER_ECKEY_URI:
+	case OAUTH2_JOSE_JWKS_PROVIDER_AWS_ALB:
 		if (provider->jwks_uri)
 			oauth2_uri_ctx_free(log, provider->jwks_uri);
 		break;
@@ -1844,6 +1850,14 @@ _OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_eckey_uri)
 	return _oauth2_jose_verify_options_jwk_set_url(
 	    log, value, params, verify, OAUTH2_JOSE_JWKS_PROVIDER_ECKEY_URI,
 	    "eckey_uri");
+}
+
+_OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_aws_alb)
+{
+	oauth2_cfg_token_verify_t *verify = (oauth2_cfg_token_verify_t *)ctx;
+	return _oauth2_jose_verify_options_jwk_set_url(
+	    log, value, params, verify, OAUTH2_JOSE_JWKS_PROVIDER_AWS_ALB,
+	    "aws_alb");
 }
 
 static oauth2_jose_jwk_list_t *oauth2_jose_jwks_list_resolve(
