@@ -36,6 +36,7 @@
 #define OAUTH2_JOSE_VERIFY_JWK_JWK_STR "jwk"
 #define OAUTH2_JOSE_VERIFY_JWK_JWKS_URI_STR "jwks_uri"
 #define OAUTH2_JOSE_VERIFY_JWK_ECKEY_URI_STR "eckey_uri"
+#define OAUTH2_JOSE_VERIFY_JWK_AWS_ALB_STR "aws_alb"
 #define OAUTH2_CFG_VERIFY_INTROSPECT_URL_STR "introspect"
 #define OAUTH2_CFG_VERIFY_METADATA_URL_STR "metadata"
 
@@ -50,6 +51,7 @@ static oauth2_cfg_set_options_ctx_t _oauth2_cfg_verify_options_set[] = {
 	{ OAUTH2_JOSE_VERIFY_JWK_JWK_STR, oauth2_jose_verify_options_jwk_set_jwk },
 	{ OAUTH2_JOSE_VERIFY_JWK_JWKS_URI_STR, oauth2_jose_verify_options_jwk_set_jwks_uri },
 	{ OAUTH2_JOSE_VERIFY_JWK_ECKEY_URI_STR, oauth2_jose_verify_options_jwk_set_eckey_uri },
+	{ OAUTH2_JOSE_VERIFY_JWK_AWS_ALB_STR, oauth2_jose_verify_options_jwk_set_aws_alb },
 	{ OAUTH2_CFG_VERIFY_INTROSPECT_URL_STR, oauth2_verify_options_set_introspect_url },
 	{ OAUTH2_CFG_VERIFY_METADATA_URL_STR, oauth2_verify_options_set_metadata_url },
 	{ NULL, NULL }
