@@ -17,6 +17,7 @@ RUN apt-get update && apt-get install -y libpcre2-dev libpcre2-8-0
 RUN apt-get update && apt-get install -y libcjose-dev libcjose0
 RUN apt-get update && apt-get install -y libmemcached-dev memcached
 RUN apt-get update && apt-get install -y libhiredis-dev redis-server
+RUN apt-get update && apt-get install -y libjq-dev
 
 ENV SRCDIR /root/liboauth2
 RUN mkdir ${SRCDIR}
@@ -42,6 +43,7 @@ RUN ./configure \
 	CFLAGS="-g -O0 -I/usr/include/apache2" \
 	LDFLAGS="-lrt" \
 	--with-nginx=/root/nginx \
+	--with-jq=/usr \
 	${CONFIGURE_ARGS}
 RUN make all
 RUN make check_liboauth2

@@ -169,11 +169,12 @@ START_TEST(test_target_pass)
 	ck_assert_str_eq(oauth2_cfg_target_pass_get_prefix(cfg),
 			 "OAUTH2_CLAIM_");
 	ck_assert_str_eq(oauth2_cfg_target_get_remote_user_claim(cfg), "sub");
+	ck_assert_ptr_eq(oauth2_cfg_target_get_json_payload_claim(cfg), NULL);
 
 	rv = oauth2_cfg_set_target_pass_options(
 	    _log, cfg,
 	    "envvars=false&headers=false&authn_header=auth&prefix=oidc&remote_"
-	    "user_claim=preferred_username");
+	    "user_claim=preferred_username&json_payload_claim=my_json");
 	ck_assert_ptr_eq(rv, NULL);
 
 	ck_assert_uint_eq(oauth2_cfg_target_pass_get_as_envvars(cfg), false);
@@ -182,6 +183,8 @@ START_TEST(test_target_pass)
 	ck_assert_str_eq(oauth2_cfg_target_pass_get_prefix(cfg), "oidc");
 	ck_assert_str_eq(oauth2_cfg_target_get_remote_user_claim(cfg),
 			 "preferred_username");
+	ck_assert_str_eq(oauth2_cfg_target_get_json_payload_claim(cfg),
+			 "my_json");
 
 	oauth2_cfg_target_pass_merge(_log, NULL, NULL, NULL);
 

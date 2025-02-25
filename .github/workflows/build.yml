@@ -11,7 +11,7 @@ jobs:
 
     strategy:
       matrix:
-        nginx_version: [1.18.0, 1.24.0, 1.26.0, 1.27.0]
+        nginx_version: [1.18.0, 1.24.0, 1.26.2, 1.27.3]
 
     services:
 
@@ -37,7 +37,7 @@ jobs:
       run: |
         sudo apt-get update -y
         sudo apt-get install -y apache2-dev libcjose-dev libssl-dev check pkg-config
-        sudo apt-get install -y libjansson-dev libcurl4-openssl-dev libhiredis-dev libmemcached-dev libpcre2-dev libpcre2-8-0
+        sudo apt-get install -y libjansson-dev libcurl4-openssl-dev libhiredis-dev libmemcached-dev libpcre2-dev libpcre2-8-0 libjq-dev
         sudo apt-get install build-essential libpcre3 libpcre3-dev zlib1g zlib1g-dev libxml2 libxml2-dev uuid-dev
         cd /tmp
         wget https://nginx.org/download/nginx-${{ matrix.nginx_version }}.tar.gz
@@ -48,7 +48,7 @@ jobs:
     - name: Configure
       run: |
         ./autogen.sh
-        ./configure --with-nginx=/tmp/nginx
+        ./configure --with-nginx=/tmp/nginx --with-jq=/usr
 
     - name: Make
       run: make

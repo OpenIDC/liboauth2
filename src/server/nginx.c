@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2024 - ZmartZone Holding BV
+ * Copyright (C) 2018-2025 - ZmartZone Holding BV
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -110,10 +110,12 @@ static void _oauth2_nginx_port_copy(oauth2_nginx_request_context_t *ctx)
 		sin6 =
 		    (struct sockaddr_in6 *)ctx->r->connection->local_sockaddr;
 		port = ntohs(sin6->sin6_port);
+		break;
 #endif
 #if (NGX_HAVE_UNIX_DOMAIN)
 	case AF_UNIX:
 		port = 0;
+		break;
 #endif
 	default: /* AF_INET */
 		sin = (struct sockaddr_in *)ctx->r->connection->local_sockaddr;
@@ -227,8 +229,10 @@ static void _oauth2_nginx_ssl_cert_set(oauth2_nginx_request_context_t *ctx)
 	key = ngx_hash_strlow(name.data, name.data, name.len);
 	vv = ngx_http_get_variable(ctx->r, &name, key);
 
-	if ((vv == NULL) || (vv->not_found))
+	if ((vv == NULL) || (vv->not_found)) {
+		ngx_pfree(ctx->r->pool, name.data);
 		return;
+	}
 
 	char *s = oauth2_strndup((char *)vv->data, vv->len);
 	oauth2_http_request_context_set(ctx->log, ctx->request,

@@ -3,7 +3,7 @@
 
 /***************************************************************************
  *
- * Copyright (C) 2018-2024 - ZmartZone Holding BV
+ * Copyright (C) 2018-2025 - ZmartZone Holding BV
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,23 +46,33 @@ typedef struct oauth2_uri_ctx_t {
 typedef enum oauth2_jose_jwks_provider_type_t {
 	OAUTH2_JOSE_JWKS_PROVIDER_LIST,
 	OAUTH2_JOSE_JWKS_PROVIDER_JWKS_URI,
-	OAUTH2_JOSE_JWKS_PROVIDER_ECKEY_URI
+	OAUTH2_JOSE_JWKS_PROVIDER_ECKEY_URI,
+	OAUTH2_JOSE_JWKS_PROVIDER_AWS_ALB
 } oauth2_jose_jwks_provider_type_t;
 
 typedef struct oauth2_jose_jwks_provider_t oauth2_jose_jwks_provider_t;
 
 typedef oauth2_jose_jwk_list_t *(
     oauth2_jose_jwks_resolve_cb_t)(oauth2_log_t *,
-				   oauth2_jose_jwks_provider_t *, bool *);
+				   oauth2_jose_jwks_provider_t *, bool *,
+				   cjose_header_t *hdr);
 
 typedef struct oauth2_jose_jwks_provider_t {
 	oauth2_jose_jwks_provider_type_t type;
 	oauth2_jose_jwks_resolve_cb_t *resolve;
-	union {
-		oauth2_uri_ctx_t *jwks_uri;
-		oauth2_jose_jwk_list_t *jwks;
-	};
-	// struct oauth2_jose_jwks_provider_t *next;
+
+	// NB: avoid union because of compiler/memory issues
+
+	// OAUTH2_JOSE_JWKS_PROVIDER_JWKS_URI and
+	// OAUTH2_JOSE_JWKS_PROVIDER_ECKEY_URI
+	oauth2_uri_ctx_t *jwks_uri;
+
+	// OAUTH2_JOSE_JWKS_PROVIDER_LIST
+	oauth2_jose_jwk_list_t *jwks;
+
+	// OAUTH2_JOSE_JWKS_PROVIDER_AWS_ALB
+	char *alb_arn;
+	char *alb_base_url;
 } oauth2_jose_jwks_provider_t;
 
 _OAUTH2_CFG_CTX_TYPE_START(oauth2_jose_jwt_verify_ctx)
@@ -88,6 +98,7 @@ _OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_pubkey);
 _OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_jwk);
 _OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_jwks_uri);
 _OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_eckey_uri);
+_OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_aws_alb);
 
 char *oauth2_jose_resolve_from_uri(oauth2_log_t *log, oauth2_uri_ctx_t *uri_ctx,
 				   bool *refresh);
@@ -112,10 +123,5 @@ bool oauth2_jose_jwt_validate_iat(oauth2_log_t *log, const json_t *json_payload,
 				  oauth2_jose_jwt_validate_claim_t validate,
 				  oauth2_uint_t slack_before,
 				  oauth2_uint_t slack_after);
-
-char *oauth2_jwt_create(oauth2_log_t *log, cjose_jwk_t *jwk, const char *alg,
-			const char *iss, const char *sub, const char *client_id,
-			const char *aud, oauth2_uint_t exp, bool include_iat,
-			bool include_jti);
 
 #endif /* _OAUTH2_JOSE_INT_H_ */

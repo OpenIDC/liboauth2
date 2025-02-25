@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2024 - ZmartZone Holding BV
+ * Copyright (C) 2018-2025 - ZmartZone Holding BV
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -789,6 +789,50 @@ START_TEST(test_oauth2_verify_eckey_uri)
 }
 END_TEST
 
+START_TEST(test_oauth2_verify_aws_alb)
+{
+	bool rc = false;
+	oauth2_cfg_token_verify_t *verify = NULL;
+	char *jwt =
+	    "eyJ0eXAiOiJKV1QiLCJraWQiOiIwOWQ0ZmExNy0yMjNlLTQwZmEtYjI4MC04OTRlOD"
+	    "QzZDcwMWYiLCJhbGciOiJFUzI1NiIsImlzcyI6Imh0dHBzOi8vYWNjb3VudHMuZ29v"
+	    "Z2xlLmNvbSIsImNsaWVudCI6IjY4NjMwMzIzMzEzMS1wZjA4b3J2YzVyY3BmaXQwdm"
+	    "xxNW82dWg0N3UyZW5mZy5hcHBzLmdvb2dsZXVzZXJjb250ZW50LmNvbSIsInNpZ25l"
+	    "ciI6ImFybjphd3M6ZWxhc3RpY2xvYWRiYWxhbmNpbmc6ZXUtY2VudHJhbC0xOjAwNj"
+	    "E3NTk0MDQ5NDpsb2FkYmFsYW5jZXIvYXBwL2JhbGFuY2VyMS8xODE3NThhZTJiMGMz"
+	    "ZWRlIiwiZXhwIjoxNTQyMDQ1Mzk5fQ==."
+	    "ewogICJzdWIiOiAiMTA5NzE2NDkyNjgxNjg2MTcyOTY5IiwKICAibmFtZSI6ICJIYW"
+	    "5zIFphbmRiZWx0IiwKICAiZ2l2ZW5fbmFtZSI6ICJIYW5zIiwKICAiZmFtaWx5X25h"
+	    "bWUiOiAiWmFuZGJlbHQiLAogICJwcm9maWxlIjogImh0dHBzOi8vcGx1cy5nb29nbG"
+	    "UuY29tLzEwOTcxNjQ5MjY4MTY4NjE3Mjk2OSIsCiAgInBpY3R1cmUiOiAiaHR0cHM6"
+	    "Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tLy1pOUc3U1V2S1FETS9BQUFBQUFBQU"
+	    "FBSS9BQUFBQUFBQUFBQS9zeEFzTk5FVlJWZy9waG90by5qcGciCn0=."
+	    "AlH8PGya9avWoGVkWOFWbMNiLdpSDQZqP-"
+	    "OuGfIXHw1CZWjxfJInXYiRsKRZlvlXJA5fguaeNKZ1Q_RyDjNqRg==";
+	json_t *json_payload = NULL;
+	const char *rv = NULL;
+	char *url = NULL, *options = NULL;
+
+	url = oauth2_stradd(NULL, oauth2_check_http_base_url(),
+			    get_eckey_url_path, NULL);
+	options = oauth2_stradd(NULL, "alb_base_url", "=", url);
+	rv = oauth2_cfg_token_verify_add_options(
+	    _log, &verify, "aws_alb",
+	    "arn:aws:elasticloadbalancing:eu-central-1:006175940494:"
+	    "loadbalancer/app/balancer1/181758ae2b0c3ede",
+	    options);
+	ck_assert_ptr_eq(rv, NULL);
+
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
+	ck_assert_int_eq(rc, true);
+
+	oauth2_cfg_token_verify_free(_log, verify);
+	oauth2_mem_free(options);
+	oauth2_mem_free(url);
+	json_decref(json_payload);
+}
+END_TEST
+
 START_TEST(test_oauth2_verify_token_introspection)
 {
 	bool rc = false;
@@ -1166,6 +1210,7 @@ Suite *oauth2_check_oauth2_suite()
 	tcase_add_test(c, test_oauth2_verify_jwk);
 	tcase_add_test(c, test_oauth2_verify_jwk_dpop);
 	tcase_add_test(c, test_oauth2_verify_eckey_uri);
+	tcase_add_test(c, test_oauth2_verify_aws_alb);
 	tcase_add_test(c, test_oauth2_verify_token_introspection);
 	tcase_add_test(c, test_oauth2_verify_token_plain);
 	tcase_add_test(c, test_oauth2_verify_token_base64);

@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2024 - ZmartZone Holding BV
+ * Copyright (C) 2018-2025 - ZmartZone Holding BV
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -368,7 +368,8 @@ START_TEST(test_jwks_resolve_uri)
 	ck_assert_ptr_eq(rv, NULL);
 
 	ptr = (oauth2_jose_jwt_verify_ctx_t *)verify->ctx->ptr;
-	list = ptr->jwks_provider->resolve(_log, ptr->jwks_provider, &refresh);
+	list = ptr->jwks_provider->resolve(_log, ptr->jwks_provider, &refresh,
+					   NULL);
 	ck_assert_ptr_ne(list, NULL);
 
 	oauth2_jose_jwk_list_free(_log, list);
@@ -390,7 +391,8 @@ START_TEST(test_jwk_resolve_plain)
 	ck_assert_ptr_eq(rv, NULL);
 
 	ptr = (oauth2_jose_jwt_verify_ctx_t *)verify->ctx->ptr;
-	list = ptr->jwks_provider->resolve(_log, ptr->jwks_provider, &refresh);
+	list = ptr->jwks_provider->resolve(_log, ptr->jwks_provider, &refresh,
+					   NULL);
 	ck_assert_ptr_ne(list, NULL);
 
 	oauth2_jose_jwk_list_free(_log, list);
@@ -420,7 +422,7 @@ START_TEST(test_jwt_verify)
 
 	jwt = oauth2_jwt_create(_log, jwk->jwk, CJOSE_HDR_ALG_HS256, "my_iss",
 				"my_sub", "my_client_id", "my_aud", 60, true,
-				true);
+				true, NULL);
 	ck_assert_ptr_ne(jwt, NULL);
 	oauth2_jose_jwk_release(jwk);
 

@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2024 - ZmartZone Holding BV
+ * Copyright (C) 2018-2025 - ZmartZone Holding BV
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -333,6 +333,9 @@ int main(void)
 	srunner_add_suite(sr, oauth2_check_proto_suite());
 	srunner_add_suite(sr, oauth2_check_oauth2_suite());
 	srunner_add_suite(sr, oauth2_check_openidc_suite());
+#ifdef HAVE_LIBJQ
+	srunner_add_suite(sr, oauth2_check_jq_suite());
+#endif
 #ifdef HAVE_APACHE
 	srunner_add_suite(sr, oauth2_check_apache_suite());
 #endif

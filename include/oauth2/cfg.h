@@ -3,7 +3,7 @@
 
 /***************************************************************************
  *
- * Copyright (C) 2018-2024 - ZmartZone Holding BV
+ * Copyright (C) 2018-2025 - ZmartZone Holding BV
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -261,6 +261,8 @@ const char *
 oauth2_cfg_target_pass_get_authn_header(oauth2_cfg_target_pass_t *cfg);
 const char *
 oauth2_cfg_target_get_remote_user_claim(oauth2_cfg_target_pass_t *cfg);
+const char *
+oauth2_cfg_target_get_json_payload_claim(oauth2_cfg_target_pass_t *cfg);
 
 /*
  * resource owner password credentials
