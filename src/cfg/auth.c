@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2024 - ZmartZone Holding BV
+ * Copyright (C) 2018-2025 - ZmartZone Holding BV
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -316,7 +316,7 @@ static char *oauth2_cfg_endpoint_auth_private_key_jwt_options_set(
 	auth->private_key_jwt.jwk = cjose_jwk_import(jwk, strlen(jwk), &err);
 	if (auth->private_key_jwt.jwk == NULL) {
 		rv = oauth2_stradd(NULL, "parsing JWK failed: ",
-				   "cjose_jws_import error: ", err.message);
+				   "cjose_jwk_import error: ", err.message);
 		goto end;
 	}
 

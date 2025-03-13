@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2024 - ZmartZone Holding BV
+ * Copyright (C) 2018-2025 - ZmartZone Holding BV
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -98,7 +98,7 @@ static void teardown(void)
 	list_free(&_request->headers_out.headers);
 	list_free(&_request->headers_in.headers);
 	oauth2_mem_free(_request->http_connection);
-	oauth2_mem_free(_request->connection->sockaddr);
+	oauth2_mem_free(_request->connection->local_sockaddr);
 	oauth2_mem_free(_request->connection);
 	ngx_destroy_pool(_request->pool);
 	oauth2_mem_free(_request);

@@ -3,7 +3,7 @@
 
 /***************************************************************************
  *
- * Copyright (C) 2018-2024 - ZmartZone Holding BV
+ * Copyright (C) 2018-2025 - ZmartZone Holding BV
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,6 +45,9 @@ Suite *oauth2_check_oauth2_suite();
 void oauth2_check_oauth2_cleanup();
 Suite *oauth2_check_openidc_suite();
 void oauth2_check_openidc_cleanup();
+#ifdef HAVE_LIBJQ
+Suite *oauth2_check_jq_suite();
+#endif
 #ifdef HAVE_APACHE
 Suite *oauth2_check_apache_suite();
 #endif

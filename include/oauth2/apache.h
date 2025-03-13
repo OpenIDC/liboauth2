@@ -3,7 +3,7 @@
 
 /***************************************************************************
  *
- * Copyright (C) 2018-2024 - ZmartZone Holding BV
+ * Copyright (C) 2018-2025 - ZmartZone Holding BV
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -182,6 +182,20 @@ int oauth2_apache_post_config(apr_pool_t *pool, apr_pool_t *p1, apr_pool_t *p2,
 		type *cfg = (type *)m;                                         \
 		(void)cfg;                                                     \
 		return func(srv_cfg->log, member, v1, v2, v3);                 \
+	}
+
+#define OAUTH2_APACHE_CMD_ARGSV4(module, type, primitive, func, member)        \
+	static const char *apache_##module##_set_##primitive(                  \
+	    cmd_parms *cmd, void *m, int argc, char *const argv[])             \
+	{                                                                      \
+		oauth2_apache_cfg_srv_t *srv_cfg = ap_get_module_config(       \
+		    cmd->server->module_config, &module##_module);             \
+		type *cfg = (type *)m;                                         \
+		(void)cfg;                                                     \
+		return func(srv_cfg->log, member, argc > 0 ? argv[0] : NULL,   \
+			    argc > 1 ? argv[1] : NULL,                         \
+			    argc > 2 ? argv[2] : NULL,                         \
+			    argc > 3 ? argv[3] : NULL);                        \
 	}
 
 #define OAUTH2_APACHE_CMD_ARGS(module, nargs, cmd, member, desc)               \

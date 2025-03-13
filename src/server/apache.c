@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2024 - ZmartZone Holding BV
+ * Copyright (C) 2018-2025 - ZmartZone Holding BV
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -692,8 +692,12 @@ void oauth2_apache_target_pass(oauth2_apache_request_ctx_t *ctx,
 			       const char *target_token, json_t *json_token)
 {
 	const char *authn_hdr = NULL;
+	const char *json_payload_claim = NULL;
+	char *s_compact = NULL;
 
 	authn_hdr = oauth2_cfg_target_pass_get_authn_header(target_pass);
+	json_payload_claim =
+	    oauth2_cfg_target_get_json_payload_claim(target_pass);
 
 	if ((ctx->r->user != NULL) && (authn_hdr != NULL))
 		oauth2_apache_request_header_set(ctx->log, ctx->r, authn_hdr,
@@ -706,6 +710,14 @@ void oauth2_apache_target_pass(oauth2_apache_request_ctx_t *ctx,
 		// configurable...?
 		oauth2_apache_set_target_info(ctx, target_pass, "access_token",
 					      target_token);
+	}
+
+	if (json_payload_claim != NULL) {
+		s_compact = oauth2_json_encode(
+		    ctx->log, json_token, JSON_PRESERVE_ORDER | JSON_COMPACT);
+		oauth2_apache_set_target_info(ctx, target_pass,
+					      json_payload_claim, s_compact);
+		oauth2_mem_free(s_compact);
 	}
 
 	// TODO: strip cookies according to config setting

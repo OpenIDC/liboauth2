@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2024 - ZmartZone Holding BV
+ * Copyright (C) 2018-2025 - ZmartZone Holding BV
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 #define OAUTH2_CFG_PASS_TARGET_PREFIX_DEFAULT "OAUTH2_CLAIM_"
 #define OAUTH2_CFG_PASS_TARGET_AUTHN_HEADER_DEFAULT NULL
 #define OAUTH2_CFG_PASS_TARGET_REMOTE_USER_CLAIM_DEFAULT "sub"
+#define OAUTH2_CFG_PASS_TARGET_JSON_PAYLOAD_CLAIM_DEFAULT NULL
 
 typedef struct oauth2_cfg_target_pass_t {
 	oauth2_flag_t as_envvars;
@@ -34,6 +35,7 @@ typedef struct oauth2_cfg_target_pass_t {
 	char *authn_header;
 	char *prefix;
 	char *remote_user_claim;
+	char *json_payload_claim;
 } oauth2_cfg_target_pass_t;
 
 oauth2_cfg_target_pass_t *oauth2_cfg_target_pass_init(oauth2_log_t *log)
@@ -50,6 +52,7 @@ oauth2_cfg_target_pass_t *oauth2_cfg_target_pass_init(oauth2_log_t *log)
 	pass->authn_header = NULL;
 	pass->prefix = NULL;
 	pass->remote_user_claim = NULL;
+	pass->json_payload_claim = NULL;
 
 end:
 
@@ -68,6 +71,8 @@ void oauth2_cfg_target_pass_free(oauth2_log_t *log,
 		oauth2_mem_free(pass->prefix);
 	if (pass->remote_user_claim)
 		oauth2_mem_free(pass->remote_user_claim);
+	if (pass->json_payload_claim)
+		oauth2_mem_free(pass->json_payload_claim);
 	oauth2_mem_free(pass);
 
 end:
@@ -96,6 +101,9 @@ void oauth2_cfg_target_pass_merge(oauth2_log_t *log,
 	cfg->remote_user_claim = oauth2_strdup(add->remote_user_claim != NULL
 						   ? add->remote_user_claim
 						   : base->remote_user_claim);
+	cfg->json_payload_claim = oauth2_strdup(add->json_payload_claim != NULL
+						    ? add->json_payload_claim
+						    : base->json_payload_claim);
 
 end:
 
@@ -162,6 +170,15 @@ char *oauth2_cfg_set_target_pass_options(oauth2_log_t *log,
 			goto end;
 	}
 
+	value = oauth2_nv_list_get(log, params, "json_payload_claim");
+	if (value) {
+		rv = oauth2_strdup(oauth2_cfg_set_str_slot(
+		    cfg, offsetof(oauth2_cfg_target_pass_t, json_payload_claim),
+		    value));
+		if (rv)
+			goto end;
+	}
+
 end:
 
 	if (params)
@@ -209,4 +226,12 @@ oauth2_cfg_target_get_remote_user_claim(oauth2_cfg_target_pass_t *cfg)
 	if (cfg->remote_user_claim == NULL)
 		return OAUTH2_CFG_PASS_TARGET_REMOTE_USER_CLAIM_DEFAULT;
 	return cfg->remote_user_claim;
+}
+
+const char *
+oauth2_cfg_target_get_json_payload_claim(oauth2_cfg_target_pass_t *cfg)
+{
+	if (cfg->json_payload_claim == NULL)
+		return OAUTH2_CFG_PASS_TARGET_JSON_PAYLOAD_CLAIM_DEFAULT;
+	return cfg->json_payload_claim;
 }

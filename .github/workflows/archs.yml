@@ -9,25 +9,26 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
-    name: ${{ matrix.arch }}-nginx-${{ matrix.nginx_version }}
+    runs-on: ubuntu-22.04
+    name: ${{ matrix.arch }}
 
     strategy:
+      fail-fast: false
       matrix:
         include:
-# passing literal NULL as a function input paramter does not seem to work on armv7; need compile flag??
+#          - arch: armv6
+#            distro: bookworm
+#            # alpine_latest
 #          - arch: armv7
 #            distro: ubuntu_latest
-#            nginx_version: 1.24.0
           - arch: aarch64
             distro: ubuntu_latest
-            nginx_version: 1.24.0
-          - arch: ppc64le
+          - arch: riscv64
             distro: ubuntu_latest
-            nginx_version: 1.24.0
           - arch: s390x
             distro: ubuntu_latest
-            nginx_version: 1.24.0
+          - arch: ppc64le
+            distro: ubuntu_latest
   
     steps:
     - uses: actions/checkout@v4
@@ -40,15 +41,30 @@ jobs:
         install: |
           apt-get update -y
           apt-get install -y apache2-dev libcjose-dev libssl-dev check pkg-config wget
-          apt-get install -y libjansson-dev libcurl4-openssl-dev libhiredis-dev libmemcached-dev redis-server memcached libpcre2-dev libpcre2-8-0
+          apt-get install -y libjansson-dev libcurl4-openssl-dev libhiredis-dev libmemcached-dev redis-server memcached libpcre2-dev libpcre2-8-0 libjq-dev
           apt-get install -y build-essential libpcre3 libpcre3-dev zlib1g zlib1g-dev libxml2 libxml2-dev uuid-dev
           cd /tmp
-          wget --no-check-certificate https://nginx.org/download/nginx-${{ matrix.nginx_version }}.tar.gz
-          tar zxvf nginx-${{ matrix.nginx_version }}.tar.gz
-          ln -s nginx-${{ matrix.nginx_version }} nginx
-          cd /tmp/nginx && ./configure --with-debug
+          apt-get install -y nginx
+
+          nginx -V 2>&1 | grep -m1 version | cut -d: -f2 | cut -d/ -f2 | cut -d" " -f1 > /tmp/nginx-version
+          nginx -V 2>&1 | grep configure | cut -d: -f2- > /tmp/nginx-args
+          apt-get remove -y nginx && apt-get autoremove -y
+          sed -i s/--add-dynamic-module=[^[:space:]]*//g /tmp/nginx-args
+          sed -i s/--with-http_xslt_module=[^[:space:]]*//g /tmp/nginx-args
+          sed -i s/--with-http_geoip_module=[^[:space:]]*//g /tmp/nginx-args
+          sed -i s/--with-stream_geoip_module=[^[:space:]]*//g /tmp/nginx-args
+          sed -i s/--with-http_image_filter_module=[^[:space:]]*//g /tmp/nginx-args
+          
+          wget --progress=bar:force:noscroll --no-check-certificate https://nginx.org/download/nginx-$(cat /tmp/nginx-version).tar.gz
+          tar zxf nginx-$(cat /tmp/nginx-version).tar.gz
+          cd nginx-$(cat /tmp/nginx-version)
+          echo "Configuring NGINX-$(cat /tmp/nginx-version): ./configure $(cat /tmp/nginx-args)"
+          cat /tmp/nginx-args | xargs ./configure
+          cd ..
+          ln -s nginx-$(cat /tmp/nginx-version) nginx
+
         run: |
           ./autogen.sh
-          ./configure --with-nginx=/tmp/nginx
+          ./configure --with-nginx=/tmp/nginx --with-jq=/usr
           sed -i "s/-l/#-l/g" /etc/memcached.conf
           service memcached start && service redis-server start && make check || (cat test-suite.log && exit -1)

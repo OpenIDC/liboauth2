@@ -3,7 +3,7 @@
 
 /***************************************************************************
  *
- * Copyright (C) 2018-2024 - ZmartZone Holding BV
+ * Copyright (C) 2018-2025 - ZmartZone Holding BV
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -77,5 +77,10 @@ bool oauth2_jose_jwt_verify(oauth2_log_t *log,
 bool oauth2_jose_jwk_thumbprint(oauth2_log_t *log, const cjose_jwk_t *jwk,
 				unsigned char **hash_bytes,
 				unsigned int *hash_bytes_len);
+
+char *oauth2_jwt_create(oauth2_log_t *log, cjose_jwk_t *jwk, const char *alg,
+			const char *iss, const char *sub, const char *client_id,
+			const char *aud, oauth2_uint_t exp, bool include_iat,
+			bool include_jti, const json_t *json_payload);
 
 #endif /* _OAUTH2_JOSE_H_ */

@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Copyright (C) 2018-2024 - ZmartZone Holding BV
+ * Copyright (C) 2018-2025 - ZmartZone Holding BV
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -504,7 +504,7 @@ end:
 char *oauth2_jwt_create(oauth2_log_t *log, cjose_jwk_t *jwk, const char *alg,
 			const char *iss, const char *sub, const char *client_id,
 			const char *aud, oauth2_uint_t exp, bool include_iat,
-			bool include_jti)
+			bool include_jti, const json_t *json_payload)
 {
 	char *rv = NULL;
 	char *payload = NULL;
@@ -520,7 +520,10 @@ char *oauth2_jwt_create(oauth2_log_t *log, cjose_jwk_t *jwk, const char *alg,
 	if (jwk == NULL)
 		goto end;
 
-	assertion = json_object();
+	if (json_payload)
+		assertion = json_deep_copy(json_payload);
+	else
+		assertion = json_object();
 	if (include_jti) {
 		jti = oauth2_rand_str(log, OAUTH2_JTI_LENGTH);
 		json_object_set_new(assertion, OAUTH2_CLAIM_JTI,
@@ -535,8 +538,9 @@ char *oauth2_jwt_create(oauth2_log_t *log, cjose_jwk_t *jwk, const char *alg,
 	if (aud)
 		json_object_set_new(assertion, OAUTH2_CLAIM_AUD,
 				    json_string(aud));
-	json_object_set_new(assertion, OAUTH2_CLAIM_EXP,
-			    json_integer(oauth2_time_now_sec() + exp));
+	if (exp > 0)
+		json_object_set_new(assertion, OAUTH2_CLAIM_EXP,
+				    json_integer(oauth2_time_now_sec() + exp));
 	if (include_iat)
 		json_object_set_new(assertion, OAUTH2_CLAIM_IAT,
 				    json_integer(oauth2_time_now_sec()));
@@ -703,13 +707,15 @@ void oauth2_jose_jwk_list_free(oauth2_log_t *log, oauth2_jose_jwk_list_t *keys)
 
 static oauth2_jose_jwk_list_t *
 oauth2_jose_jwks_list_resolve(oauth2_log_t *, oauth2_jose_jwks_provider_t *,
-			      bool *);
+			      bool *, cjose_header_t *);
 static oauth2_jose_jwk_list_t *
 oauth2_jose_jwks_uri_resolve(oauth2_log_t *, oauth2_jose_jwks_provider_t *,
-			     bool *);
+			     bool *, cjose_header_t *);
+static oauth2_jose_jwk_list_t *oauth2_jose_jwks_eckey_url_resolve(
+    oauth2_log_t *, oauth2_jose_jwks_provider_t *, bool *, cjose_header_t *);
 static oauth2_jose_jwk_list_t *
-oauth2_jose_jwks_eckey_url_resolve(oauth2_log_t *,
-				   oauth2_jose_jwks_provider_t *, bool *);
+oauth2_jose_jwks_aws_alb_resolve(oauth2_log_t *, oauth2_jose_jwks_provider_t *,
+				 bool *, cjose_header_t *);
 
 static oauth2_jose_jwks_provider_t *
 _oauth2_jose_jwks_provider_init(oauth2_log_t *log,
@@ -732,6 +738,12 @@ _oauth2_jose_jwks_provider_init(oauth2_log_t *log,
 	case OAUTH2_JOSE_JWKS_PROVIDER_ECKEY_URI:
 		provider->jwks_uri = oauth2_uri_ctx_init(log);
 		provider->resolve = oauth2_jose_jwks_eckey_url_resolve;
+		break;
+	case OAUTH2_JOSE_JWKS_PROVIDER_AWS_ALB:
+		provider->jwks_uri = oauth2_uri_ctx_init(log);
+		provider->resolve = oauth2_jose_jwks_aws_alb_resolve;
+		provider->alb_arn = NULL;
+		provider->alb_base_url = NULL;
 		break;
 	}
 
@@ -761,6 +773,11 @@ _oauth2_jose_jwks_provider_clone(oauth2_log_t *log,
 	case OAUTH2_JOSE_JWKS_PROVIDER_ECKEY_URI:
 		dst->jwks_uri = oauth2_uri_ctx_clone(log, src->jwks_uri);
 		break;
+	case OAUTH2_JOSE_JWKS_PROVIDER_AWS_ALB:
+		dst->jwks_uri = oauth2_uri_ctx_clone(log, src->jwks_uri);
+		dst->alb_arn = oauth2_strdup(src->alb_arn);
+		dst->alb_base_url = oauth2_strdup(src->alb_base_url);
+		break;
 	}
 
 end:
@@ -785,6 +802,14 @@ _oauth2_jose_jwks_provider_free(oauth2_log_t *log,
 	case OAUTH2_JOSE_JWKS_PROVIDER_ECKEY_URI:
 		if (provider->jwks_uri)
 			oauth2_uri_ctx_free(log, provider->jwks_uri);
+		break;
+	case OAUTH2_JOSE_JWKS_PROVIDER_AWS_ALB:
+		if (provider->jwks_uri)
+			oauth2_uri_ctx_free(log, provider->jwks_uri);
+		if (provider->alb_arn)
+			oauth2_mem_free(provider->alb_arn);
+		if (provider->alb_base_url)
+			oauth2_mem_free(provider->alb_base_url);
 		break;
 	}
 
@@ -1288,7 +1313,7 @@ bool oauth2_jose_jwt_verify(oauth2_log_t *log,
 	if (jwt_verify_ctx) {
 
 		keys = jwt_verify_ctx->jwks_provider->resolve(
-		    log, jwt_verify_ctx->jwks_provider, &refresh);
+		    log, jwt_verify_ctx->jwks_provider, &refresh, hdr);
 
 		ctx.jws = jws;
 		ctx.kid = cjose_header_get(hdr, "kid", &err);
@@ -1305,7 +1330,7 @@ bool oauth2_jose_jwt_verify(oauth2_log_t *log,
 			if (keys)
 				oauth2_jose_jwk_list_free(log, keys);
 			keys = jwt_verify_ctx->jwks_provider->resolve(
-			    log, jwt_verify_ctx->jwks_provider, &refresh);
+			    log, jwt_verify_ctx->jwks_provider, &refresh, hdr);
 			_oauth2_jose_verification_keys_loop(
 			    log, keys, _oauth2_jose_jwt_verify_jwk, &ctx);
 
@@ -1842,8 +1867,46 @@ _OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_eckey_uri)
 	    "eckey_uri");
 }
 
-static oauth2_jose_jwk_list_t *oauth2_jose_jwks_list_resolve(
-    oauth2_log_t *log, oauth2_jose_jwks_provider_t *provider, bool *refresh)
+_OAUTH_CFG_CTX_CALLBACK(oauth2_jose_verify_options_jwk_set_aws_alb)
+{
+	char *rv = NULL;
+	oauth2_cfg_token_verify_t *verify = (oauth2_cfg_token_verify_t *)ctx;
+	const char *alb_base_url = NULL;
+
+	oauth2_debug(log, "enter");
+
+	rv = _oauth2_jose_verify_options_jwk_set_url(
+	    log, value, params, verify, OAUTH2_JOSE_JWKS_PROVIDER_AWS_ALB,
+	    "aws_alb");
+	if (rv != NULL)
+		goto end;
+
+	oauth2_jose_jwt_verify_ctx_t *ptr = verify->ctx->ptr;
+
+	// this is going to be set dynamically
+	if (ptr->jwks_provider->jwks_uri->endpoint->url) {
+		oauth2_mem_free(ptr->jwks_provider->jwks_uri->endpoint->url);
+		ptr->jwks_provider->jwks_uri->endpoint->url = NULL;
+	}
+
+	ptr->jwks_provider->alb_arn = oauth2_strdup(value);
+
+	alb_base_url = oauth2_nv_list_get(log, params, "alb_base_url");
+	if (alb_base_url) {
+		ptr->jwks_provider->alb_base_url = oauth2_strdup(alb_base_url);
+	}
+
+end:
+
+	oauth2_debug(log, "leave: %s", rv);
+
+	return rv;
+}
+
+static oauth2_jose_jwk_list_t *
+oauth2_jose_jwks_list_resolve(oauth2_log_t *log,
+			      oauth2_jose_jwks_provider_t *provider,
+			      bool *refresh, cjose_header_t *hdr)
 {
 	*refresh = false;
 	return oauth2_jose_jwk_list_clone(log, provider->jwks);
@@ -2167,20 +2230,105 @@ end:
 	return dst;
 }
 
-static oauth2_jose_jwk_list_t *oauth2_jose_jwks_uri_resolve(
-    oauth2_log_t *log, oauth2_jose_jwks_provider_t *provider, bool *refresh)
+static oauth2_jose_jwk_list_t *
+oauth2_jose_jwks_uri_resolve(oauth2_log_t *log,
+			     oauth2_jose_jwks_provider_t *provider,
+			     bool *refresh, cjose_header_t *hdr)
 {
 	return _oauth2_jose_jwks_resolve_from_uri(
 	    log, provider, refresh,
 	    _oauth2_jose_jwks_uri_resolve_response_callback);
 }
 
-static oauth2_jose_jwk_list_t *oauth2_jose_jwks_eckey_url_resolve(
-    oauth2_log_t *log, oauth2_jose_jwks_provider_t *provider, bool *refresh)
+static oauth2_jose_jwk_list_t *
+oauth2_jose_jwks_eckey_url_resolve(oauth2_log_t *log,
+				   oauth2_jose_jwks_provider_t *provider,
+				   bool *refresh, cjose_header_t *hdr)
 {
 	return _oauth2_jose_jwks_resolve_from_uri(
 	    log, provider, refresh,
 	    _oauth2_jose_jwks_eckey_url_resolve_response_callback);
+}
+
+static const char *_oauth2_jose_jwks_aws_alb_region(const char *arn)
+{
+	if (!arn)
+		return NULL;
+
+	char *arn_copy = oauth2_strdup(arn);
+	if (!arn_copy)
+		return NULL;
+
+	char *token = strtok(arn_copy, ":");
+	int count = 0;
+	const char *region = NULL;
+
+	while (token) {
+		if (count == 3) {
+			region = oauth2_strdup(token);
+			break;
+		}
+		token = strtok(NULL, ":");
+		count++;
+	}
+
+	oauth2_mem_free(arn_copy);
+	return region;
+}
+
+static oauth2_jose_jwk_list_t *
+oauth2_jose_jwks_aws_alb_resolve(oauth2_log_t *log,
+				 oauth2_jose_jwks_provider_t *provider,
+				 bool *refresh, cjose_header_t *hdr)
+{
+	cjose_err err;
+	char *url = NULL;
+	const char *region = NULL;
+
+	const char *signer = cjose_header_get(hdr, "signer", &err);
+	const char *kid = cjose_header_get(hdr, "kid", &err);
+
+	if (!signer || !kid) {
+		oauth2_error(log,
+			     "missing 'signer' or 'kid' in JWT header: "
+			     "signer=%s, kid=%s",
+			     signer, kid);
+		return NULL;
+	}
+
+	if (strcmp(signer, provider->alb_arn) != 0) {
+		oauth2_error(
+		    log,
+		    "signer does not match configured ARN: signer=%s, arn=%s",
+		    signer, provider->alb_arn);
+		return NULL;
+	}
+
+	if (provider->alb_base_url == NULL) {
+		region = _oauth2_jose_jwks_aws_alb_region(provider->alb_arn);
+		if (!region) {
+			oauth2_error(
+			    log, "failed to extract region from ARN: arn=%s",
+			    provider->alb_arn);
+			return NULL;
+		}
+		url = _oauth2_stradd4(NULL, "https://public-keys.auth.elb.",
+				      region, ".amazonaws.com/", kid);
+	} else {
+		url = oauth2_stradd(NULL, provider->alb_base_url, kid, NULL);
+	}
+	oauth2_debug(log, "constructed ALB JWKs URL: %s", url);
+
+	provider->jwks_uri->endpoint->url = url;
+
+	oauth2_jose_jwk_list_t *result = _oauth2_jose_jwks_resolve_from_uri(
+	    log, provider, refresh,
+	    _oauth2_jose_jwks_eckey_url_resolve_response_callback);
+
+	provider->jwks_uri->endpoint->url = NULL;
+	oauth2_mem_free(url);
+
+	return result;
 }
 
 /*
