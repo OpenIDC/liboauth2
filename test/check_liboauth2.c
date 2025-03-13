@@ -68,7 +68,7 @@ static void http_server_error(oauth2_log_t *log, int type, int socket_fd)
 	else if (type == 406)
 		status = "406 Not Acceptable";
 
-	sprintf(buf, "HTTP/1.1 %s\nContent-Length: 0\nConnection: close\n\n",
+	sprintf(buf, "HTTP/1.1 %s \nContent-Length: 0\nConnection: close\n\n",
 		status);
 
 	rc = write(socket_fd, buf, strlen(buf));
@@ -203,7 +203,7 @@ static void http_server_process(oauth2_log_t *log, int fd, int hit)
 
 		if (response) {
 			sprintf(outbuf,
-				"HTTP/1.1 200\nContent-Length: "
+				"HTTP/1.1 200 \nContent-Length: "
 				"%zu\nConnection: close\n\n",
 				strlen(response));
 			rc = write(fd, outbuf, strlen(outbuf));
@@ -222,7 +222,7 @@ static void http_server_process(oauth2_log_t *log, int fd, int hit)
 	len = (long)lseek(file_fd, (off_t)0, SEEK_END);
 	(void)lseek(file_fd, (off_t)0, SEEK_SET);
 	(void)sprintf(buffer,
-		      "HTTP/1.1 200 OK\nServer: "
+		      "HTTP/1.1 200 OK \nServer: "
 		      "libmodauth2/1.0\nContent-Length: "
 		      "%ld\nConnection: close\nContent-Type: %s\n\n",
 		      len, fstr);
