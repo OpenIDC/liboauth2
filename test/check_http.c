@@ -463,6 +463,25 @@ START_TEST(test_url_base)
 }
 END_TEST
 
+START_TEST(test_url_query)
+{
+	char *query = NULL;
+	const char *code = NULL;
+	oauth2_http_request_t *r = NULL;
+
+	r = oauth2_http_request_init(_log);
+	oauth2_http_request_hostname_set(_log, r, "internal");
+	oauth2_http_request_port_set(_log, r, 8080);
+	query = "code=4%2F0AVMBsJh7C-GVOaM16SYgRMfrD";
+	oauth2_http_request_query_set(_log, r, query);
+	code = oauth2_http_request_query_param_get(_log, r, "code");
+	ck_assert_str_eq(code, "4/0AVMBsJh7C-GVOaM16SYgRMfrD");
+
+	oauth2_http_request_free(_log, r);
+}
+END_TEST
+
+
 START_TEST(test_url_get)
 {
 	char *url = NULL;
@@ -774,6 +793,7 @@ Suite *oauth2_check_http_suite()
 	tcase_add_test(c, test_request_hostname);
 	tcase_add_test(c, test_request_port);
 	tcase_add_test(c, test_url_base);
+	tcase_add_test(c, test_url_query);
 	tcase_add_test(c, test_url_get);
 	tcase_add_test(c, test_request_header);
 	tcase_add_test(c, test_query_encode);
