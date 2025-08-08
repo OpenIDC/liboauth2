@@ -1,3 +1,6 @@
+08/08/2025
+- release 2.1.1
+
 07/31/2025
 - fix URL decoding of HTTP request query parameters; see OpenIDC/ngx_openidc_module#24; thanks @drzraf
 
