@@ -136,8 +136,8 @@ char *oauth2_cfg_cache_set_options(oauth2_log_t *log, const char *type,
  * verify
  */
 
-typedef void *(oauth2_cfg_ctx_init_cb)(oauth2_log_t *log);
-typedef void *(oauth2_cfg_ctx_clone_cb)(oauth2_log_t *log, void *src);
+typedef void *(oauth2_cfg_ctx_init_cb)(oauth2_log_t * log);
+typedef void *(oauth2_cfg_ctx_clone_cb)(oauth2_log_t * log, void *src);
 typedef void(oauth2_cfg_ctx_free_cb)(oauth2_log_t *log, void *);
 
 typedef struct oauth2_cfg_ctx_funcs_t {
@@ -194,7 +194,7 @@ typedef struct oauth2_cfg_token_verify_t {
 	struct oauth2_cfg_token_verify_t *next;
 } oauth2_cfg_token_verify_t;
 
-typedef char *(oauth2_cfg_set_options_cb_t)(oauth2_log_t *log,
+typedef char *(oauth2_cfg_set_options_cb_t)(oauth2_log_t * log,
 					    const char *value,
 					    const oauth2_nv_list_t *params,
 					    void *cfg);
@@ -366,26 +366,25 @@ oauth2_cfg_session_t *_oauth2_cfg_session_obtain(oauth2_log_t *log,
 	} oauth2_##name##_list_t;                                              \
                                                                                \
 	static oauth2_##name##_list_t *_oauth2_##name##_list = NULL;           \
-	static oauth2_ipc_mutex_t *_oauth2_##name##_list_mutex = NULL;         \
+	static oauth2_ipc_thread_mutex_t *_oauth2_##name##_list_mutex = NULL;  \
                                                                                \
 	static bool _M_##name##_list_lock(oauth2_log_t *log)                   \
 	{                                                                      \
 		bool rc = false;                                               \
 		if (_oauth2_##name##_list_mutex == NULL) {                     \
 			_oauth2_##name##_list_mutex =                          \
-			    oauth2_ipc_mutex_init(log);                        \
-			oauth2_ipc_mutex_post_config(                          \
-			    log, _oauth2_##name##_list_mutex);                 \
+			    oauth2_ipc_thread_mutex_init(log);                 \
 		}                                                              \
-		rc = oauth2_ipc_mutex_lock(log, _oauth2_##name##_list_mutex);  \
+		rc = oauth2_ipc_thread_mutex_lock(                             \
+		    log, _oauth2_##name##_list_mutex);                         \
 		return rc;                                                     \
 	}                                                                      \
                                                                                \
 	static bool _M_##name##_list_unlock(oauth2_log_t *log)                 \
 	{                                                                      \
 		bool rc = false;                                               \
-		rc =                                                           \
-		    oauth2_ipc_mutex_unlock(log, _oauth2_##name##_list_mutex); \
+		rc = oauth2_ipc_thread_mutex_unlock(                           \
+		    log, _oauth2_##name##_list_mutex);                         \
 		return rc;                                                     \
 	}                                                                      \
                                                                                \
@@ -473,8 +472,8 @@ oauth2_cfg_session_t *_oauth2_cfg_session_obtain(oauth2_log_t *log,
 		_M_##name##_list_unlock(log);                                  \
                                                                                \
 		if (_oauth2_##name##_list_mutex != NULL) {                     \
-			oauth2_ipc_mutex_free(log,                             \
-					      _oauth2_##name##_list_mutex);    \
+			oauth2_ipc_thread_mutex_free(                          \
+			    log, _oauth2_##name##_list_mutex);                 \
 			_oauth2_##name##_list_mutex = NULL;                    \
 		}                                                              \
 	}

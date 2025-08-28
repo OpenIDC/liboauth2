@@ -29,7 +29,7 @@
 #include "hiredis/hiredis.h"
 
 typedef struct oauth2_cache_impl_redis_t {
-	oauth2_ipc_mutex_t *mutex;
+	oauth2_ipc_thread_mutex_t *mutex;
 	char *host_str;
 	oauth2_uint_t port;
 	char *username;
@@ -55,7 +55,7 @@ static bool oauth2_cache_redis_init(oauth2_log_t *log, oauth2_cache_t *cache,
 	cache->impl = impl;
 	cache->type = &oauth2_cache_redis;
 
-	impl->mutex = oauth2_ipc_mutex_init(log);
+	impl->mutex = oauth2_ipc_thread_mutex_init(log);
 	if (impl->mutex == NULL)
 		goto end;
 
@@ -97,15 +97,15 @@ static bool oauth2_cache_redis_free(oauth2_log_t *log, oauth2_cache_t *cache)
 		goto end;
 
 	if (impl->mutex) {
-		oauth2_ipc_mutex_lock(log, impl->mutex);
+		oauth2_ipc_thread_mutex_lock(log, impl->mutex);
 
 		if (impl->ctx) {
 			redisFree(impl->ctx);
 			impl->ctx = NULL;
 		}
 
-		oauth2_ipc_mutex_unlock(log, impl->mutex);
-		oauth2_ipc_mutex_free(log, impl->mutex);
+		oauth2_ipc_thread_mutex_unlock(log, impl->mutex);
+		oauth2_ipc_thread_mutex_free(log, impl->mutex);
 
 		impl->mutex = NULL;
 	}
@@ -139,10 +139,6 @@ static bool oauth2_cache_redis_post_config(oauth2_log_t *log,
 	oauth2_debug(log, "enter");
 
 	if (impl == NULL)
-		goto end;
-
-	rc = oauth2_ipc_mutex_post_config(log, impl->mutex);
-	if (rc == false)
 		goto end;
 
 	// TODO: connect to the server here?
@@ -299,7 +295,7 @@ static bool oauth2_cache_redis_get(oauth2_log_t *log, oauth2_cache_t *cache,
 
 	*value = NULL;
 
-	if (oauth2_ipc_mutex_lock(log, impl->mutex) == false)
+	if (oauth2_ipc_thread_mutex_lock(log, impl->mutex) == false)
 		goto end;
 
 	cmd = oauth2_stradd(NULL, "GET", " ", key);
@@ -326,7 +322,7 @@ static bool oauth2_cache_redis_get(oauth2_log_t *log, oauth2_cache_t *cache,
 
 unlock:
 
-	oauth2_ipc_mutex_unlock(log, impl->mutex);
+	oauth2_ipc_thread_mutex_unlock(log, impl->mutex);
 
 end:
 
@@ -358,7 +354,7 @@ static bool oauth2_cache_redis_set(oauth2_log_t *log, oauth2_cache_t *cache,
 	if (impl == NULL)
 		goto end;
 
-	if (oauth2_ipc_mutex_lock(log, impl->mutex) == false)
+	if (oauth2_ipc_thread_mutex_lock(log, impl->mutex) == false)
 		goto end;
 
 	if (value) {
@@ -382,7 +378,7 @@ static bool oauth2_cache_redis_set(oauth2_log_t *log, oauth2_cache_t *cache,
 
 unlock:
 
-	oauth2_ipc_mutex_unlock(log, impl->mutex);
+	oauth2_ipc_thread_mutex_unlock(log, impl->mutex);
 
 end:
 

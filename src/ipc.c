@@ -33,6 +33,8 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#include <pthread.h>
+
 #include "oauth2/ipc.h"
 #include "oauth2/mem.h"
 #include "oauth2/util.h"
@@ -266,6 +268,67 @@ bool oauth2_ipc_mutex_unlock(oauth2_log_t *log, oauth2_ipc_mutex_t *m)
 		goto end;
 
 	rc = oauth2_ipc_sema_post(log, m->mutex);
+
+end:
+
+	return rc;
+}
+
+/*
+ * thread mutex
+ */
+
+typedef struct oauth2_ipc_thread_mutex_t {
+	pthread_mutex_t mutex;
+} oauth2_ipc_thread_mutex_t;
+
+oauth2_ipc_thread_mutex_t *oauth2_ipc_thread_mutex_init(oauth2_log_t *log)
+{
+	oauth2_ipc_thread_mutex_t *m =
+	    oauth2_mem_alloc(sizeof(oauth2_ipc_thread_mutex_t));
+	if (m) {
+		pthread_mutex_init(&m->mutex, NULL);
+	}
+	return m;
+}
+
+void oauth2_ipc_thread_mutex_free(oauth2_log_t *log,
+				  oauth2_ipc_thread_mutex_t *m)
+{
+	if (m == NULL)
+		goto end;
+	pthread_mutex_destroy(&m->mutex);
+	oauth2_mem_free(m);
+
+end:
+
+	return;
+}
+
+bool oauth2_ipc_thread_mutex_lock(oauth2_log_t *log,
+				  oauth2_ipc_thread_mutex_t *m)
+{
+	bool rc = false;
+
+	if (m == NULL)
+		goto end;
+
+	rc = (pthread_mutex_lock(&m->mutex) == 0);
+
+end:
+
+	return rc;
+}
+
+bool oauth2_ipc_thread_mutex_unlock(oauth2_log_t *log,
+				    oauth2_ipc_thread_mutex_t *m)
+{
+	bool rc = false;
+
+	if (m == NULL)
+		goto end;
+
+	rc = (pthread_mutex_unlock(&m->mutex) == 0);
 
 end:
 

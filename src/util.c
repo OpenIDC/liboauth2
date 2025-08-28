@@ -40,7 +40,7 @@
 #include "cfg_int.h"
 
 static CURL *_s_curl = NULL;
-static oauth2_ipc_mutex_t *_curl_mutex = NULL;
+static oauth2_ipc_thread_mutex_t *_curl_mutex = NULL;
 
 oauth2_log_t *oauth2_init(oauth2_log_level_t level, oauth2_log_sink_t *sink)
 {
@@ -56,8 +56,7 @@ oauth2_log_t *oauth2_init(oauth2_log_level_t level, oauth2_log_sink_t *sink)
 	//       possibly providing alloc funcs as part of init?
 	curl_global_init(CURL_GLOBAL_ALL);
 	log = oauth2_log_init(level, sink);
-	_curl_mutex = oauth2_ipc_mutex_init(log);
-	oauth2_ipc_mutex_post_config(log, _curl_mutex);
+	_curl_mutex = oauth2_ipc_thread_mutex_init(log);
 	return log;
 }
 
@@ -71,7 +70,7 @@ void oauth2_shutdown(oauth2_log_t *log)
 		_s_curl = NULL;
 	}
 	if (_curl_mutex != NULL) {
-		oauth2_ipc_mutex_free(log, _curl_mutex);
+		oauth2_ipc_thread_mutex_free(log, _curl_mutex);
 		_curl_mutex = NULL;
 	}
 	curl_global_cleanup();
@@ -256,7 +255,7 @@ end:
 
 static CURL *oauth2_curl_init(oauth2_log_t *log)
 {
-	oauth2_ipc_mutex_lock(log, _curl_mutex);
+	oauth2_ipc_thread_mutex_lock(log, _curl_mutex);
 	if (_s_curl == NULL) {
 		_s_curl = curl_easy_init();
 		if (_s_curl == NULL) {
@@ -268,7 +267,7 @@ static CURL *oauth2_curl_init(oauth2_log_t *log)
 
 static void oauth2_curl_free(oauth2_log_t *log, CURL *curl)
 {
-	oauth2_ipc_mutex_unlock(log, _curl_mutex);
+	oauth2_ipc_thread_mutex_unlock(log, _curl_mutex);
 }
 
 char *oauth2_url_encode(oauth2_log_t *log, const char *src)

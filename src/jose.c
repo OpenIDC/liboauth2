@@ -1913,7 +1913,7 @@ oauth2_jose_jwks_list_resolve(oauth2_log_t *log,
 }
 
 typedef oauth2_jose_jwk_list_t *(
-    oauth2_jose_jwks_url_resolve_response_cb_t)(oauth2_log_t *log,
+    oauth2_jose_jwks_url_resolve_response_cb_t)(oauth2_log_t * log,
 						char *response);
 
 // cater for the (Amazon ALB) use case that only a single EC(!) key is served

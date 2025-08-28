@@ -481,7 +481,6 @@ START_TEST(test_url_query)
 }
 END_TEST
 
-
 START_TEST(test_url_get)
 {
 	char *url = NULL;

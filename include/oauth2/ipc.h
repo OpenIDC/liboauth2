@@ -33,6 +33,12 @@ bool oauth2_ipc_mutex_post_config(oauth2_log_t *log, oauth2_ipc_mutex_t *m);
 bool oauth2_ipc_mutex_lock(oauth2_log_t *log, oauth2_ipc_mutex_t *m);
 bool oauth2_ipc_mutex_unlock(oauth2_log_t *log, oauth2_ipc_mutex_t *m);
 
+OAUTH2_TYPE_DECLARE(ipc, thread_mutex)
+bool oauth2_ipc_thread_mutex_lock(oauth2_log_t *log,
+				  oauth2_ipc_thread_mutex_t *m);
+bool oauth2_ipc_thread_mutex_unlock(oauth2_log_t *log,
+				    oauth2_ipc_thread_mutex_t *m);
+
 OAUTH2_TYPE_DECLARE(ipc, sema)
 bool oauth2_ipc_sema_post_config(oauth2_log_t *log, oauth2_ipc_sema_t *sema);
 bool oauth2_ipc_sema_post(oauth2_log_t *log, oauth2_ipc_sema_t *sema);

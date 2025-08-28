@@ -91,6 +91,25 @@ START_TEST(test_mutex)
 }
 END_TEST
 
+START_TEST(test_thread_mutex)
+{
+	bool rc = false;
+	oauth2_ipc_thread_mutex_t *m = NULL;
+
+	m = oauth2_ipc_thread_mutex_init(_log);
+	ck_assert_ptr_ne(m, NULL);
+
+	rc = oauth2_ipc_thread_mutex_lock(_log, m);
+	ck_assert_int_eq(rc, true);
+
+	rc = oauth2_ipc_thread_mutex_unlock(_log, m);
+	ck_assert_int_eq(rc, true);
+
+	oauth2_ipc_thread_mutex_free(_log, m);
+	m = NULL;
+}
+END_TEST
+
 START_TEST(test_shm)
 {
 	bool rc = false;
@@ -120,6 +139,7 @@ Suite *oauth2_check_ipc_suite()
 
 	tcase_add_test(c, test_sema);
 	tcase_add_test(c, test_mutex);
+	tcase_add_test(c, test_thread_mutex);
 	tcase_add_test(c, test_shm);
 
 	suite_add_tcase(s, c);
