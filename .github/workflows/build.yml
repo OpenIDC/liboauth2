@@ -51,11 +51,23 @@ jobs:
         ./configure --with-nginx=/tmp/nginx --with-jq=/usr
 
     - name: Make
-      run: make
+      run: make prefix=/build
 
     - name: Test
       run: make check || (cat test-suite.log && exit -1)
 
+    - name: Dist
+      # Add build/{include,lib} inside <distdir> folder (eg: liboauth2-2.2.0dev/) which is going to be uploaded
+      # Also avoid default DESTDIR `/usr/local/lib` check from liboauth2.la
+      run: |
+        make distdir prefix=/build
+        make install prefix=/build DESTDIR=$(pwd)/'$(PACKAGE_NAME)-$(PACKAGE_VERSION)'
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: liboauth2-${{ matrix.nginx_version }}
+        path: liboauth2-*
+
     - name: Distcheck
       run: make distcheck DISTCHECK_CONFIGURE_FLAGS="--with-nginx=/tmp/nginx" DESTDIR="/tmp/liboauth2"
- 
