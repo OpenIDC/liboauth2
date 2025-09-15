@@ -43,7 +43,7 @@ jobs:
         wget https://nginx.org/download/nginx-${{ matrix.nginx_version }}.tar.gz
         tar zxvf nginx-${{ matrix.nginx_version }}.tar.gz
         ln -s nginx-${{ matrix.nginx_version }} nginx
-        cd /tmp/nginx && ./configure --with-debug
+        cd /tmp/nginx && ./configure --with-debug --with-compat
         
     - name: Configure
       run: |
@@ -58,7 +58,6 @@ jobs:
 
     - name: Dist
       # Add build/{include,lib} inside <distdir> folder (eg: liboauth2-2.2.0dev/) which is going to be uploaded
-      # Also avoid default DESTDIR `/usr/local/lib` check from liboauth2.la
       run: |
         make distdir prefix=/build
         make install prefix=/build DESTDIR=$(pwd)/'$(PACKAGE_NAME)-$(PACKAGE_VERSION)'
