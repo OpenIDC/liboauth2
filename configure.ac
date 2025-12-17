@@ -1,4 +1,4 @@
-AC_INIT([liboauth2],[2.1.0],[hans.zandbelt@openidc.com])
+AC_INIT([liboauth2],[2.1.1],[hans.zandbelt@openidc.com])
 
 AM_INIT_AUTOMAKE([foreign no-define subdir-objects])
 AC_CONFIG_MACRO_DIR([m4])
@@ -114,7 +114,7 @@ if test x"$have_nginx" = "xyes" ; then
 	if test ! -d "$withval"; then
  		AC_MSG_ERROR([Could not find NGINX. Please specify the path to the NGINX sources using the --with-nginx=/full/path/to/nginx-<version> option.])
 	else
- 		NGINX_CFLAGS="-I $withval/src/core -I $withval/src/event -I $withval/src/event/modules -I $withval/src/os/unix -I $withval/objs -I $withval/src/http -I $withval/src/http/v2 -I $withval/src/http/modules"
+ 		NGINX_CFLAGS="-I $withval/src/core -I $withval/src/event -I $withval/src/event/modules -I $withval/src/event/quic -I $withval/src/os/unix -I $withval/objs -I $withval/src/http -I $withval/src/http/v2 -I $withval/src/http/v3 -I $withval/src/http/modules"
 		NGINX_LIBS=
 		CPPFLAGS_SAVE="$CPPFLAGS"
 		CPPFLAGS="$NGINX_CFLAGS $CPPFLAGS"

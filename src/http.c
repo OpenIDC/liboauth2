@@ -1217,7 +1217,7 @@ static bool _oauth2_http_request_query_parse(oauth2_log_t *log,
 
 	rc = _oauth2_nv_list_parse(log, request->query, request->_parsed_query,
 				   _OAUTH2_CHAR_AMP, _OAUTH2_CHAR_EQUAL, true,
-				   false);
+				   true);
 
 end:
 

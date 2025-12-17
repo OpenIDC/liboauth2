@@ -1,3 +1,13 @@
+08/08/2025
+- release 2.1.1
+
+07/31/2025
+- fix URL decoding of HTTP request query parameters; see OpenIDC/ngx_openidc_module#24; thanks @drzraf
+
+03/13/2025
+- test: add a space after the status code in the HTTP responses; see curl/curl#16692 ; thanks @charles2910 and @bagder
+- bump to 2.1.1dev
+
 02/12/2025
 - add updated AWS ALB JWKs retrieval supporting new "signer"/"region" logic and key rotation
   closes: https://github.com/OpenIDC/mod_oauth2/issues/73
