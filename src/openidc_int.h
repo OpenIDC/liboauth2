@@ -38,6 +38,8 @@ typedef struct oauth2_openidc_client_t {
 	oauth2_cfg_endpoint_auth_t *token_endpoint_auth;
 	oauth2_flag_t ssl_verify;
 	oauth2_uint_t http_timeout;
+	oauth2_uint_t http_retries;
+	oauth2_uint_t http_retry_interval;
 	oauth2_openidc_provider_t *provider;
 } oauth2_openidc_client_t;
 

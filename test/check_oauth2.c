@@ -612,7 +612,7 @@ START_TEST(test_oauth2_verify_jwk)
 						 "verify.exp=skip");
 	ck_assert_ptr_eq(rv, NULL);
 
-	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
 	ck_assert_int_eq(rc, true);
 
 	oauth2_cfg_token_verify_free(_log, verify);
@@ -697,12 +697,14 @@ START_TEST(test_oauth2_verify_jwk_dpop)
 
 	oauth2_http_request_header_set(_log, request, "DPoP", dpop);
 
-	rc = oauth2_token_verify(_log, request, verify, jwt, &json_payload);
+	rc = oauth2_token_verify(_log, request, verify, jwt, &json_payload,
+				 NULL);
 	ck_assert_int_eq(rc, true);
 
 	// now it should be in the cache
 	json_decref(json_payload);
-	rc = oauth2_token_verify(_log, request, verify, jwt, &json_payload);
+	rc = oauth2_token_verify(_log, request, verify, jwt, &json_payload,
+				 NULL);
 	ck_assert_int_eq(rc, false);
 
 	oauth2_http_request_free(_log, request);
@@ -741,7 +743,7 @@ START_TEST(test_oauth2_verify_jwks_uri)
 						 "verify.exp=skip");
 	ck_assert_ptr_eq(rv, NULL);
 
-	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
 	ck_assert_int_eq(rc, true);
 
 	oauth2_cfg_token_verify_free(_log, verify);
@@ -780,7 +782,7 @@ START_TEST(test_oauth2_verify_eckey_uri)
 						 url, NULL);
 	ck_assert_ptr_eq(rv, NULL);
 
-	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
 	ck_assert_int_eq(rc, true);
 
 	oauth2_cfg_token_verify_free(_log, verify);
@@ -823,7 +825,7 @@ START_TEST(test_oauth2_verify_aws_alb)
 	    options);
 	ck_assert_ptr_eq(rv, NULL);
 
-	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
 	ck_assert_int_eq(rc, true);
 
 	oauth2_cfg_token_verify_free(_log, verify);
@@ -850,18 +852,19 @@ START_TEST(test_oauth2_verify_token_introspection)
 	    "3Dtwo");
 	ck_assert_ptr_eq(rv, NULL);
 
-	rc = oauth2_token_verify(_log, NULL, verify, "bogus", &json_payload);
+	rc = oauth2_token_verify(_log, NULL, verify, "bogus", &json_payload,
+				 NULL);
 	ck_assert_int_eq(rc, false);
 	json_decref(json_payload);
 
 	rc = oauth2_token_verify(_log, NULL, verify, valid_access_token,
-				 &json_payload);
+				 &json_payload, NULL);
 	ck_assert_int_eq(rc, true);
 	json_decref(json_payload);
 
 	// get it from the cache
 	rc = oauth2_token_verify(_log, NULL, verify, valid_access_token,
-				 &json_payload);
+				 &json_payload, NULL);
 	ck_assert_int_eq(rc, true);
 	json_decref(json_payload);
 
@@ -884,7 +887,7 @@ START_TEST(test_oauth2_verify_token_plain)
 						 "mysecret", "kid=mykid");
 	ck_assert_ptr_eq(rv, NULL);
 
-	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
 	ck_assert_int_eq(rc, true);
 
 	oauth2_cfg_token_verify_free(_log, verify);
@@ -906,7 +909,7 @@ START_TEST(test_oauth2_verify_token_base64)
 						 "YW5vdGhlcnNlY3JldA==", NULL);
 	ck_assert_ptr_eq(rv, NULL);
 
-	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
 	ck_assert_int_eq(rc, true);
 
 	oauth2_cfg_token_verify_free(_log, verify);
@@ -934,7 +937,7 @@ START_TEST(test_oauth2_verify_token_base64url)
 	    "verify.exp=skip");
 	ck_assert_ptr_eq(rv, NULL);
 
-	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
 	ck_assert_int_eq(rc, true);
 
 	oauth2_cfg_token_verify_free(_log, verify);
@@ -956,7 +959,7 @@ START_TEST(test_oauth2_verify_token_hex)
 	    _log, &verify, "hex", "6d797468697264736563726574", NULL);
 	ck_assert_ptr_eq(rv, NULL);
 
-	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
 	ck_assert_int_eq(rc, true);
 
 	oauth2_cfg_token_verify_free(_log, verify);
@@ -1003,7 +1006,7 @@ START_TEST(test_oauth2_verify_token_pem)
 						 "verify.exp=skip");
 	ck_assert_ptr_eq(rv, NULL);
 
-	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
 	ck_assert_int_eq(rc, true);
 
 	oauth2_cfg_token_verify_free(_log, verify);
@@ -1042,7 +1045,7 @@ START_TEST(test_oauth2_verify_token_pubkey)
 						 pubkey, "verify.exp=skip");
 	ck_assert_ptr_eq(rv, NULL);
 
-	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
 	ck_assert_int_eq(rc, true);
 
 	oauth2_cfg_token_verify_free(_log, verify);
@@ -1068,17 +1071,18 @@ START_TEST(test_oauth2_verify_token_metadata)
 
 	// reference token
 
-	rc = oauth2_token_verify(_log, NULL, verify, "bogus", &json_payload);
+	rc = oauth2_token_verify(_log, NULL, verify, "bogus", &json_payload,
+				 NULL);
 	ck_assert_int_eq(rc, false);
 	json_decref(json_payload);
 
 	rc = oauth2_token_verify(_log, NULL, verify, valid_access_token,
-				 &json_payload);
+				 &json_payload, NULL);
 	ck_assert_int_eq(rc, true);
 	json_decref(json_payload);
 	// get it from the cache
 	rc = oauth2_token_verify(_log, NULL, verify, valid_access_token,
-				 &json_payload);
+				 &json_payload, NULL);
 	ck_assert_int_eq(rc, true);
 	json_decref(json_payload);
 
@@ -1098,7 +1102,7 @@ START_TEST(test_oauth2_verify_token_metadata)
 	    "DGng-7rgrobhOiaAgBAwLhq9fvTtM2MWNmWXmUCymq3nGqG_d_t5i_"
 	    "x7Zf28T3ejzEX-ETefpTENX7BJ57-vQbAeECRTIo_LhzKTaDkiZWpf6JgraQg";
 
-	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
 	ck_assert_int_eq(rc, false);
 	json_decref(json_payload);
 
@@ -1110,12 +1114,12 @@ START_TEST(test_oauth2_verify_token_metadata)
 	    "verify.exp=skip&verify.iss=optional&introspect.params=key2%3Dtwo");
 	ck_assert_ptr_eq(rv, NULL);
 
-	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
 	ck_assert_int_eq(rc, true);
 	json_decref(json_payload);
 
 	// get it from the cache
-	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
 	ck_assert_int_eq(rc, true);
 	json_decref(json_payload);
 
@@ -1176,7 +1180,8 @@ START_TEST(test_oauth2_verify_jwk_mtls)
 	    "PpQEKTWUVeORWz83AiEA5x2eXZOVbUlJSGQgjwD5vaUaKlLR50Q2DmFfQj"
 	    "1L+SY=\n-----END CERTIFICATE-----");
 
-	rc = oauth2_token_verify(_log, request, verify, jwt, &json_payload);
+	rc = oauth2_token_verify(_log, request, verify, jwt, &json_payload,
+				 NULL);
 	ck_assert_int_eq(rc, true);
 
 	oauth2_http_request_free(_log, request);

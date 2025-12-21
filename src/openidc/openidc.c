@@ -222,10 +222,10 @@ end:
 	return rc;
 }
 
-static bool _oauth2_openidc_id_token_verify(oauth2_log_t *log,
-					    oauth2_openidc_provider_t *provider,
-					    const char *s_id_token,
-					    json_t **id_token, bool ssl_verify)
+static bool _oauth2_openidc_id_token_verify(
+    oauth2_log_t *log, oauth2_openidc_provider_t *provider,
+    const char *s_id_token, json_t **id_token, bool ssl_verify,
+    oauth2_http_status_code_t *status_code)
 {
 	bool rc = false;
 	char *rv = NULL;
@@ -242,8 +242,8 @@ static bool _oauth2_openidc_id_token_verify(oauth2_log_t *log,
 		    log, "oauth2_cfg_token_verify_add_options failed: %s", rv);
 		goto end;
 	}
-	if (oauth2_token_verify(log, NULL, verify, s_id_token, id_token) ==
-	    false) {
+	if (oauth2_token_verify(log, NULL, verify, s_id_token, id_token,
+				status_code) == false) {
 		oauth2_error(log, "id_token verification failed");
 		goto end;
 	}
@@ -286,6 +286,15 @@ _oauth2_openidc_token_endpoint_call(oauth2_log_t *log,
 	if (oauth2_http_call_ctx_timeout_set(
 		log, http_ctx,
 		oauth2_openidc_client_http_timeout_get(log, client)) == false)
+		goto end;
+	if (oauth2_http_call_ctx_retries_set(
+		log, http_ctx,
+		oauth2_openidc_client_http_retries_get(log, client)) == false)
+		goto end;
+	if (oauth2_http_call_ctx_retry_interval_set(
+		log, http_ctx,
+		oauth2_openidc_client_http_retry_interval_get(log, client)) ==
+	    false)
 		goto end;
 
 	// TODO: add configurable extra POST params
@@ -416,6 +425,16 @@ static bool _oauth2_openidc_userinfo_request(
 		oauth2_openidc_client_http_timeout_get(log, cfg->client)) ==
 	    false)
 		goto end;
+	if (oauth2_http_call_ctx_retries_set(
+		log, http_ctx,
+		oauth2_openidc_client_http_retries_get(log, cfg->client)) ==
+	    false)
+		goto end;
+	if (oauth2_http_call_ctx_retry_interval_set(
+		log, http_ctx,
+		oauth2_openidc_client_http_retry_interval_get(
+		    log, cfg->client)) == false)
+		goto end;
 
 	if (oauth2_http_call_ctx_bearer_token_set(log, http_ctx,
 						  s_access_token) == false)
@@ -506,8 +525,8 @@ static bool _oauth2_openidc_redirect_uri_handler(
 
 	if (_oauth2_openidc_id_token_verify(
 		log, provider, s_id_token, &id_token,
-		oauth2_openidc_client_ssl_verify_get(log, cfg->client)) ==
-	    false)
+		oauth2_openidc_client_ssl_verify_get(log, cfg->client),
+		NULL) == false)
 		goto end;
 
 	if (_oauth2_openidc_userinfo_request(log, cfg, request, provider,

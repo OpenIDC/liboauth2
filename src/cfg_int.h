@@ -48,6 +48,8 @@ typedef struct oauth2_cfg_endpoint_t {
 	oauth2_cfg_endpoint_auth_t *auth;
 	oauth2_flag_t ssl_verify;
 	oauth2_uint_t http_timeout;
+	oauth2_uint_t http_retries;
+	oauth2_uint_t http_retry_interval;
 	char *outgoing_proxy;
 } oauth2_cfg_endpoint_t;
 

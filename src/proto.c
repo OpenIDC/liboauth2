@@ -358,6 +358,11 @@ bool oauth2_proto_request(oauth2_log_t *log,
 	    log, ctx, oauth2_cfg_endpoint_get_ssl_verify(token_endpoint));
 	oauth2_http_call_ctx_timeout_set(
 	    log, ctx, oauth2_cfg_endpoint_get_http_timeout(token_endpoint));
+	oauth2_http_call_ctx_retries_set(
+	    log, ctx, oauth2_cfg_endpoint_get_http_retries(token_endpoint));
+	oauth2_http_call_ctx_retry_interval_set(
+	    log, ctx,
+	    oauth2_cfg_endpoint_get_http_retry_interval(token_endpoint));
 	// oauth2_http_call_ctx_outgoing_proxy_set(log, ctx, outgoing_proxy);
 
 	if (oauth2_http_post_form(log,

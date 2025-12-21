@@ -257,6 +257,15 @@ static bool _oauth2_openidc_provider_resolve_url_exec(
 		log, http_ctx,
 		oauth2_cfg_endpoint_get_http_timeout(ctx->endpoint)) == false)
 		goto end;
+	if (oauth2_http_call_ctx_retries_set(
+		log, http_ctx,
+		oauth2_cfg_endpoint_get_http_retries(ctx->endpoint)) == false)
+		goto end;
+	if (oauth2_http_call_ctx_retry_interval_set(
+		log, http_ctx,
+		oauth2_cfg_endpoint_get_http_retry_interval(ctx->endpoint)) ==
+	    false)
+		goto end;
 	oauth2_http_call_ctx_outgoing_proxy_set(
 	    log, http_ctx,
 	    oauth2_cfg_endpoint_get_outgoing_proxy(ctx->endpoint));

@@ -429,7 +429,7 @@ START_TEST(test_jwt_verify)
 	rv = oauth2_cfg_token_verify_add_options(
 	    _log, &verify, "plain", "my_wrong_secret", "kid=my_wrong_kid1");
 	ck_assert_ptr_eq(rv, NULL);
-	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
 	ck_assert_int_eq(rc, false);
 	oauth2_cfg_token_verify_free(_log, verify);
 	verify = NULL;
@@ -438,7 +438,7 @@ START_TEST(test_jwt_verify)
 	    _log, &verify, "plain", "my_good_secret",
 	    "kid=my_good_kid&expiry=1&verify.iat=required");
 	ck_assert_ptr_eq(rv, NULL);
-	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
 	ck_assert_int_eq(rc, true);
 	ck_assert_ptr_ne(json_payload, NULL);
 	json_decref(json_payload);
@@ -452,7 +452,7 @@ START_TEST(test_jwt_verify)
 	    "kid=my_good_kid&expiry=1&verify.iat=required&verify.iat.slack_"
 	    "before=2");
 	ck_assert_ptr_eq(rv, NULL);
-	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
 	ck_assert_int_eq(rc, false);
 	oauth2_cfg_token_verify_free(_log, verify);
 	verify = NULL;

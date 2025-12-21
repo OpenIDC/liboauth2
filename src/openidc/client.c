@@ -38,6 +38,8 @@ oauth2_openidc_client_t *oauth2_openidc_client_init(oauth2_log_t *log)
 	c->token_endpoint_auth = NULL;
 	c->ssl_verify = OAUTH2_CFG_FLAG_UNSET;
 	c->http_timeout = OAUTH2_CFG_UINT_UNSET;
+	c->http_retries = OAUTH2_CFG_UINT_UNSET;
+	c->http_retry_interval = OAUTH2_CFG_UINT_UNSET;
 
 end:
 
@@ -85,6 +87,8 @@ oauth2_openidc_client_clone(oauth2_log_t *log,
 	    oauth2_cfg_endpoint_auth_clone(log, src->token_endpoint_auth);
 	dst->ssl_verify = src->ssl_verify;
 	dst->http_timeout = src->http_timeout;
+	dst->http_retries = src->http_retries;
+	dst->http_retry_interval = src->http_retry_interval;
 
 end:
 
@@ -297,6 +301,32 @@ _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, client, ssl_verify,
 				      oauth2_flag_t, bln)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, client, http_timeout,
 				      oauth2_uint_t, uint)
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(openidc, client, http_retries, oauth2_uint_t,
+				  uint)
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(openidc, client, http_retry_interval,
+				  oauth2_uint_t, uint)
+
+#define OAUTH2_OPENIDC_CLIENT_HTTP_RETRIES_DEFAULT 1
+
+oauth2_uint_t
+oauth2_openidc_client_http_retries_get(oauth2_log_t *log,
+				       const oauth2_openidc_client_t *client)
+{
+	if ((client == NULL) || (client->http_retries == OAUTH2_CFG_UINT_UNSET))
+		return OAUTH2_OPENIDC_CLIENT_HTTP_RETRIES_DEFAULT;
+	return client->http_retries;
+}
+
+#define OAUTH2_OPENIDC_CLIENT_HTTP_RETRY_INTERVAL_DEFAULT 300
+
+oauth2_uint_t oauth2_openidc_client_http_retry_interval_get(
+    oauth2_log_t *log, const oauth2_openidc_client_t *client)
+{
+	if ((client == NULL) ||
+	    (client->http_retry_interval == OAUTH2_CFG_UINT_UNSET))
+		return OAUTH2_OPENIDC_CLIENT_HTTP_RETRY_INTERVAL_DEFAULT;
+	return client->http_retry_interval;
+}
 
 #define OAUTH2_OPENIDC_RESOLVER_STRING_STR "string"
 #define OAUTH2_OPENIDC_RESOLVER_JSON_STR "json"

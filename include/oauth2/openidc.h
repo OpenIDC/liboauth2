@@ -118,6 +118,9 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, token_endpoint_auth,
 				   oauth2_cfg_endpoint_auth_t *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, ssl_verify, oauth2_flag_t)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, http_timeout, oauth2_uint_t)
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, http_retries, oauth2_uint_t)
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, http_retry_interval,
+				   oauth2_uint_t)
 
 char *oauth2_openidc_client_set_options(oauth2_log_t *log,
 					oauth2_cfg_openidc_t *cfg,

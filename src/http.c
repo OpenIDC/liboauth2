@@ -21,6 +21,7 @@
 #include <curl/curl.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "oauth2/http.h"
 #include "oauth2/mem.h"
@@ -604,6 +605,8 @@ typedef struct oauth2_http_call_ctx_t {
 	char *basic_auth_password;
 	char *bearer_token;
 	int timeout;
+	int retries;
+	int retry_interval;
 	bool ssl_verify;
 	char *outgoing_proxy;
 	oauth2_nv_list_t *cookie;
@@ -615,6 +618,8 @@ typedef struct oauth2_http_call_ctx_t {
 } oauth2_http_call_ctx_t;
 
 #define OAUTH2_HTTP_CALL_TIMEOUT_DEFAULT 15
+#define OAUTH2_HTTP_CALL_RETRIES_DEFAULT 1
+#define OAUTH2_HTTP_CALL_RETRY_INTERVAL_DEFAULT 300
 #define OAUTH2_HTTP_CALL_SSL_VERIFY_DEFAULT true
 
 oauth2_http_call_ctx_t *oauth2_http_call_ctx_init(oauth2_log_t *log)
@@ -628,6 +633,10 @@ oauth2_http_call_ctx_t *oauth2_http_call_ctx_init(oauth2_log_t *log)
 
 	oauth2_http_call_ctx_timeout_set(log, ctx,
 					 OAUTH2_HTTP_CALL_TIMEOUT_DEFAULT);
+	oauth2_http_call_ctx_retries_set(log, ctx,
+					 OAUTH2_HTTP_CALL_RETRIES_DEFAULT);
+	oauth2_http_call_ctx_retry_interval_set(
+	    log, ctx, OAUTH2_HTTP_CALL_RETRY_INTERVAL_DEFAULT);
 	oauth2_http_call_ctx_ssl_verify_set(
 	    log, ctx, OAUTH2_HTTP_CALL_SSL_VERIFY_DEFAULT);
 	oauth2_http_call_ctx_outgoing_proxy_set(log, ctx, NULL);
@@ -680,6 +689,8 @@ end:
 }
 
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(http, call_ctx, timeout, int, integer)
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(http, call_ctx, retries, int, integer)
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(http, call_ctx, retry_interval, int, integer)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(http, call_ctx, ssl_verify, bool, bln)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(http, call_ctx, outgoing_proxy, char *, str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(http, call_ctx, ca_info, char *, str)
@@ -769,6 +780,13 @@ static char *_oauth2_http_call_ctx2s(oauth2_log_t *log,
 	if (ctx->ssl_key)
 		ctx->to_str = oauth2_stradd(ctx->to_str, " ssl_key",
 					    _OAUTH2_STR_EQUAL, ctx->ssl_key);
+
+	ctx->to_str = oauth2_intadd(ctx->to_str, " timeout", _OAUTH2_STR_EQUAL,
+				    ctx->timeout);
+	ctx->to_str = oauth2_intadd(ctx->to_str, " retries", _OAUTH2_STR_EQUAL,
+				    ctx->retries);
+	ctx->to_str = oauth2_intadd(ctx->to_str, " retry_interval",
+				    _OAUTH2_STR_EQUAL, ctx->retry_interval);
 
 	ptr = oauth2_nv_list2s(log, ctx->hdr);
 	if (ptr) {
@@ -970,6 +988,8 @@ bool oauth2_http_call(oauth2_log_t *log, const char *url, const char *data,
 	bool rc = false;
 	char *str = NULL;
 	long response_code = 0;
+	int i = 0;
+	int retries = 1;
 
 	char err[CURL_ERROR_SIZE];
 	CURL *curl = NULL;
@@ -1095,16 +1115,40 @@ bool oauth2_http_call(oauth2_log_t *log, const char *url, const char *data,
 
 	curl_easy_setopt(curl, CURLOPT_URL, url);
 
-	errornum = curl_easy_perform(curl);
-	if (errornum != CURLE_OK) {
-		oauth2_error(log, "curl_easy_perform() failed on: %s (%s: %s)",
-			     url, curl_easy_strerror(errornum),
-			     err[0] ? err : "");
-		if (errornum == CURLE_OPERATION_TIMEDOUT)
+	if (ctx)
+		retries = ctx->retries;
+
+	oauth2_debug(log, "looping: i=%d, retries=%d", i, retries);
+
+	for (i = 0; i <= retries; i++) {
+		oauth2_debug(log, "looping: i=%d, retries=%d", i, retries);
+		errornum = curl_easy_perform(curl);
+		if (errornum == CURLE_OK) {
+			rc = true;
+			break;
+		}
+		if (errornum == CURLE_OPERATION_TIMEDOUT) {
+			/* in case of a request/transfer timeout (which includes
+			 * the connect timeout) we'll not retry */
+			oauth2_error(log,
+				     "curl_easy_perform failed with a timeout "
+				     "for %s: [%s; %s]; won't retry",
+				     url, curl_easy_strerror(errornum),
+				     err[0] ? err : "");
 			// 408 Request Timeout
 			// 504 Gateway Timeout
 			*status_code = 504;
-		goto end;
+			break;
+		}
+		oauth2_error(
+		    log,
+		    "curl_easy_perform(%d/%d) failed for: %s with [%s: %s]",
+		    i + 1, retries + 1, url, curl_easy_strerror(errornum),
+		    err[0] ? err : "");
+		/* in case of a connectivity/network glitch we'll back off
+		 * before retrying */
+		if (i < retries)
+			usleep((ctx ? ctx->retry_interval : 300) * 1000);
 	}
 
 	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
@@ -1112,11 +1156,12 @@ bool oauth2_http_call(oauth2_log_t *log, const char *url, const char *data,
 	if (status_code)
 		*status_code = (oauth2_uint_t)response_code;
 
+	if (rc == false)
+		goto end;
+
 	*response = oauth2_mem_alloc(buf.size + 1);
 	strncpy(*response, buf.memory, buf.size);
 	(*response)[buf.size] = '\0';
-
-	rc = true;
 
 end:
 
@@ -1126,8 +1171,9 @@ end:
 		curl_slist_free_all(h_list);
 	curl_easy_cleanup(curl);
 
-	oauth2_debug(log, "leave [%d]: %s", rc,
-		     (response && *response) ? *response : "(null)");
+	oauth2_debug(log, "leave [%d]: %s (status=%d)", rc,
+		     (response && *response) ? *response : "(null)",
+		     status_code ? *status_code : -1);
 
 	return rc;
 }

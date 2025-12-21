@@ -864,7 +864,8 @@ end:
 
 bool oauth2_token_verify(oauth2_log_t *log, oauth2_http_request_t *request,
 			 oauth2_cfg_token_verify_t *verify, const char *token,
-			 json_t **json_payload)
+			 json_t **json_payload,
+			 oauth2_http_status_code_t *status_code)
 {
 
 	bool rc = false;

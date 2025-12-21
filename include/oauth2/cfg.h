@@ -133,6 +133,10 @@ oauth2_flag_t
 oauth2_cfg_endpoint_get_ssl_verify(const oauth2_cfg_endpoint_t *cfg);
 oauth2_uint_t
 oauth2_cfg_endpoint_get_http_timeout(const oauth2_cfg_endpoint_t *cfg);
+oauth2_uint_t
+oauth2_cfg_endpoint_get_http_retries(const oauth2_cfg_endpoint_t *cfg);
+oauth2_uint_t
+oauth2_cfg_endpoint_get_http_retry_interval(const oauth2_cfg_endpoint_t *cfg);
 const char *
 oauth2_cfg_endpoint_get_outgoing_proxy(const oauth2_cfg_endpoint_t *cfg);
 

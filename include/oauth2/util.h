@@ -134,6 +134,7 @@ char *oauth2_strdup(const char *src);
 char *oauth2_strndup(const char *src, size_t len);
 char *oauth2_stradd(char *src, const char *add1, const char *add2,
 		    const char *add3);
+char *oauth2_intadd(char *src, const char *add1, const char *add2, int i);
 char *oauth2_getword(const char **line, char stop);
 
 size_t oauth2_base64url_encode(oauth2_log_t *log, const uint8_t *src,

@@ -40,6 +40,8 @@ oauth2_cfg_endpoint_t *oauth2_cfg_endpoint_init(oauth2_log_t *log)
 	endpoint->auth = NULL;
 	endpoint->ssl_verify = OAUTH2_CFG_FLAG_UNSET;
 	endpoint->http_timeout = OAUTH2_CFG_UINT_UNSET;
+	endpoint->http_retries = OAUTH2_CFG_UINT_UNSET;
+	endpoint->http_retry_interval = OAUTH2_CFG_UINT_UNSET;
 	endpoint->outgoing_proxy = NULL;
 
 end:
@@ -80,6 +82,8 @@ oauth2_cfg_endpoint_clone(oauth2_log_t *log, const oauth2_cfg_endpoint_t *src)
 	dst->auth = oauth2_cfg_endpoint_auth_clone(log, src->auth);
 	dst->ssl_verify = src->ssl_verify;
 	dst->http_timeout = src->http_timeout;
+	dst->http_retries = src->http_retries;
+	dst->http_retry_interval = src->http_retry_interval;
 	dst->outgoing_proxy = oauth2_strdup(src->outgoing_proxy);
 
 end:
@@ -88,6 +92,8 @@ end:
 
 #define OAUTH2_CFG_ENDPOINT_SSL_VERIFY_DEFAULT 1
 #define OAUTH2_CFG_ENDPOINT_HTTP_TIMEOUT_DEFAULT 20
+#define OAUTH2_CFG_ENDPOINT_HTTP_RETRIES_DEFAULT 1
+#define OAUTH2_CFG_ENDPOINT_HTTP_RETRY_INTERVAL_DEFAULT 300
 
 char *oauth2_cfg_set_endpoint(oauth2_log_t *log, oauth2_cfg_endpoint_t *cfg,
 			      const char *url, const oauth2_nv_list_t *params,
@@ -139,6 +145,29 @@ char *oauth2_cfg_set_endpoint(oauth2_log_t *log, oauth2_cfg_endpoint_t *cfg,
 	if (value) {
 		rv = oauth2_strdup(oauth2_cfg_set_uint_slot(
 		    cfg, offsetof(oauth2_cfg_endpoint_t, http_timeout), value));
+		if (rv)
+			goto end;
+	}
+	oauth2_mem_free(key);
+
+	key = oauth2_stradd(NULL, prefix ? prefix : NULL, prefix ? "." : NULL,
+			    "http_retries");
+	value = oauth2_nv_list_get(log, params, key);
+	if (value) {
+		rv = oauth2_strdup(oauth2_cfg_set_uint_slot(
+		    cfg, offsetof(oauth2_cfg_endpoint_t, http_retries), value));
+		if (rv)
+			goto end;
+	}
+	oauth2_mem_free(key);
+
+	key = oauth2_stradd(NULL, prefix ? prefix : NULL, prefix ? "." : NULL,
+			    "http_retry_interval");
+	value = oauth2_nv_list_get(log, params, key);
+	if (value) {
+		rv = oauth2_strdup(oauth2_cfg_set_uint_slot(
+		    cfg, offsetof(oauth2_cfg_endpoint_t, http_retry_interval),
+		    value));
 		if (rv)
 			goto end;
 	}
@@ -200,6 +229,23 @@ oauth2_cfg_endpoint_get_http_timeout(const oauth2_cfg_endpoint_t *cfg)
 	if ((cfg == NULL) || (cfg->http_timeout == OAUTH2_CFG_UINT_UNSET))
 		return OAUTH2_CFG_ENDPOINT_HTTP_TIMEOUT_DEFAULT;
 	return cfg->http_timeout;
+}
+
+oauth2_uint_t
+oauth2_cfg_endpoint_get_http_retries(const oauth2_cfg_endpoint_t *cfg)
+{
+	if ((cfg == NULL) || (cfg->http_retries == OAUTH2_CFG_UINT_UNSET))
+		return OAUTH2_CFG_ENDPOINT_HTTP_RETRIES_DEFAULT;
+	return cfg->http_retries;
+}
+
+oauth2_uint_t
+oauth2_cfg_endpoint_get_http_retry_interval(const oauth2_cfg_endpoint_t *cfg)
+{
+	if ((cfg == NULL) ||
+	    (cfg->http_retry_interval == OAUTH2_CFG_UINT_UNSET))
+		return OAUTH2_CFG_ENDPOINT_HTTP_RETRY_INTERVAL_DEFAULT;
+	return cfg->http_retry_interval;
 }
 
 const char *

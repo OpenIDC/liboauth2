@@ -602,6 +602,15 @@ char *oauth2_stradd(char *src, const char *add1, const char *add2,
 	return _oauth2_stradd4(src, add1, add2, add3, NULL);
 }
 
+#define OAUTH2_INT_ADD_LEN 64
+
+char *oauth2_intadd(char *src, const char *add1, const char *add2, int i)
+{
+	char add3[OAUTH2_INT_ADD_LEN];
+	oauth2_snprintf(add3, OAUTH2_INT_ADD_LEN, "%d", i);
+	return _oauth2_stradd4(src, add1, add2, add3, NULL);
+}
+
 static bool _oauth2_nv2s(oauth2_log_t *log, void *rec, const char *key,
 			 const char *value)
 {

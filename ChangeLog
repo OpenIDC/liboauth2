@@ -1,3 +1,7 @@
+12/21/2025
+- http: add support for HTTP retries (default 1) and HTTP retry interval (300 ms default)
+- api: return HTTP status code from oauth2_token_verify
+
 08/28/2025
 - add oauth2_ipc_thread_mutex_t and use it for Redis, cURL and global lists
   to improve performance across multiple processes running on the same host
