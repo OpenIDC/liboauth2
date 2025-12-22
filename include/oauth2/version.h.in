@@ -1,0 +1,34 @@
+#ifndef _OAUTH2_VERSION_H_
+#define _OAUTH2_VERSION_H_
+
+/* include/oauth2/version.h  Generated from version.h.in by configure.  */
+
+/***************************************************************************
+ *
+ * Copyright (C) 2018-2025 - ZmartZone Holding BV
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * @Author: Hans Zandbelt - hans.zandbelt@openidc.com
+ *
+ **************************************************************************/
+
+#define OAUTH2_PACKAGE_NAME          "@PACKAGE_NAME@"
+#define OAUTH2_PACKAGE_VERSION       "@PACKAGE_VERSION@"
+
+const char *oauth2_version();
+const char *oauth2_package_string();
+
+#endif  // _OAUTH2_VERSION_H_
+
+
