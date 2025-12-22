@@ -26,6 +26,12 @@
 #ifndef _SEMAPHORE_H_
 #define _SEMAPHORE_H_   1
 
+#ifndef _WIN32
+/* On non-Windows platforms, defer to the system's POSIX semaphore.h.
+   This header name shadows the system one in our include path. */
+#include_next <semaphore.h>
+#else
+
 /**
     @file semaphore.h
     @brief POSIX Semaphore Definitions and Routines
@@ -101,5 +107,7 @@ int sem_unlink(const char *name);
 #endif
 
 /** @} */
+
+#endif /* !_WIN32 */
 
 #endif /* _SEMAPHORE_H_ */
