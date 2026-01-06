@@ -43,7 +43,7 @@ jobs:
           apt-get install -y apache2-dev libcjose-dev libssl-dev check pkg-config wget
           apt-get install -y libjansson-dev libcurl4-openssl-dev libhiredis-dev libmemcached-dev redis-server memcached libpcre2-dev libpcre2-8-0 libjq-dev
           apt-get install -y build-essential libpcre3 libpcre3-dev zlib1g zlib1g-dev libxml2 libxml2-dev uuid-dev
-          apt-get install systemd
+          apt-get install -y systemd
           cd /tmp
           apt-get install -y nginx
 
