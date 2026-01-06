@@ -67,4 +67,4 @@ jobs:
           ./autogen.sh
           ./configure --with-nginx=/tmp/nginx --with-jq=/usr
           sed -i "s/-l/#-l/g" /etc/memcached.conf
-          service memcached start && service redis-server start && make check || (cat test-suite.log && exit -1)
+          systemctl start memcached && systemctl start redis-server && make check || (cat test-suite.log && exit -1)
