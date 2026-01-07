@@ -549,7 +549,7 @@ static char *oauth2_check_oauth2_serve_post(const char *request)
 	if (strncmp(request, post_introspection_path,
 		    strlen(post_introspection_path)) == 0) {
 		request += strlen(post_introspection_path) + 5;
-		data = strstr(request, sep);
+		data = strstr((char *)request, sep);
 		if (data == NULL)
 			goto error;
 		data += strlen(sep);

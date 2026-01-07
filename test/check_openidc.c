@@ -235,7 +235,7 @@ static char *oauth2_check_openidc_serve_post(const char *request)
 	if (strncmp(request, token_endpoint_path,
 		    strlen(token_endpoint_path)) == 0) {
 		request += strlen(token_endpoint_path) + 5;
-		data = strstr(request, sep);
+		data = strstr((char *)request, sep);
 		if (data == NULL)
 			goto error;
 		data += strlen(sep);
@@ -817,7 +817,7 @@ static void _openidc_verify_authentication_request_state(
 {
 	bool rc = false;
 	const char *location = NULL;
-	char *state = NULL;
+	const char *state = NULL;
 
 	ck_assert_ptr_ne(NULL, response);
 	ck_assert_uint_eq(oauth2_http_response_status_code_get(_log, response),

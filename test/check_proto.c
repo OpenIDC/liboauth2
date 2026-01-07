@@ -332,7 +332,7 @@ static char *oauth2_check_proto_serve_post(const char *request)
 	if (strncmp(request, token_endpoint_path,
 		    strlen(token_endpoint_path)) == 0) {
 		request += strlen(token_endpoint_path) + 5;
-		data = strstr(request, sep);
+		data = strstr((char *)request, sep);
 		if (data == NULL)
 			goto error;
 		data += strlen(sep);
