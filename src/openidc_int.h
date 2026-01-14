@@ -35,6 +35,7 @@ typedef struct oauth2_openidc_client_t {
 	char *client_id;
 	char *client_secret;
 	char *scope;
+	char *authn_request_params;
 	oauth2_cfg_endpoint_auth_t *token_endpoint_auth;
 	oauth2_flag_t ssl_verify;
 	oauth2_uint_t http_timeout;

@@ -112,6 +112,8 @@ char *oauth2_cfg_openidc_provider_resolver_set_options(
 OAUTH2_TYPE_DECLARE(openidc, client)
 
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, scope, char *)
+OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, authn_request_params,
+				   char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, client_id, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, client_secret, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, token_endpoint_auth,

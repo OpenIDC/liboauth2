@@ -41,6 +41,7 @@ static bool _oauth2_openidc_authenticate(oauth2_log_t *log,
 	char *nonce = NULL, *state = NULL, *redirect_uri = NULL,
 	     *location = NULL, *pkce = NULL, *code_challenge = NULL;
 	oauth2_nv_list_t *params = oauth2_nv_list_init(log);
+	oauth2_nv_list_t *authn_request_params = NULL;
 	char *client_id = NULL, *scope = NULL;
 	unsigned char *dst = NULL;
 	unsigned int dst_len = 0;
@@ -71,6 +72,13 @@ static bool _oauth2_openidc_authenticate(oauth2_log_t *log,
 	scope = oauth2_openidc_client_scope_get(log, cfg->client);
 	if (scope)
 		oauth2_nv_list_add(log, params, OAUTH2_SCOPE, scope);
+
+	oauth2_parse_form_encoded_params(
+	    log,
+	    oauth2_openidc_client_authn_request_params_get(log, cfg->client),
+	    &authn_request_params);
+	if (authn_request_params)
+		oauth2_nv_list_merge_into(log, authn_request_params, params);
 
 	nonce = oauth2_rand_str(log, OAUTH2_NONCE_LENGTH);
 	oauth2_nv_list_add(log, params, OAUTH2_NONCE, nonce);

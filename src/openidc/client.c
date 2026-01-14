@@ -35,6 +35,7 @@ oauth2_openidc_client_t *oauth2_openidc_client_init(oauth2_log_t *log)
 	c->client_id = NULL;
 	c->client_secret = NULL;
 	c->scope = NULL;
+	c->authn_request_params = NULL;
 	c->token_endpoint_auth = NULL;
 	c->ssl_verify = OAUTH2_CFG_FLAG_UNSET;
 	c->http_timeout = OAUTH2_CFG_UINT_UNSET;
@@ -57,6 +58,8 @@ void oauth2_openidc_client_free(oauth2_log_t *log, oauth2_openidc_client_t *c)
 		oauth2_mem_free(c->client_secret);
 	if (c->scope)
 		oauth2_mem_free(c->scope);
+	if (c->authn_request_params)
+		oauth2_mem_free(c->authn_request_params);
 	if (c->token_endpoint_auth)
 		oauth2_cfg_endpoint_auth_free(log, c->token_endpoint_auth);
 
@@ -83,6 +86,7 @@ oauth2_openidc_client_clone(oauth2_log_t *log,
 	dst->client_id = oauth2_strdup(src->client_id);
 	dst->client_secret = oauth2_strdup(src->client_secret);
 	dst->scope = oauth2_strdup(src->scope);
+	dst->authn_request_params = oauth2_strdup(src->authn_request_params);
 	dst->token_endpoint_auth =
 	    oauth2_cfg_endpoint_auth_clone(log, src->token_endpoint_auth);
 	dst->ssl_verify = src->ssl_verify;
@@ -155,6 +159,18 @@ static char *_oauth2_openidc_client_metadata_parse(
 	}
 	if (value) {
 		oauth2_openidc_client_scope_set(log, cfg->client, value);
+		oauth2_mem_free(value);
+		value = NULL;
+	}
+
+	if (oauth2_json_string_get(log, json, "authn_request_params", &value,
+				   NULL) == false) {
+		rv = oauth2_strdup("could not parse authn_request_params");
+		goto end;
+	}
+	if (value) {
+		oauth2_openidc_client_authn_request_params_set(log, cfg->client,
+							       value);
 		oauth2_mem_free(value);
 		value = NULL;
 	}
@@ -261,6 +277,9 @@ _oauth2_openidc_client_set_options_string(oauth2_log_t *log, const char *value,
 	    oauth2_nv_list_get(log, client_params, "client_secret"));
 	oauth2_openidc_client_scope_set(
 	    log, cfg->client, oauth2_nv_list_get(log, client_params, "scope"));
+	oauth2_openidc_client_authn_request_params_set(
+	    log, cfg->client,
+	    oauth2_nv_list_get(log, client_params, "authn_request_params"));
 
 	auth = oauth2_cfg_endpoint_auth_init(log);
 
@@ -292,6 +311,8 @@ end:
 }
 
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, client, scope, char *, str)
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, client, authn_request_params,
+				      char *, str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, client, client_id, char *, str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, client, client_secret, char *,
 				      str)

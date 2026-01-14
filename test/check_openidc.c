@@ -330,8 +330,9 @@ START_TEST(test_openidc_cfg)
 	rv = oauth2_cfg_openidc_provider_resolver_set_options(
 	    _log, c, "string", "issuer=https://localhost", NULL);
 	ck_assert_ptr_eq(rv, NULL);
-	rv = oauth2_openidc_client_set_options(_log, c, "string",
-					       "client_id=mycc", NULL);
+	rv = oauth2_openidc_client_set_options(
+	    _log, c, "string", "client_id=mycc&authn_request_params=acr%3Dmfa",
+	    NULL);
 	ck_assert_ptr_eq(rv, NULL);
 
 	c3 = oauth2_cfg_openidc_clone(_log, c);
@@ -369,6 +370,9 @@ START_TEST(test_openidc_cfg)
 	ck_assert_str_eq(oauth2_openidc_client_client_id_get(
 			     _log, oauth2_cfg_openidc_client_get(_log, c5)),
 			 "mycc");
+	ck_assert_str_eq(oauth2_openidc_client_authn_request_params_get(
+			     _log, oauth2_cfg_openidc_client_get(_log, c5)),
+			 "acr=mfa");
 
 	oauth2_cfg_openidc_free(_log, c5);
 	oauth2_cfg_openidc_free(_log, c4);
