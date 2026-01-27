@@ -1024,7 +1024,7 @@ bool oauth2_http_call(oauth2_log_t *log, const char *url, const char *data,
 	curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 5L);
 
 	if (ctx)
-		curl_easy_setopt(curl, CURLOPT_TIMEOUT, ctx->timeout);
+		curl_easy_setopt(curl, CURLOPT_TIMEOUT, (long)ctx->timeout);
 
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION,
 			 oauth2_http_curl_buf_write);
@@ -1092,7 +1092,7 @@ bool oauth2_http_call(oauth2_log_t *log, const char *url, const char *data,
 
 	if (data != NULL) {
 		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data);
-		curl_easy_setopt(curl, CURLOPT_POST, 1);
+		curl_easy_setopt(curl, CURLOPT_POST, 1L);
 	}
 
 	if (ctx)
