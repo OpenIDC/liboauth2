@@ -370,7 +370,7 @@ bool oauth2_proto_request(oauth2_log_t *log,
 				  params, ctx, &response, status_code) == false)
 		goto end;
 
-	if ((*status_code < 200) || (*status_code >= 300))
+	if ((status_code) && ((*status_code < 200) || (*status_code >= 300)))
 		goto end;
 
 	if (oauth2_json_decode_check_error(log, response, &result) == false)

@@ -138,8 +138,8 @@ char *oauth2_cfg_cache_set_options(oauth2_log_t *log, const char *type,
  * verify
  */
 
-typedef void *(oauth2_cfg_ctx_init_cb)(oauth2_log_t * log);
-typedef void *(oauth2_cfg_ctx_clone_cb)(oauth2_log_t * log, void *src);
+typedef void *(oauth2_cfg_ctx_init_cb)(oauth2_log_t *log);
+typedef void *(oauth2_cfg_ctx_clone_cb)(oauth2_log_t *log, void *src);
 typedef void(oauth2_cfg_ctx_free_cb)(oauth2_log_t *log, void *);
 
 typedef struct oauth2_cfg_ctx_funcs_t {
@@ -148,10 +148,9 @@ typedef struct oauth2_cfg_ctx_funcs_t {
 	oauth2_cfg_ctx_free_cb *free;
 } oauth2_cfg_ctx_funcs_t;
 
-typedef bool(oauth2_cfg_token_verify_cb_t)(oauth2_log_t *,
-					   oauth2_cfg_token_verify_t *,
-					   const char *, json_t **,
-					   char **s_payload);
+typedef bool(oauth2_cfg_token_verify_cb_t)(
+    oauth2_log_t *, oauth2_cfg_token_verify_t *, const char *, json_t **,
+    char **s_payload, oauth2_http_status_code_t *status_code);
 
 typedef struct oauth2_cfg_ctx_t {
 	void *ptr;
@@ -196,7 +195,7 @@ typedef struct oauth2_cfg_token_verify_t {
 	struct oauth2_cfg_token_verify_t *next;
 } oauth2_cfg_token_verify_t;
 
-typedef char *(oauth2_cfg_set_options_cb_t)(oauth2_log_t * log,
+typedef char *(oauth2_cfg_set_options_cb_t)(oauth2_log_t *log,
 					    const char *value,
 					    const oauth2_nv_list_t *params,
 					    void *cfg);
@@ -315,8 +314,7 @@ typedef struct oauth2_cfg_openidc_t {
 		dst = type##_init(log);
 
 #define _OAUTH2_CFG_CTX_CLONE_END                                              \
-	end:                                                                   \
-	return dst;                                                            \
+	end : return dst;                                                      \
 	}
 
 #define _OAUTH2_CFG_CTX_FREE_START(type)                                       \

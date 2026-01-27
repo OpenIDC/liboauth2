@@ -310,13 +310,13 @@ _OAUTH2_CFG_CTX_FUNCS(oauth2_introspect_ctx)
 static bool _oauth2_introspect_verify(oauth2_log_t *log,
 				      oauth2_introspect_ctx_t *ctx,
 				      const char *token, json_t **json_payload,
-				      char **s_payload)
+				      char **s_payload,
+				      oauth2_http_status_code_t *status_code)
 {
 	bool rc = false;
 	oauth2_nv_list_t *params = NULL;
 	oauth2_http_call_ctx_t *http_ctx = NULL;
 	json_t *active = NULL;
-	oauth2_uint_t status_code = 0;
 
 	oauth2_debug(log, "enter");
 
@@ -352,10 +352,10 @@ static bool _oauth2_introspect_verify(oauth2_log_t *log,
 
 	if (oauth2_http_post_form(
 		log, oauth2_cfg_endpoint_get_url(ctx->endpoint), params,
-		http_ctx, s_payload, &status_code) == false)
+		http_ctx, s_payload, status_code) == false)
 		goto end;
 
-	if ((status_code < 200) || (status_code >= 300)) {
+	if ((status_code) && ((*status_code < 200) || (*status_code >= 300))) {
 		rc = false;
 		goto end;
 	}
@@ -419,7 +419,8 @@ end:
 
 static bool _oauth2_introspect_verify_callback(
     oauth2_log_t *log, oauth2_cfg_token_verify_t *verify, const char *token,
-    json_t **json_payload, char **s_payload)
+    json_t **json_payload, char **s_payload,
+    oauth2_http_status_code_t *status_code)
 {
 	bool rc = false;
 	oauth2_introspect_ctx_t *ctx = NULL;
@@ -430,8 +431,8 @@ static bool _oauth2_introspect_verify_callback(
 	    (verify->ctx->ptr == NULL))
 		goto end;
 
-	rc =
-	    _oauth2_introspect_verify(log, ctx, token, json_payload, s_payload);
+	rc = _oauth2_introspect_verify(log, ctx, token, json_payload, s_payload,
+				       status_code);
 
 end:
 
@@ -519,11 +520,10 @@ _OAUTH2_CFG_CTX_FREE_END
 
 _OAUTH2_CFG_CTX_FUNCS(oauth2_metadata_ctx)
 
-static bool _oauth2_metadata_verify_callback(oauth2_log_t *log,
-					     oauth2_cfg_token_verify_t *verify,
-					     const char *token,
-					     json_t **json_payload,
-					     char **s_payload)
+static bool _oauth2_metadata_verify_callback(
+    oauth2_log_t *log, oauth2_cfg_token_verify_t *verify, const char *token,
+    json_t **json_payload, char **s_payload,
+    oauth2_http_status_code_t *status_code)
 {
 	bool rc = false;
 	oauth2_metadata_ctx_t *ptr = NULL;
@@ -624,7 +624,8 @@ introspect:
 		oauth2_cfg_endpoint_set_url(introspect_ctx->endpoint,
 					    introspection_uri);
 		rc = _oauth2_introspect_verify(log, introspect_ctx, token,
-					       json_payload, s_payload);
+					       json_payload, s_payload,
+					       status_code);
 		if (rc == true)
 			goto end;
 	}
@@ -887,7 +888,8 @@ bool oauth2_token_verify(oauth2_log_t *log, oauth2_http_request_t *request,
 			break;
 		}
 
-		if (ptr->callback(log, ptr, token, json_payload, &s_payload)) {
+		if (ptr->callback(log, ptr, token, json_payload, &s_payload,
+				  status_code)) {
 			oauth2_cache_set(log, ptr->cache, token, s_payload,
 					 ptr->expiry_s);
 			rc = true;

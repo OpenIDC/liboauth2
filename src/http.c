@@ -1137,7 +1137,8 @@ bool oauth2_http_call(oauth2_log_t *log, const char *url, const char *data,
 				     err[0] ? err : "");
 			// 408 Request Timeout
 			// 504 Gateway Timeout
-			*status_code = 504;
+			if (status_code)
+				*status_code = 504;
 			break;
 		}
 		oauth2_error(

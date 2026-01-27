@@ -1386,11 +1386,10 @@ end:
 	return rc;
 }
 
-static bool _oauth2_jose_jwt_verify_callback(oauth2_log_t *log,
-					     oauth2_cfg_token_verify_t *verify,
-					     const char *token,
-					     json_t **json_payload,
-					     char **s_payload)
+static bool _oauth2_jose_jwt_verify_callback(
+    oauth2_log_t *log, oauth2_cfg_token_verify_t *verify, const char *token,
+    json_t **json_payload, char **s_payload,
+    oauth2_http_status_code_t *status_code)
 {
 	bool rc = false;
 	oauth2_jose_jwt_verify_ctx_t *ctx = NULL;
@@ -1913,7 +1912,7 @@ oauth2_jose_jwks_list_resolve(oauth2_log_t *log,
 }
 
 typedef oauth2_jose_jwk_list_t *(
-    oauth2_jose_jwks_url_resolve_response_cb_t)(oauth2_log_t * log,
+    oauth2_jose_jwks_url_resolve_response_cb_t)(oauth2_log_t *log,
 						char *response);
 
 // cater for the (Amazon ALB) use case that only a single EC(!) key is served

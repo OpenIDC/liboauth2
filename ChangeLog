@@ -1,3 +1,6 @@
+01/27/2026
+- api: fix/complete returning HTTP status code from oauth2_token_verify (added in 2.2.0)
+
 01/14/2026
 - support adding custom parameters to the authentication request by adding the
  `authn_request_params` option for the OpenID Connect Client
