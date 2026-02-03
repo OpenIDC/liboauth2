@@ -1,5 +1,5 @@
 02/03/2026
-- assign strstr to char instead of const char to compile with globc 2.43
+- code: assign strstr to char instead of const char to compile with globc 2.43
   see #70; thanks @babelouest
 
 01/27/2026
