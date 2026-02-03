@@ -993,7 +993,7 @@ char *oauth2_jose_jwt_header_peek(oauth2_log_t *log,
 {
 	char *input = NULL, *result = NULL;
 	json_t *json = NULL;
-	const char *p = NULL;
+	char *p = NULL;
 	size_t result_len;
 	char *rv = NULL;
 

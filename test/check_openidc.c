@@ -821,7 +821,7 @@ static void _openidc_verify_authentication_request_state(
 {
 	bool rc = false;
 	const char *location = NULL;
-	const char *state = NULL;
+	char *state = NULL;
 
 	ck_assert_ptr_ne(NULL, response);
 	ck_assert_uint_eq(oauth2_http_response_status_code_get(_log, response),

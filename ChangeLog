@@ -1,3 +1,7 @@
+02/03/2026
+- assign strstr to char instead of const char to compile with globc 2.43
+  see #70; thanks @babelouest
+
 01/27/2026
 - api: fix/complete returning HTTP status code from oauth2_token_verify (added in 2.2.0)
 
