@@ -138,7 +138,8 @@ static char *_oauth2_get_source_token_from_post(
 	    oauth2_http_request_header_content_type_get(log, request);
 	if ((oauth2_http_request_method_get(log, request) !=
 	     OAUTH2_HTTP_METHOD_POST) ||
-	    (strcasecmp(content_type, OAUTH2_CONTENT_TYPE_FORM_ENCODED) != 0)) {
+	    (strncasecmp(content_type, OAUTH2_CONTENT_TYPE_FORM_ENCODED,
+			 strlen(OAUTH2_CONTENT_TYPE_FORM_ENCODED)) != 0)) {
 		oauth2_debug(log, "no form-encoded HTTP POST");
 		goto end;
 	}

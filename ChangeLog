@@ -1,3 +1,6 @@
+03/25/2026
+- use strncasecmp on content type when obtaining a token from POST; closes #72; thanks @roubert
+
 02/03/2026
 - code: assign strstr to char instead of const char to compile with globc 2.43
   see #70; thanks @babelouest
