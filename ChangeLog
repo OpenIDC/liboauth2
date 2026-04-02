@@ -1,3 +1,6 @@
+04/02/2026
+- release 2.2.1
+
 03/25/2026
 - proto: use strncasecmp on content type when obtaining a token from POST; closes #72; thanks @roubert
 - code: correct strstr assignments to compile with glibc 2.43; closes #73; thanks @Saur2000
