@@ -8,7 +8,10 @@ EXTRA_DIST = autogen.sh ChangeLog README.md LICENSE
 
 AM_CPPFLAGS = -Wall -Werror -Wno-error=deprecated-declarations -I${srcdir}/include -I${srcdir}/src @JANSSON_CFLAGS@ @OPENSSL_CFLAGS@
 AM_CPPFLAGS += $(CODE_COVERAGE_CPPFLAGS) $(CODE_COVERAGE_CFLAGS)
-AM_LDFLAGS = --coverage
+AM_LDFLAGS =
+if CODE_COVERAGE_ENABLED
+AM_LDFLAGS += --coverage
+endif
 
 LDADD = @JANSSON_LIBS@ @OPENSSL_LIBS@
 LDADD += $(CODE_COVERAGE_LIBS)
