@@ -1,3 +1,6 @@
+04/18/2026
+- build: guard --coverage linker flag behind CODE_COVERAGE_ENABLED; thanks @kraj
+
 04/02/2026
 - release 2.2.1
 
