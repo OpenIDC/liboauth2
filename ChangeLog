@@ -1,3 +1,8 @@
+06/02/2026
+- jose: URL-encode the JWT "kid" before constructing the AWS ALB JWKs URL to
+  prevent path traversal/injection (SSRF) into the outbound key request (CWE-918)
+  thanks Michał Majchrowicz and Marcin Wyczechowski, members of the AFINE Team
+
 04/18/2026
 - build: guard --coverage linker flag behind CODE_COVERAGE_ENABLED; thanks @kraj
 

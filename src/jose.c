@@ -2283,6 +2283,7 @@ oauth2_jose_jwks_aws_alb_resolve(oauth2_log_t *log,
 	cjose_err err;
 	char *url = NULL;
 	const char *region = NULL;
+	char *enc_kid = NULL;
 
 	const char *signer = cjose_header_get(hdr, "signer", &err);
 	const char *kid = cjose_header_get(hdr, "kid", &err);
@@ -2303,19 +2304,32 @@ oauth2_jose_jwks_aws_alb_resolve(oauth2_log_t *log,
 		return NULL;
 	}
 
+	// the kid is attacker-controlled and untrusted at this point (the
+	// signature is verified only after the key is resolved), so URL-encode
+	// it to keep it a single, opaque path segment and prevent path
+	// traversal/injection into the outbound request (SSRF)
+	enc_kid = oauth2_url_encode(log, kid);
+	if (enc_kid == NULL) {
+		oauth2_error(log, "failed to URL-encode ALB kid");
+		return NULL;
+	}
+
 	if (provider->alb_base_url == NULL) {
 		region = _oauth2_jose_jwks_aws_alb_region(provider->alb_arn);
 		if (!region) {
 			oauth2_error(
 			    log, "failed to extract region from ARN: arn=%s",
 			    provider->alb_arn);
+			oauth2_mem_free(enc_kid);
 			return NULL;
 		}
 		url = _oauth2_stradd4(NULL, "https://public-keys.auth.elb.",
-				      region, ".amazonaws.com/", kid);
+				      region, ".amazonaws.com/", enc_kid);
 	} else {
-		url = oauth2_stradd(NULL, provider->alb_base_url, kid, NULL);
+		url =
+		    oauth2_stradd(NULL, provider->alb_base_url, enc_kid, NULL);
 	}
+	oauth2_mem_free(enc_kid);
 	oauth2_debug(log, "constructed ALB JWKs URL: %s", url);
 
 	provider->jwks_uri->endpoint->url = url;
