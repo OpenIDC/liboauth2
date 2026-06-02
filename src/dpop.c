@@ -18,6 +18,8 @@
  *
  **************************************************************************/
 
+#include <string.h>
+
 #include <oauth2/jose.h>
 #include <oauth2/mem.h>
 #include <oauth2/oauth2.h>
@@ -434,6 +436,51 @@ end:
 	return rc;
 }
 
+/*
+ * verify that the jwk header of the DPoP proof does not contain private key
+ * material (RFC 9449 section 4.3 step 7); a public-only key serializes
+ * identically with and without private members, so any difference means
+ * private key material is present
+ */
+static bool _oauth2_dpop_jwk_public_only_validate(oauth2_log_t *log,
+						  const cjose_jwk_t *jwk)
+{
+	bool rc = false;
+	cjose_err err;
+	char *s_public = NULL, *s_private = NULL;
+
+	s_public = cjose_jwk_to_json(jwk, false, &err);
+	if (s_public == NULL) {
+		oauth2_error(log, "cjose_jwk_to_json (public) failed: %s",
+			     err.message);
+		goto end;
+	}
+
+	s_private = cjose_jwk_to_json(jwk, true, &err);
+	if (s_private == NULL) {
+		oauth2_error(log, "cjose_jwk_to_json (private) failed: %s",
+			     err.message);
+		goto end;
+	}
+
+	if (strcmp(s_public, s_private) != 0) {
+		oauth2_error(
+		    log, "DPOP proof jwk header contains private key material");
+		goto end;
+	}
+
+	rc = true;
+
+end:
+
+	if (s_public)
+		cjose_get_dealloc()(s_public);
+	if (s_private)
+		cjose_get_dealloc()(s_private);
+
+	return rc;
+}
+
 static bool _oauth2_dpop_parse_and_validate(oauth2_log_t *log,
 					    oauth2_cfg_dpop_verify_t *verify,
 					    oauth2_http_request_t *request,
@@ -507,7 +554,8 @@ static bool _oauth2_dpop_parse_and_validate(oauth2_log_t *log,
 	/*
 	 * 7.   the jwk header of the JWT does not contain a private key,
 	 */
-	// TODO:
+	if (_oauth2_dpop_jwk_public_only_validate(log, *jwk) == false)
+		goto end;
 
 	/*
 	 * 8.   the htm claim matches the HTTP method value of the HTTP request

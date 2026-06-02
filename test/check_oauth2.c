@@ -19,6 +19,7 @@
  **************************************************************************/
 
 #include "check_liboauth2.h"
+#include "oauth2/jose.h"
 #include "oauth2/mem.h"
 #include "oauth2/oauth2.h"
 #include "oauth2_int.h"
@@ -716,6 +717,172 @@ START_TEST(test_oauth2_verify_jwk_dpop)
 }
 END_TEST
 
+// build a DPoP proof signed with "jwk", embedding "jwk_hdr_json" (which may be
+// the public-only or the private serialization of the key) in the "jwk" header
+static char *_dpop_proof_create(cjose_jwk_t *jwk, const char *jwk_hdr_json,
+				const char *jti, const char *ath)
+{
+	char *rv = NULL, *payload = NULL;
+	cjose_header_t *hdr = NULL;
+	cjose_jws_t *jws = NULL;
+	json_t *p = NULL;
+	const char *proof = NULL;
+	cjose_err err;
+
+	hdr = cjose_header_new(&err);
+	if (hdr == NULL)
+		goto end;
+	if (cjose_header_set(hdr, CJOSE_HDR_ALG, "ES256", &err) == false)
+		goto end;
+	if (cjose_header_set(hdr, "typ", "dpop+jwt", &err) == false)
+		goto end;
+	if (cjose_header_set_raw(hdr, "jwk", jwk_hdr_json, &err) == false)
+		goto end;
+
+	p = json_object();
+	json_object_set_new(p, "jti", json_string(jti));
+	json_object_set_new(p, "htm", json_string("GET"));
+	json_object_set_new(p, "htu",
+			    json_string("https://localhost.zmartzone.eu/api/"));
+	json_object_set_new(p, "iat", json_integer(oauth2_time_now_sec()));
+	json_object_set_new(p, "ath", json_string(ath));
+	payload = json_dumps(p, JSON_COMPACT);
+
+	jws = cjose_jws_sign(jwk, hdr, (const uint8_t *)payload,
+			     strlen(payload), &err);
+	if (jws == NULL)
+		goto end;
+	if (cjose_jws_export(jws, &proof, &err) == false)
+		goto end;
+
+	rv = oauth2_strdup(proof);
+
+end:
+
+	if (payload)
+		free(payload);
+	if (p)
+		json_decref(p);
+	if (hdr)
+		cjose_header_release(hdr);
+	if (jws)
+		cjose_jws_release(jws);
+
+	return rv;
+}
+
+// regression test for the RFC 9449 section 4.3 step 7 check: a DPoP proof whose
+// "jwk" header carries private key material must be rejected; the proof is
+// otherwise valid (a positive control with the public-only key is accepted
+// first) so the rejection is solely due to the embedded private key
+START_TEST(test_oauth2_verify_dpop_private_key_rejected)
+{
+	bool rc = false;
+	oauth2_cfg_token_verify_t *verify = NULL;
+	const char *rv = NULL;
+	cjose_jwk_t *jwk = NULL;
+	cjose_err err;
+	char *jwk_pub = NULL, *jwk_priv = NULL;
+	unsigned char *thumb = NULL, *ath_bytes = NULL;
+	unsigned int thumb_len = 0, ath_len = 0;
+	char *jkt = NULL, *ath = NULL, *access_token = NULL;
+	char *proof_pub = NULL, *proof_priv = NULL;
+	json_t *at_payload = NULL, *cnf = NULL, *json_payload = NULL;
+	oauth2_http_request_t *request = NULL;
+
+	// throwaway P-256 key pair (RFC 7515 appendix A.3) including private
+	// "d"
+	const char *ec_key =
+	    "{\"kty\":\"EC\",\"crv\":\"P-256\","
+	    "\"x\":\"f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU\","
+	    "\"y\":\"x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0\","
+	    "\"d\":\"jpsQnnGQmL-YBIffH1136cspYG6-0iY7X1fCE9-E9LI\"}";
+
+	jwk = cjose_jwk_import(ec_key, strlen(ec_key), &err);
+	ck_assert_ptr_ne(jwk, NULL);
+
+	// public-only and private serializations to embed in the proof header
+	jwk_pub = cjose_jwk_to_json(jwk, false, &err);
+	ck_assert_ptr_ne(jwk_pub, NULL);
+	jwk_priv = cjose_jwk_to_json(jwk, true, &err);
+	ck_assert_ptr_ne(jwk_priv, NULL);
+
+	// cnf.jkt = base64url(SHA-256(public JWK)) binds the access token
+	rc = oauth2_jose_jwk_thumbprint(_log, jwk, &thumb, &thumb_len);
+	ck_assert_int_eq(rc, true);
+	oauth2_base64url_encode(_log, thumb, thumb_len, &jkt);
+	ck_assert_ptr_ne(jkt, NULL);
+
+	// mint a DPoP-bound access token signed with the EC key
+	at_payload = json_object();
+	cnf = json_object();
+	json_object_set_new(cnf, "jkt", json_string(jkt));
+	json_object_set_new(at_payload, "cnf", cnf);
+	access_token = oauth2_jwt_create(_log, jwk, "ES256", NULL, NULL, NULL,
+					 NULL, 0, false, false, at_payload);
+	ck_assert_ptr_ne(access_token, NULL);
+
+	// ath = base64url(SHA-256(access token))
+	rc = oauth2_jose_hash_bytes(_log, "sha256",
+				    (const unsigned char *)access_token,
+				    strlen(access_token), &ath_bytes, &ath_len);
+	ck_assert_int_eq(rc, true);
+	oauth2_base64url_encode(_log, ath_bytes, ath_len, &ath);
+	ck_assert_ptr_ne(ath, NULL);
+
+	// two otherwise-identical proofs differing only by the private "d"
+	proof_pub = _dpop_proof_create(jwk, jwk_pub, "jti-dpop-pub", ath);
+	ck_assert_ptr_ne(proof_pub, NULL);
+	proof_priv = _dpop_proof_create(jwk, jwk_priv, "jti-dpop-priv", ath);
+	ck_assert_ptr_ne(proof_priv, NULL);
+
+	rv = oauth2_cfg_token_verify_add_options(
+	    _log, &verify, "jwk", jwk_pub,
+	    "verify.exp=skip&type=dpop&dpop.iat.verify=skip");
+	ck_assert_ptr_eq(rv, NULL);
+
+	request = oauth2_http_request_init(_log);
+	oauth2_http_request_scheme_set(_log, request, "https");
+	oauth2_http_request_hostname_set(_log, request,
+					 "localhost.zmartzone.eu");
+	oauth2_http_request_path_set(_log, request, "/api/");
+	oauth2_http_request_method_set(_log, request, OAUTH2_HTTP_METHOD_GET);
+
+	// positive control: the public-key proof is accepted, proving the proof
+	// is otherwise valid
+	oauth2_http_request_header_set(_log, request, "DPoP", proof_pub);
+	rc = oauth2_token_verify(_log, request, verify, access_token,
+				 &json_payload, NULL);
+	ck_assert_int_eq(rc, true);
+	if (json_payload) {
+		json_decref(json_payload);
+		json_payload = NULL;
+	}
+
+	// regression: the same proof carrying the private key must be rejected
+	oauth2_http_request_header_set(_log, request, "DPoP", proof_priv);
+	rc = oauth2_token_verify(_log, request, verify, access_token,
+				 &json_payload, NULL);
+	ck_assert_int_eq(rc, false);
+	if (json_payload)
+		json_decref(json_payload);
+
+	oauth2_http_request_free(_log, request);
+	oauth2_cfg_token_verify_free(_log, verify);
+	json_decref(at_payload);
+	oauth2_mem_free(jkt);
+	oauth2_mem_free(ath);
+	oauth2_mem_free(thumb);
+	oauth2_mem_free(ath_bytes);
+	oauth2_mem_free(access_token);
+	oauth2_mem_free(proof_pub);
+	oauth2_mem_free(proof_priv);
+	cjose_get_dealloc()(jwk_pub);
+	cjose_get_dealloc()(jwk_priv);
+	cjose_jwk_release(jwk);
+}
+END_TEST
+
 START_TEST(test_oauth2_verify_jwks_uri)
 {
 	bool rc = false;
@@ -1214,6 +1381,7 @@ Suite *oauth2_check_oauth2_suite()
 	tcase_add_test(c, test_oauth2_verify_jwks_uri);
 	tcase_add_test(c, test_oauth2_verify_jwk);
 	tcase_add_test(c, test_oauth2_verify_jwk_dpop);
+	tcase_add_test(c, test_oauth2_verify_dpop_private_key_rejected);
 	tcase_add_test(c, test_oauth2_verify_eckey_uri);
 	tcase_add_test(c, test_oauth2_verify_aws_alb);
 	tcase_add_test(c, test_oauth2_verify_token_introspection);

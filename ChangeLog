@@ -4,6 +4,10 @@
   thanks Michał Majchrowicz and Marcin Wyczechowski, members of the AFINE Team
 - jose: fix memory leak of the region string extracted from the ARN in the
   AWS ALB JWKs resolver
+- dpop: reject a DPoP proof whose jwk header contains private key material
+  per RFC 9449 section 4.3 step 7 (CWE-345)
+  thanks Michał Majchrowicz and Marcin Wyczechowski, members of the AFINE Team
+- bump to 2.2.2dev
 
 04/18/2026
 - build: guard --coverage linker flag behind CODE_COVERAGE_ENABLED; thanks @kraj
