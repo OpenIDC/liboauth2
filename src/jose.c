@@ -2249,7 +2249,7 @@ oauth2_jose_jwks_eckey_url_resolve(oauth2_log_t *log,
 	    _oauth2_jose_jwks_eckey_url_resolve_response_callback);
 }
 
-static const char *_oauth2_jose_jwks_aws_alb_region(const char *arn)
+static char *_oauth2_jose_jwks_aws_alb_region(const char *arn)
 {
 	if (!arn)
 		return NULL;
@@ -2260,7 +2260,7 @@ static const char *_oauth2_jose_jwks_aws_alb_region(const char *arn)
 
 	char *token = strtok(arn_copy, ":");
 	int count = 0;
-	const char *region = NULL;
+	char *region = NULL;
 
 	while (token) {
 		if (count == 3) {
@@ -2282,7 +2282,7 @@ oauth2_jose_jwks_aws_alb_resolve(oauth2_log_t *log,
 {
 	cjose_err err;
 	char *url = NULL;
-	const char *region = NULL;
+	char *region = NULL;
 	char *enc_kid = NULL;
 
 	const char *signer = cjose_header_get(hdr, "signer", &err);
@@ -2325,6 +2325,7 @@ oauth2_jose_jwks_aws_alb_resolve(oauth2_log_t *log,
 		}
 		url = _oauth2_stradd4(NULL, "https://public-keys.auth.elb.",
 				      region, ".amazonaws.com/", enc_kid);
+		oauth2_mem_free(region);
 	} else {
 		url =
 		    oauth2_stradd(NULL, provider->alb_base_url, enc_kid, NULL);

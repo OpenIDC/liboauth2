@@ -2,6 +2,8 @@
 - jose: URL-encode the JWT "kid" before constructing the AWS ALB JWKs URL to
   prevent path traversal/injection (SSRF) into the outbound key request (CWE-918)
   thanks Michał Majchrowicz and Marcin Wyczechowski, members of the AFINE Team
+- jose: fix memory leak of the region string extracted from the ARN in the
+  AWS ALB JWKs resolver
 
 04/18/2026
 - build: guard --coverage linker flag behind CODE_COVERAGE_ENABLED; thanks @kraj
