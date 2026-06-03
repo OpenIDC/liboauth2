@@ -1,4 +1,4 @@
-AC_INIT([liboauth2],[2.2.2dev],[hans.zandbelt@openidc.com])
+AC_INIT([liboauth2],[2.3.0],[hans.zandbelt@openidc.com])
 
 AM_INIT_AUTOMAKE([foreign no-define subdir-objects])
 AC_CONFIG_MACRO_DIR([m4])
@@ -9,7 +9,7 @@ AC_PROG_CC
 
 AX_CODE_COVERAGE
 
-LIBOAUTH2_LIBRARY_VERSION=1:0:0
+LIBOAUTH2_LIBRARY_VERSION=1:1:0
 LIBTOOL_EXTRA_FLAGS="-version-info $LIBOAUTH2_LIBRARY_VERSION"
 AC_SUBST([LIBTOOL_EXTRA_FLAGS])
 

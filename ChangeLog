@@ -55,6 +55,7 @@
 - cache: zero-initialize the file-cache info header before writing it so the
   struct's alignment padding is no longer flushed to disk as uninitialised
   stack memory (reported by Valgrind as a write of uninitialised byte(s))
+- release 2.3.0
 
 06/02/2026
 - jose: URL-encode the JWT "kid" before constructing the AWS ALB JWKs URL to
