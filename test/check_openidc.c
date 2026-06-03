@@ -149,7 +149,7 @@ static char *oauth2_check_openidc_serve_get(const char *request)
 
 static bool _oauth2_check_openidc_idtoken_create(
     oauth2_log_t *log, cjose_jwk_t *jwk, const char *alg, const char *iss,
-    const char *client_id, const char *aud, char **id_token)
+    const char *client_id, const char *aud, const char *nonce, char **id_token)
 {
 
 	bool rc = false;
@@ -170,6 +170,8 @@ static bool _oauth2_check_openidc_idtoken_create(
 			    json_integer(oauth2_time_now_sec() + 60));
 	json_object_set_new(json, OAUTH2_JOSE_JWT_IAT,
 			    json_integer(oauth2_time_now_sec()));
+	if (nonce != NULL)
+		json_object_set_new(json, OAUTH2_NONCE, json_string(nonce));
 	payload = json_dumps(json, JSON_PRESERVE_ORDER | JSON_COMPACT);
 
 	hdr = cjose_header_new(&err);
@@ -245,9 +247,11 @@ static char *oauth2_check_openidc_serve_post(const char *request)
 		if (code == NULL)
 			goto error;
 
+		// the test carries the authentication-request nonce through the
+		// authorization "code", so echo it back in the id_token "nonce"
 		if (_oauth2_check_openidc_idtoken_create(
 			_log, oauth2_jwk_rsa_get(), "RS256",
-			"https://op.example.org", "myclient", "myclient",
+			"https://op.example.org", "myclient", "myclient", code,
 			&id_token) == false)
 			goto error;
 
@@ -487,7 +491,7 @@ START_TEST(test_openidc_proto_state)
 
 	response = oauth2_http_response_init(_log);
 	rc = _oauth2_openidc_state_cookie_set(_log, c, provider, r, response,
-					      "1234", "4321");
+					      "1234", "4321", "5678");
 	ck_assert_int_eq(rc, true);
 	cookie = oauth2_http_response_header_get(_log, response, "Set-Cookie");
 	ck_assert_ptr_ne(strstr(cookie, "openidc_state_1234="), NULL);
@@ -816,7 +820,7 @@ static bool _test_openidc_response_header_find_cookie_expire(
 }
 
 static void _openidc_verify_authentication_request_state(
-    const oauth2_http_response_t *response, char **r_state,
+    const oauth2_http_response_t *response, char **r_state, char **r_nonce,
     char **state_cookie_name, char **state_cookie)
 {
 	bool rc = false;
@@ -841,6 +845,18 @@ static void _openidc_verify_authentication_request_state(
 	if (p)
 		*p = '\0';
 
+	// optionally return the nonce the library put in the authentication
+	// request so the caller can have the mock token endpoint echo it back
+	// in the id_token
+	if (r_nonce != NULL) {
+		const char *nonce = strstr(location, "nonce=");
+		ck_assert_ptr_ne(NULL, nonce);
+		*r_nonce = oauth2_strdup(nonce + strlen("nonce="));
+		char *amp = strstr(*r_nonce, "&");
+		if (amp)
+			*amp = '\0';
+	}
+
 	*state_cookie_name =
 	    oauth2_stradd(NULL, "openidc_state_", *r_state, NULL);
 
@@ -860,7 +876,7 @@ static void _test_openidc_handle(oauth2_cfg_openidc_t *c)
 	oauth2_http_response_t *response = NULL;
 	const char *location = NULL;
 	char *state = NULL, *state_cookie_name = NULL, *state_cookie = NULL;
-	char *query_str = NULL, *session_cookie = NULL;
+	char *query_str = NULL, *session_cookie = NULL, *nonce = NULL;
 	json_t *claims = NULL;
 
 	r = oauth2_http_request_init(_log);
@@ -875,7 +891,7 @@ static void _test_openidc_handle(oauth2_cfg_openidc_t *c)
 	rc = oauth2_openidc_handle(_log, c, r, &response, &claims);
 	ck_assert_int_eq(rc, true);
 	_openidc_verify_authentication_request_state(
-	    response, &state, &state_cookie_name, &state_cookie);
+	    response, &state, &nonce, &state_cookie_name, &state_cookie);
 
 	json_decref(claims);
 	oauth2_http_response_free(_log, response);
@@ -893,7 +909,10 @@ static void _test_openidc_handle(oauth2_cfg_openidc_t *c)
 	rc = oauth2_http_request_header_set(_log, r, "Cookie", state_cookie);
 	ck_assert_int_eq(rc, true);
 
-	query_str = oauth2_stradd(NULL, "code=4321&state", "=", state);
+	// carry the nonce back through the authorization "code" so the mock
+	// token endpoint echoes the matching value in the id_token
+	query_str = oauth2_stradd(NULL, "code=", nonce, "&state=");
+	query_str = oauth2_stradd(query_str, state, NULL, NULL);
 	rc = oauth2_http_request_query_set(_log, r, query_str);
 	ck_assert_int_eq(rc, true);
 
@@ -978,6 +997,7 @@ static void _test_openidc_handle(oauth2_cfg_openidc_t *c)
 	oauth2_http_response_free(_log, response);
 
 	oauth2_mem_free(state);
+	oauth2_mem_free(nonce);
 	oauth2_mem_free(query_str);
 	oauth2_mem_free(state_cookie_name);
 	oauth2_mem_free(state_cookie);
@@ -1050,6 +1070,74 @@ START_TEST(test_openidc_handle_cache)
 }
 END_TEST
 
+START_TEST(test_openidc_handle_nonce_mismatch)
+{
+	oauth2_cfg_openidc_t *c = NULL;
+	oauth2_cfg_session_t *session_cfg = NULL;
+	oauth2_http_request_t *r = NULL;
+	oauth2_http_response_t *response = NULL;
+	bool rc = false;
+	char *state = NULL, *state_cookie_name = NULL, *state_cookie = NULL;
+	char *query_str = NULL, *nonce = NULL;
+	json_t *claims = NULL;
+
+	c = oauth2_cfg_openidc_init(_log);
+	session_cfg = oauth2_cfg_session_init(_log);
+	oauth2_cfg_session_set_options(
+	    _log, session_cfg, "cookie",
+	    "name=short_cookie&inactivity_timeout=2");
+	oauth2_cfg_openidc_provider_resolver_set_options(
+	    _log, c, "string", test_openidc_metadata_get(),
+	    "session=short_cookie");
+	oauth2_openidc_client_set_options(
+	    _log, c, "string",
+	    "token_endpoint_auth_method=client_secret_post&client_id=myclient&"
+	    "client_secret=mysecret&scope=openid%20profile",
+	    "ssl_verify=false");
+
+	// step 1: authentication request -> 302 + state cookie binding the
+	// nonce
+	r = oauth2_http_request_init(_log);
+	oauth2_http_request_path_set(_log, r, "/secure");
+	oauth2_http_request_header_set(_log, r, "Host", "app.example.org");
+	oauth2_http_request_header_set(_log, r, "Accept", "text/html");
+	rc = oauth2_openidc_handle(_log, c, r, &response, &claims);
+	ck_assert_int_eq(rc, true);
+	_openidc_verify_authentication_request_state(
+	    response, &state, &nonce, &state_cookie_name, &state_cookie);
+	json_decref(claims);
+	claims = NULL;
+	oauth2_http_response_free(_log, response);
+	response = NULL;
+	oauth2_http_request_free(_log, r);
+
+	// step 2: callback carrying a "code" (hence id_token nonce) that does
+	// NOT match the nonce bound into the (encrypted) state cookie -> fail
+	r = oauth2_http_request_init(_log);
+	oauth2_http_request_path_set(_log, r, "/openid-connect/redirect_uri");
+	oauth2_http_request_header_set(_log, r, "Host", "app.example.org");
+	oauth2_http_request_header_set(_log, r, "Accept", "text/html");
+	oauth2_http_request_header_set(_log, r, "Cookie", state_cookie);
+	query_str =
+	    oauth2_stradd(NULL, "code=a_different_nonce&state", "=", state);
+	oauth2_http_request_query_set(_log, r, query_str);
+	rc = oauth2_openidc_handle(_log, c, r, &response, &claims);
+	ck_assert_int_eq(rc, false);
+
+	oauth2_mem_free(query_str);
+	oauth2_mem_free(state);
+	oauth2_mem_free(nonce);
+	oauth2_mem_free(state_cookie_name);
+	oauth2_mem_free(state_cookie);
+	if (claims)
+		json_decref(claims);
+	if (response)
+		oauth2_http_response_free(_log, response);
+	oauth2_http_request_free(_log, r);
+	oauth2_cfg_openidc_free(_log, c);
+}
+END_TEST
+
 START_TEST(test_openidc_state_cookie)
 {
 	bool rc = false;
@@ -1082,7 +1170,7 @@ START_TEST(test_openidc_state_cookie)
 	rc = oauth2_openidc_handle(_log, c, request, &response, NULL);
 	ck_assert_int_eq(rc, true);
 	_openidc_verify_authentication_request_state(
-	    response, &state, &state_cookie_name1, &state_cookie1);
+	    response, &state, NULL, &state_cookie_name1, &state_cookie1);
 	oauth2_mem_free(state);
 	oauth2_http_response_free(_log, response);
 
@@ -1091,7 +1179,7 @@ START_TEST(test_openidc_state_cookie)
 	rc = oauth2_openidc_handle(_log, c, request, &response, NULL);
 	ck_assert_int_eq(rc, true);
 	_openidc_verify_authentication_request_state(
-	    response, &state, &state_cookie_name2, &state_cookie2);
+	    response, &state, NULL, &state_cookie_name2, &state_cookie2);
 	oauth2_mem_free(state);
 	oauth2_http_response_free(_log, response);
 
@@ -1100,7 +1188,7 @@ START_TEST(test_openidc_state_cookie)
 	rc = oauth2_openidc_handle(_log, c, request, &response, NULL);
 	ck_assert_int_eq(rc, true);
 	_openidc_verify_authentication_request_state(
-	    response, &state, &state_cookie_name3, &state_cookie3);
+	    response, &state, NULL, &state_cookie_name3, &state_cookie3);
 	oauth2_mem_free(state);
 
 	rc = _test_openidc_response_header_find_cookie_expire(
@@ -1144,6 +1232,7 @@ Suite *oauth2_check_openidc_suite()
 	tcase_add_test(c, test_openidc_client);
 	tcase_add_test(c, test_openidc_handle_cookie);
 	tcase_add_test(c, test_openidc_handle_cache);
+	tcase_add_test(c, test_openidc_handle_nonce_mismatch);
 	tcase_add_test(c, test_openidc_state_cookie);
 	tcase_add_test(c, test_openidc_resolver_url);
 

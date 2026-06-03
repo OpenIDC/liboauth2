@@ -100,7 +100,8 @@ static bool _oauth2_openidc_authenticate(oauth2_log_t *log,
 		goto end;
 
 	if (_oauth2_openidc_state_cookie_set(log, cfg, provider, request,
-					     *response, state, pkce) == false)
+					     *response, state, pkce,
+					     nonce) == false)
 		goto end;
 
 	location = oauth2_http_url_query_encode(
@@ -233,8 +234,8 @@ end:
 
 static bool _oauth2_openidc_id_token_verify(
     oauth2_log_t *log, oauth2_openidc_provider_t *provider,
-    const char *client_id, const char *s_id_token, json_t **id_token,
-    bool ssl_verify, oauth2_http_status_code_t *status_code)
+    const char *client_id, const char *nonce, const char *s_id_token,
+    json_t **id_token, bool ssl_verify, oauth2_http_status_code_t *status_code)
 {
 	bool rc = false;
 	char *rv = NULL;
@@ -271,6 +272,24 @@ static bool _oauth2_openidc_id_token_verify(
 				status_code) == false) {
 		oauth2_error(log, "id_token verification failed");
 		goto end;
+	}
+
+	// the id_token "nonce" must equal the nonce sent in the authentication
+	// request, binding the response to this browser session and preventing
+	// id_token replay (OpenID Connect Core 1.0 section 3.1.3.7 step 11)
+	if (nonce != NULL) {
+		const char *id_token_nonce =
+		    json_string_value(json_object_get(*id_token, OAUTH2_NONCE));
+		if ((id_token_nonce == NULL) ||
+		    (strcmp(nonce, id_token_nonce) != 0)) {
+			oauth2_error(
+			    log,
+			    "id_token \"%s\" claim (%s) does not match "
+			    "the nonce from the authentication request",
+			    OAUTH2_NONCE,
+			    id_token_nonce ? id_token_nonce : "(null)");
+			goto end;
+		}
 	}
 
 	rc = true;
@@ -501,7 +520,7 @@ static bool _oauth2_openidc_redirect_uri_handler(
 	oauth2_openidc_provider_t *provider = NULL;
 	const char *code = NULL, *state = NULL;
 	char *location = NULL, *s_id_token = NULL, *s_access_token = NULL,
-	     *pkce = NULL;
+	     *pkce = NULL, *nonce = NULL;
 	json_t *id_token = NULL, *userinfo_claims = NULL;
 	oauth2_openidc_proto_state_t *proto_state = NULL;
 
@@ -543,6 +562,10 @@ static bool _oauth2_openidc_redirect_uri_handler(
 	    false)
 		goto end;
 
+	// the nonce was stored in the (encrypted) proto state at authorization
+	// time; older state cookies may not carry one
+	oauth2_openidc_proto_state_nonce_get(log, proto_state, &nonce);
+
 	if (_oauth2_openidc_token_request(log, cfg, request, provider, code,
 					  pkce, &s_id_token,
 					  &s_access_token) == false)
@@ -550,7 +573,7 @@ static bool _oauth2_openidc_redirect_uri_handler(
 
 	if (_oauth2_openidc_id_token_verify(
 		log, provider,
-		oauth2_openidc_client_client_id_get(log, cfg->client),
+		oauth2_openidc_client_client_id_get(log, cfg->client), nonce,
 		s_id_token, &id_token,
 		oauth2_openidc_client_ssl_verify_get(log, cfg->client),
 		NULL) == false)
@@ -586,6 +609,8 @@ end:
 
 	if (pkce)
 		oauth2_mem_free(pkce);
+	if (nonce)
+		oauth2_mem_free(nonce);
 	if (s_id_token)
 		oauth2_mem_free(s_id_token);
 	if (s_access_token)

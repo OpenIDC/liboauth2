@@ -106,9 +106,18 @@ bool oauth2_openidc_proto_state_pkce_get(oauth2_log_t *log,
 	    _OAUTH2_OPENIDC_PROTO_STATE_KEY_PKCE, value, NULL);
 }
 
+bool oauth2_openidc_proto_state_nonce_get(oauth2_log_t *log,
+					  oauth2_openidc_proto_state_t *p,
+					  char **value)
+{
+	return oauth2_json_string_get(
+	    log, oauth2_openidc_proto_state_json_get(p),
+	    _OAUTH2_OPENIDC_PROTO_STATE_KEY_NONCE, value, NULL);
+}
+
 static oauth2_openidc_proto_state_t *_oauth2_openidc_proto_state_create(
     oauth2_log_t *log, oauth2_openidc_provider_t *provider,
-    const char *target_link_uri, const char *pkce,
+    const char *target_link_uri, const char *pkce, const char *nonce,
     const oauth2_http_request_t *request)
 {
 	oauth2_openidc_proto_state_t *p = oauth2_openidc_proto_state_init(log);
@@ -120,6 +129,8 @@ static oauth2_openidc_proto_state_t *_oauth2_openidc_proto_state_create(
 	    target_link_uri);
 	oauth2_openidc_proto_state_set(
 	    log, p, _OAUTH2_OPENIDC_PROTO_STATE_KEY_PKCE, pkce);
+	oauth2_openidc_proto_state_set(
+	    log, p, _OAUTH2_OPENIDC_PROTO_STATE_KEY_NONCE, nonce);
 	oauth2_openidc_proto_state_set_int(
 	    log, p, _OAUTH2_OPENIDC_PROTO_STATE_KEY_REQUEST_METHOD,
 	    oauth2_http_request_method_get(log, request));
@@ -408,7 +419,8 @@ bool _oauth2_openidc_state_cookie_set(oauth2_log_t *log,
 				      oauth2_openidc_provider_t *provider,
 				      const oauth2_http_request_t *request,
 				      oauth2_http_response_t *response,
-				      const char *state, const char *pkce)
+				      const char *state, const char *pkce,
+				      const char *nonce)
 {
 	bool rc = false;
 	char *name = NULL, *value = NULL, *target_link_uri = NULL;
@@ -434,7 +446,7 @@ bool _oauth2_openidc_state_cookie_set(oauth2_log_t *log,
 	// (accepting consecutive responses, or take the last one)
 
 	proto_state = _oauth2_openidc_proto_state_create(
-	    log, provider, target_link_uri, pkce, request);
+	    log, provider, target_link_uri, pkce, nonce, request);
 
 	if (oauth2_jose_jwt_encrypt(
 		log, oauth2_crypto_passphrase_get(log),
