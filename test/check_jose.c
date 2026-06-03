@@ -583,6 +583,75 @@ START_TEST(test_jwt_validate_aud)
 }
 END_TEST
 
+START_TEST(test_jwt_verify_iss_aud)
+{
+	bool rc = false;
+	json_t *json_payload = NULL;
+	char *jwt = NULL;
+	oauth2_jose_jwk_t *jwk = NULL;
+	const char *rv = NULL;
+	const char *secret = "my_good_secret_0123456789abcdef!";
+	oauth2_cfg_token_verify_t *verify = NULL;
+	oauth2_jose_jwt_verify_ctx_t *ptr = NULL;
+
+	rc = oauth2_jose_jwk_create_symmetric(_log, secret, NULL, &jwk);
+	ck_assert_int_eq(rc, true);
+	// JWT with iss=https://issuer.example.org, aud=https://rs.example.org
+	jwt = oauth2_jwt_create(_log, jwk->jwk, CJOSE_HDR_ALG_HS256,
+				"https://issuer.example.org", "subject1",
+				"my_client_id", "https://rs.example.org", 60,
+				true, true, NULL);
+	ck_assert_ptr_ne(jwt, NULL);
+	oauth2_jose_jwk_release(jwk);
+
+	// NB: run the negative cases first -- oauth2_token_verify() only caches
+	// *successful* verifications, so a rejected token is never cached and
+	// cannot mask a later check of the same token
+
+	// wrong audience -> rejected
+	rv = oauth2_cfg_token_verify_add_options(_log, &verify, "plain", secret,
+						 "kid=my_good_kid");
+	ck_assert_ptr_eq(rv, NULL);
+	ptr = (oauth2_jose_jwt_verify_ctx_t *)verify->ctx->ptr;
+	ptr->audience = oauth2_strdup("https://other.example.org");
+	ptr->aud_validate = OAUTH2_JOSE_JWT_VALIDATE_CLAIM_REQUIRED;
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
+	ck_assert_int_eq(rc, false);
+	oauth2_cfg_token_verify_free(_log, verify);
+	verify = NULL;
+
+	// wrong issuer -> rejected
+	rv = oauth2_cfg_token_verify_add_options(_log, &verify, "plain", secret,
+						 "kid=my_good_kid");
+	ck_assert_ptr_eq(rv, NULL);
+	ptr = (oauth2_jose_jwt_verify_ctx_t *)verify->ctx->ptr;
+	ptr->issuer = oauth2_strdup("https://evil.example.org");
+	ptr->iss_validate = OAUTH2_JOSE_JWT_VALIDATE_CLAIM_REQUIRED;
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
+	ck_assert_int_eq(rc, false);
+	oauth2_cfg_token_verify_free(_log, verify);
+	verify = NULL;
+
+	// matching issuer + audience -> accepted (the OIDC id_token binding)
+	rv = oauth2_cfg_token_verify_add_options(_log, &verify, "plain", secret,
+						 "kid=my_good_kid");
+	ck_assert_ptr_eq(rv, NULL);
+	ptr = (oauth2_jose_jwt_verify_ctx_t *)verify->ctx->ptr;
+	ptr->issuer = oauth2_strdup("https://issuer.example.org");
+	ptr->iss_validate = OAUTH2_JOSE_JWT_VALIDATE_CLAIM_REQUIRED;
+	ptr->audience = oauth2_strdup("https://rs.example.org");
+	ptr->aud_validate = OAUTH2_JOSE_JWT_VALIDATE_CLAIM_REQUIRED;
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
+	ck_assert_int_eq(rc, true);
+	json_decref(json_payload);
+	json_payload = NULL;
+	oauth2_cfg_token_verify_free(_log, verify);
+	verify = NULL;
+
+	oauth2_mem_free(jwt);
+}
+END_TEST
+
 Suite *oauth2_check_jose_suite()
 {
 	Suite *s = suite_create("jose");
@@ -602,6 +671,7 @@ Suite *oauth2_check_jose_suite()
 	tcase_add_test(c, test_jwt_verify);
 	tcase_add_test(c, test_jwt_validate_nbf);
 	tcase_add_test(c, test_jwt_validate_aud);
+	tcase_add_test(c, test_jwt_verify_iss_aud);
 
 	tcase_set_timeout(c, 8);
 

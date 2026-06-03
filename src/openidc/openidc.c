@@ -25,6 +25,7 @@
 #include "oauth2/session.h"
 
 #include "cfg_int.h"
+#include "jose_int.h"
 #include "openidc_int.h"
 
 #define OAUTH2_STATE_LENGTH 16
@@ -232,12 +233,13 @@ end:
 
 static bool _oauth2_openidc_id_token_verify(
     oauth2_log_t *log, oauth2_openidc_provider_t *provider,
-    const char *s_id_token, json_t **id_token, bool ssl_verify,
-    oauth2_http_status_code_t *status_code)
+    const char *client_id, const char *s_id_token, json_t **id_token,
+    bool ssl_verify, oauth2_http_status_code_t *status_code)
 {
 	bool rc = false;
 	char *rv = NULL;
 	char *options = NULL;
+	oauth2_jose_jwt_verify_ctx_t *vctx = NULL;
 
 	oauth2_cfg_token_verify_t *verify = NULL;
 	if (ssl_verify == false)
@@ -250,6 +252,21 @@ static bool _oauth2_openidc_id_token_verify(
 		    log, "oauth2_cfg_token_verify_add_options failed: %s", rv);
 		goto end;
 	}
+
+	// bind the id_token to this provider and client: its "iss" must equal
+	// the provider issuer and its "aud" must contain our client_id (OpenID
+	// Connect Core 1.0 section 3.1.3.7, steps 2-4)
+	if ((verify->ctx != NULL) && (verify->ctx->ptr != NULL)) {
+		vctx = (oauth2_jose_jwt_verify_ctx_t *)verify->ctx->ptr;
+		if (vctx->issuer == NULL)
+			vctx->issuer = oauth2_strdup(
+			    oauth2_openidc_provider_issuer_get(log, provider));
+		vctx->iss_validate = OAUTH2_JOSE_JWT_VALIDATE_CLAIM_REQUIRED;
+		if (vctx->audience == NULL)
+			vctx->audience = oauth2_strdup(client_id);
+		vctx->aud_validate = OAUTH2_JOSE_JWT_VALIDATE_CLAIM_REQUIRED;
+	}
+
 	if (oauth2_token_verify(log, NULL, verify, s_id_token, id_token,
 				status_code) == false) {
 		oauth2_error(log, "id_token verification failed");
@@ -532,7 +549,9 @@ static bool _oauth2_openidc_redirect_uri_handler(
 		goto end;
 
 	if (_oauth2_openidc_id_token_verify(
-		log, provider, s_id_token, &id_token,
+		log, provider,
+		oauth2_openidc_client_client_id_get(log, cfg->client),
+		s_id_token, &id_token,
 		oauth2_openidc_client_ssl_verify_get(log, cfg->client),
 		NULL) == false)
 		goto end;

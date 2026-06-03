@@ -1,4 +1,9 @@
 06/03/2026
+- openidc: bind a received id_token to the provider and the client by requiring
+  its "iss" to equal the provider issuer and its "aud" to contain the configured
+  client_id, per OpenID Connect Core 1.0 section 3.1.3.7; previously neither was
+  checked, so an id_token minted for another client (or by another provider
+  whose key happened to verify) was accepted (CWE-287)
 - jose: add audience ("aud") validation (oauth2_jose_jwt_validate_aud), wired
   into JWT payload validation and enforced whenever an expected audience is set
   on the verify context; accepts both a single-string and an array "aud" claim

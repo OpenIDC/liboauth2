@@ -147,10 +147,9 @@ static char *oauth2_check_openidc_serve_get(const char *request)
 	return rv;
 }
 
-static bool
-_oauth2_check_openidc_idtoken_create(oauth2_log_t *log, cjose_jwk_t *jwk,
-				     const char *alg, const char *client_id,
-				     const char *aud, char **id_token)
+static bool _oauth2_check_openidc_idtoken_create(
+    oauth2_log_t *log, cjose_jwk_t *jwk, const char *alg, const char *iss,
+    const char *client_id, const char *aud, char **id_token)
 {
 
 	bool rc = false;
@@ -164,7 +163,7 @@ _oauth2_check_openidc_idtoken_create(oauth2_log_t *log, cjose_jwk_t *jwk,
 	oauth2_debug(_log, "## enter");
 
 	json = json_object();
-	json_object_set_new(json, OAUTH2_JOSE_JWT_ISS, json_string(client_id));
+	json_object_set_new(json, OAUTH2_JOSE_JWT_ISS, json_string(iss));
 	json_object_set_new(json, OAUTH2_JOSE_JWT_SUB, json_string(client_id));
 	json_object_set_new(json, OAUTH2_JOSE_JWT_AUD, json_string(aud));
 	json_object_set_new(json, OAUTH2_JOSE_JWT_EXP,
@@ -247,8 +246,9 @@ static char *oauth2_check_openidc_serve_post(const char *request)
 			goto error;
 
 		if (_oauth2_check_openidc_idtoken_create(
-			_log, oauth2_jwk_rsa_get(), "RS256", "myclient",
-			"myclient", &id_token) == false)
+			_log, oauth2_jwk_rsa_get(), "RS256",
+			"https://op.example.org", "myclient", "myclient",
+			&id_token) == false)
 			goto error;
 
 		rv =
