@@ -1,4 +1,8 @@
 06/03/2026
+- nginx: clamp the snprintf() return value before using it as the length of a
+  fixed stack buffer when formatting configuration error messages; a long
+  invalid variable name or expression could otherwise drive a memcpy()
+  past the end of the 128-byte buffer (CWE-125)
 - http: fix NULL-pointer dereference in the sanitized header set/add helper; the
   guard used && instead of || so a NULL request dereferenced request->header
   (CWE-476)

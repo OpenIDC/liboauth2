@@ -428,6 +428,10 @@ char *oauth2_nginx_set_claim(ngx_module_t module,
 	if (value[2].len <= 1 || value[2].data[0] != '$') {
 		n = snprintf(buf, sizeof(buf), "Invalid variable name %.*s",
 			     (int)value[2].len, value[2].data);
+		if (n < 0)
+			n = 0;
+		else if ((size_t)n >= sizeof(buf))
+			n = sizeof(buf) - 1;
 		ngx_str_t msg = {n, (u_char *)&buf[0]};
 		s = oauth2_nginx_str2chr(cf->pool, &msg);
 		return s ? s : NGX_CONF_ERROR;
@@ -603,6 +607,10 @@ char *nginx_oauth2_set_require(ngx_conf_t *cf, ngx_array_t **requirements)
 					 "Error %d compiling "
 					 "expression %.*s",
 					 rc, (int)var->len, var->data);
+			if (n < 0)
+				n = 0;
+			else if ((size_t)n >= sizeof(buf))
+				n = sizeof(buf) - 1;
 			ngx_str_t msg = {n, (u_char *)&buf[0]};
 			s = oauth2_nginx_str2chr(cf->pool, &msg);
 			return s ? s : NGX_CONF_ERROR;
