@@ -471,7 +471,7 @@ static bool oauth2_cache_file_set(oauth2_log_t *log, oauth2_cache_t *cache,
 	bool rc = false;
 	char *path = NULL;
 	FILE *f = NULL;
-	oauth2_cache_file_info_t info;
+	oauth2_cache_file_info_t info = {0};
 	oauth2_cache_impl_file_t *impl =
 	    (oauth2_cache_impl_file_t *)cache->impl;
 

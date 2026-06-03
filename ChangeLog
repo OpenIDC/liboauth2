@@ -1,6 +1,4 @@
 06/03/2026
-- jose: fix a memory leak of the decoded EVP_PKEY in the single-EC-key URL
-  resolver (e.g. AWS ALB) on OpenSSL 3.x; found via Valgrind
 - oauth2: re-validate the token "exp" on a verification-cache hit; the result
   cache TTL is independent of the token's own expiry, so a cached entry could
   previously be returned as valid after the token had already expired. On a hit
@@ -52,6 +50,11 @@
   building a command string that was passed as the redisCommand() printf-style
   format argument; prevents format-string exploitation and Redis
   command/argument injection through cache keys and values (CWE-134, CWE-74)
+- jose: fix a memory leak of the decoded EVP_PKEY in the single-EC-key URL
+  resolver (e.g. AWS ALB) on OpenSSL 3.x; found via Valgrind
+- cache: zero-initialize the file-cache info header before writing it so the
+  struct's alignment padding is no longer flushed to disk as uninitialised
+  stack memory (reported by Valgrind as a write of uninitialised byte(s))
 
 06/02/2026
 - jose: URL-encode the JWT "kid" before constructing the AWS ALB JWKs URL to

@@ -1,12 +1,12 @@
-FROM ubuntu:jammy
+FROM ubuntu:resolute
 
 RUN apt-get update && apt-get install -y pkg-config make gcc gdb lcov valgrind vim curl wget
 RUN apt-get update && apt-get install -y autoconf automake libtool
 RUN apt-get update && apt-get install -y libssl-dev libjansson-dev libcurl4-openssl-dev check
 RUN apt-get update && apt-get install -y apache2-dev
-RUN apt-get update && apt-get install -y libpcre3-dev zlib1g-dev
+RUN apt-get update && apt-get install -y zlib1g-dev
 
-ENV NGINX_VERSION 1.18.0
+ENV NGINX_VERSION 1.28.3
 WORKDIR /root
 RUN wget https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz
 RUN tar zxvf nginx-${NGINX_VERSION}.tar.gz
@@ -27,7 +27,6 @@ ENV LD_LIBRARY_PATH ${SRCDIR}/.libs
 ENV CK_FORK "no"
 
 RUN sed -i "s/bind .*/bind 127.0.0.1/g" /etc/redis/redis.conf
-RUN echo "requirepass foobared" >> /etc/redis/redis.conf
 
 RUN echo "#!/bin/sh" >> ./start.sh
 RUN echo "service memcached start" >> ./start.sh
@@ -46,4 +45,4 @@ RUN ./configure \
 	--with-jq=/usr \
 	${CONFIGURE_ARGS}
 RUN make all
-RUN make check_liboauth2
+RUN CK_FORK=no make check_liboauth2
