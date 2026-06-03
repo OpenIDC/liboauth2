@@ -217,7 +217,8 @@ START_TEST(test_oauth2_auth_client_secret_jwt)
 	oauth2_cfg_endpoint_auth_free(_log, auth);
 
 	auth = oauth2_cfg_endpoint_auth_init(_log);
-	oauth2_nv_list_add(_log, params, "client_secret", "mysecret");
+	oauth2_nv_list_add(_log, params, "client_secret",
+			   "0123456789abcdef0123456789abcdef");
 	rv = oauth2_cfg_set_endpoint_auth(_log, auth, "client_secret_jwt",
 					  params, NULL);
 	ck_assert_ptr_ne(rv, NULL);
@@ -1046,12 +1047,13 @@ START_TEST(test_oauth2_verify_token_plain)
 	oauth2_cfg_token_verify_t *verify = NULL;
 	char *jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
 		    "eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIn0."
-		    "sQOVoEtkQlgy8UwlPOi5YWSdGAkRn80JqT53RdktIms";
+		    "MN8eUaRUnYf0z3kU0xC_a8_b7jj7OVpoNAwmgu2KXJ8";
 	json_t *json_payload = NULL;
 	const char *rv = NULL;
 
-	rv = oauth2_cfg_token_verify_add_options(_log, &verify, "plain",
-						 "mysecret", "kid=mykid");
+	rv = oauth2_cfg_token_verify_add_options(
+	    _log, &verify, "plain", "0123456789abcdef0123456789abcdef",
+	    "kid=mykid&verify.exp=skip");
 	ck_assert_ptr_eq(rv, NULL);
 
 	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
@@ -1068,12 +1070,13 @@ START_TEST(test_oauth2_verify_token_base64)
 	oauth2_cfg_token_verify_t *verify = NULL;
 	char *jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
 		    "eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIn0."
-		    "kEm7kPCWXNn-p4cRSDAuO-htYx8hpq_7imIhMlig5So";
+		    "lnI9tTPme9fcefeQxe-bP0VqZJKR3mW1UmGrh2o7BnE";
 	json_t *json_payload = NULL;
 	const char *rv = NULL;
 
-	rv = oauth2_cfg_token_verify_add_options(_log, &verify, "base64",
-						 "YW5vdGhlcnNlY3JldA==", NULL);
+	rv = oauth2_cfg_token_verify_add_options(
+	    _log, &verify, "base64",
+	    "YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXowMTIzNDU=", "verify.exp=skip");
 	ck_assert_ptr_eq(rv, NULL);
 
 	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
@@ -1118,12 +1121,14 @@ START_TEST(test_oauth2_verify_token_hex)
 	oauth2_cfg_token_verify_t *verify = NULL;
 	char *jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
 		    "eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIn0."
-		    "ZdF3p7DBVz50evb9_eaY6euUtYikb6NTF7QHO6OTbGg";
+		    "oHIgl_L3kPyHH0Sm6SVxGW99gA5Pm96LVurKkGEh2HA";
 	json_t *json_payload = NULL;
 	const char *rv = NULL;
 
 	rv = oauth2_cfg_token_verify_add_options(
-	    _log, &verify, "hex", "6d797468697264736563726574", NULL);
+	    _log, &verify, "hex",
+	    "4142434445464748494a4b4c4d4e4f505152535455565758595a353433323130",
+	    "verify.exp=skip");
 	ck_assert_ptr_eq(rv, NULL);
 
 	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);

@@ -416,8 +416,8 @@ START_TEST(test_jwt_verify)
 	ck_assert_ptr_eq(json_payload, NULL);
 	ck_assert_ptr_eq(s_payload, NULL);
 
-	rc = oauth2_jose_jwk_create_symmetric(_log, "my_good_secret", NULL,
-					      &jwk);
+	rc = oauth2_jose_jwk_create_symmetric(
+	    _log, "my_good_secret_0123456789abcdef!", NULL, &jwk);
 	ck_assert_int_eq(rc, true);
 
 	jwt = oauth2_jwt_create(_log, jwk->jwk, CJOSE_HDR_ALG_HS256, "my_iss",
@@ -427,7 +427,8 @@ START_TEST(test_jwt_verify)
 	oauth2_jose_jwk_release(jwk);
 
 	rv = oauth2_cfg_token_verify_add_options(
-	    _log, &verify, "plain", "my_wrong_secret", "kid=my_wrong_kid1");
+	    _log, &verify, "plain", "my_wrong_secret_0123456789abcdef",
+	    "kid=my_wrong_kid1");
 	ck_assert_ptr_eq(rv, NULL);
 	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
 	ck_assert_int_eq(rc, false);
@@ -435,7 +436,7 @@ START_TEST(test_jwt_verify)
 	verify = NULL;
 
 	rv = oauth2_cfg_token_verify_add_options(
-	    _log, &verify, "plain", "my_good_secret",
+	    _log, &verify, "plain", "my_good_secret_0123456789abcdef!",
 	    "kid=my_good_kid&expiry=1&verify.iat=required");
 	ck_assert_ptr_eq(rv, NULL);
 	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
@@ -448,7 +449,7 @@ START_TEST(test_jwt_verify)
 	sleep(3);
 
 	rv = oauth2_cfg_token_verify_add_options(
-	    _log, &verify, "plain", "my_good_secret",
+	    _log, &verify, "plain", "my_good_secret_0123456789abcdef!",
 	    "kid=my_good_kid&expiry=1&verify.iat=required&verify.iat.slack_"
 	    "before=2");
 	ck_assert_ptr_eq(rv, NULL);

@@ -1,4 +1,7 @@
 06/03/2026
+- test: use >= 256-bit symmetric keys in the HS256 sign/verify test vectors, as
+  enforced by cjose 0.6.2.6 (RFC 7518 section 3.2); recompute the affected HMAC
+  signatures and skip "exp" validation for the exp-less example tokens
 - jose: require the "exp" claim by default when verifying JWTs via a shared key
   or a JWKS URI, so a correctly signed token without "exp" is no longer accepted
   as non-expiring; set verify.exp=optional to restore the previous behaviour.
