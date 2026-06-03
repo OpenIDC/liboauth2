@@ -880,6 +880,7 @@ end:
 #define OAUTH2_JOSE_JWT_IAT_SLACK_AFTER "verify.iat.slack_after"
 #define OAUTH2_JOSE_JWT_ISS_VALIDATE "verify.iss"
 #define OAUTH2_JOSE_JWT_EXP_VALIDATE "verify.exp"
+#define OAUTH2_JOSE_JWT_NBF_VALIDATE "verify.nbf"
 #define OAUTH2_JOSE_JWT_IAT_VALIDATE "verify.iat"
 
 _OAUTH2_CFG_CTX_INIT_START(oauth2_jose_jwt_verify_ctx)
@@ -920,8 +921,21 @@ bool oauth2_jose_jwt_verify_set_options(
 	jwt_verify->iss_validate = oauth2_parse_validate_claim_option(
 	    log, oauth2_nv_list_get(log, params, OAUTH2_JOSE_JWT_ISS_VALIDATE),
 	    OAUTH2_JOSE_JWT_VALIDATE_CLAIM_OPTIONAL);
+	// NB: a token without an "exp" claim never expires, so require it by
+	// default; deployments that knowingly accept non-expiring tokens can
+	// still set verify.exp=optional (or skip). AWS ALB and EC-key tokens
+	// carry "exp" in the JOSE header rather than the payload, so keep the
+	// payload "exp" optional for those provider types.
+	oauth2_jose_jwt_validate_claim_t exp_default =
+	    OAUTH2_JOSE_JWT_VALIDATE_CLAIM_REQUIRED;
+	if ((type == OAUTH2_JOSE_JWKS_PROVIDER_ECKEY_URI) ||
+	    (type == OAUTH2_JOSE_JWKS_PROVIDER_AWS_ALB))
+		exp_default = OAUTH2_JOSE_JWT_VALIDATE_CLAIM_OPTIONAL;
 	jwt_verify->exp_validate = oauth2_parse_validate_claim_option(
 	    log, oauth2_nv_list_get(log, params, OAUTH2_JOSE_JWT_EXP_VALIDATE),
+	    exp_default);
+	jwt_verify->nbf_validate = oauth2_parse_validate_claim_option(
+	    log, oauth2_nv_list_get(log, params, OAUTH2_JOSE_JWT_NBF_VALIDATE),
 	    OAUTH2_JOSE_JWT_VALIDATE_CLAIM_OPTIONAL);
 	jwt_verify->iat_validate = oauth2_parse_validate_claim_option(
 	    log, oauth2_nv_list_get(log, params, OAUTH2_JOSE_JWT_IAT_VALIDATE),
@@ -1170,6 +1184,58 @@ end:
 	return rc;
 }
 
+bool oauth2_jose_jwt_validate_nbf(oauth2_log_t *log, const json_t *json_payload,
+				  oauth2_jose_jwt_validate_claim_t validate)
+{
+	bool rc = false;
+	json_int_t nbf = -1;
+	oauth2_time_t now;
+
+	oauth2_debug(log, "enter: validate=%s",
+		     _oauth2_validate_claim_option2s(validate));
+
+	if (validate == OAUTH2_JOSE_JWT_VALIDATE_CLAIM_SKIP) {
+		rc = true;
+		goto end;
+	}
+
+	if (oauth2_json_number_get(log, json_payload, OAUTH2_JOSE_JWT_NBF, &nbf,
+				   -1) == false) {
+		rc = (validate != OAUTH2_JOSE_JWT_VALIDATE_CLAIM_REQUIRED);
+		goto end;
+	}
+
+	if (nbf == -1) {
+		oauth2_warn(log, "JWT did not contain a \"%s\" number",
+			    OAUTH2_JOSE_JWT_NBF);
+		rc = (validate != OAUTH2_JOSE_JWT_VALIDATE_CLAIM_REQUIRED);
+		goto end;
+	}
+
+	now = oauth2_time_now_sec();
+
+	oauth2_debug(log,
+		     "\"%s\"=%" JSON_INTEGER_FORMAT ", %ld seconds from now",
+		     OAUTH2_JOSE_JWT_NBF, nbf, (long)(nbf - now));
+
+	if (now < nbf) {
+		oauth2_error(
+		    log,
+		    "\"%s\" validation failure (%ld): JWT is not valid "
+		    "until %ld seconds from now",
+		    OAUTH2_JOSE_JWT_NBF, (long)nbf, (long)(nbf - now));
+		goto end;
+	}
+
+	rc = true;
+
+end:
+
+	oauth2_debug(log, "leave: %d", rc);
+
+	return rc;
+}
+
 bool oauth2_jose_jwt_validate_iat(oauth2_log_t *log, const json_t *json_payload,
 				  oauth2_jose_jwt_validate_claim_t validate,
 				  oauth2_uint_t slack_before,
@@ -1248,6 +1314,10 @@ _oauth2_jose_jwt_payload_validate(oauth2_log_t *log,
 
 	if (_oauth2_jose_jwt_validate_exp(
 		log, json_payload, jwt_verify_ctx->exp_validate) == false)
+		goto end;
+
+	if (oauth2_jose_jwt_validate_nbf(log, json_payload,
+					 jwt_verify_ctx->nbf_validate) == false)
 		goto end;
 
 	if (oauth2_jose_jwt_validate_iat(
@@ -1912,7 +1982,7 @@ oauth2_jose_jwks_list_resolve(oauth2_log_t *log,
 }
 
 typedef oauth2_jose_jwk_list_t *(
-    oauth2_jose_jwks_url_resolve_response_cb_t)(oauth2_log_t *log,
+    oauth2_jose_jwks_url_resolve_response_cb_t)(oauth2_log_t * log,
 						char *response);
 
 // cater for the (Amazon ALB) use case that only a single EC(!) key is served

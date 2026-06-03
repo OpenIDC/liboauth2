@@ -37,6 +37,7 @@
 #define OAUTH2_JOSE_JWT_ISS "iss"
 #define OAUTH2_JOSE_JWT_IAT "iat"
 #define OAUTH2_JOSE_JWT_EXP "exp"
+#define OAUTH2_JOSE_JWT_NBF "nbf"
 #define OAUTH2_JOSE_JWT_SUB "sub"
 #define OAUTH2_JOSE_JWT_AUD "aud"
 

@@ -80,6 +80,7 @@ oauth2_jose_jwks_provider_t *jwks_provider;
 char *issuer;
 oauth2_jose_jwt_validate_claim_t iss_validate;
 oauth2_jose_jwt_validate_claim_t exp_validate;
+oauth2_jose_jwt_validate_claim_t nbf_validate;
 oauth2_jose_jwt_validate_claim_t iat_validate;
 oauth2_uint_t iat_slack_before;
 oauth2_uint_t iat_slack_after;
@@ -123,5 +124,8 @@ bool oauth2_jose_jwt_validate_iat(oauth2_log_t *log, const json_t *json_payload,
 				  oauth2_jose_jwt_validate_claim_t validate,
 				  oauth2_uint_t slack_before,
 				  oauth2_uint_t slack_after);
+
+bool oauth2_jose_jwt_validate_nbf(oauth2_log_t *log, const json_t *json_payload,
+				  oauth2_jose_jwt_validate_claim_t validate);
 
 #endif /* _OAUTH2_JOSE_INT_H_ */

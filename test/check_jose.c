@@ -461,6 +461,63 @@ START_TEST(test_jwt_verify)
 }
 END_TEST
 
+START_TEST(test_jwt_validate_nbf)
+{
+	json_t *payload = NULL;
+	json_error_t err;
+	oauth2_cfg_token_verify_t *verify = NULL;
+	oauth2_jose_jwt_verify_ctx_t *ptr = NULL;
+	const char *rv = NULL;
+
+	// "exp" must default to REQUIRED so tokens without it never silently
+	// pass as non-expiring; "nbf" defaults to OPTIONAL
+	rv = oauth2_cfg_token_verify_add_options(_log, &verify, "plain",
+						 "secret", "kid=mykid");
+	ck_assert_ptr_eq(rv, NULL);
+	ptr = (oauth2_jose_jwt_verify_ctx_t *)verify->ctx->ptr;
+	ck_assert_int_eq(ptr->exp_validate,
+			 OAUTH2_JOSE_JWT_VALIDATE_CLAIM_REQUIRED);
+	ck_assert_int_eq(ptr->nbf_validate,
+			 OAUTH2_JOSE_JWT_VALIDATE_CLAIM_OPTIONAL);
+	oauth2_cfg_token_verify_free(_log, verify);
+
+	// a token whose nbf lies in the future is rejected
+	payload = json_loads("{\"nbf\":9999999999}", 0, &err);
+	ck_assert_ptr_ne(payload, NULL);
+	ck_assert_int_eq(
+	    oauth2_jose_jwt_validate_nbf(
+		_log, payload, OAUTH2_JOSE_JWT_VALIDATE_CLAIM_REQUIRED),
+	    false);
+	json_decref(payload);
+
+	// a token whose nbf lies in the past is accepted
+	payload = json_loads("{\"nbf\":1}", 0, &err);
+	ck_assert_ptr_ne(payload, NULL);
+	ck_assert_int_eq(
+	    oauth2_jose_jwt_validate_nbf(
+		_log, payload, OAUTH2_JOSE_JWT_VALIDATE_CLAIM_REQUIRED),
+	    true);
+	json_decref(payload);
+
+	// a missing nbf passes when optional but fails when required
+	payload = json_loads("{}", 0, &err);
+	ck_assert_ptr_ne(payload, NULL);
+	ck_assert_int_eq(
+	    oauth2_jose_jwt_validate_nbf(
+		_log, payload, OAUTH2_JOSE_JWT_VALIDATE_CLAIM_OPTIONAL),
+	    true);
+	ck_assert_int_eq(
+	    oauth2_jose_jwt_validate_nbf(
+		_log, payload, OAUTH2_JOSE_JWT_VALIDATE_CLAIM_REQUIRED),
+	    false);
+	ck_assert_int_eq(
+	    oauth2_jose_jwt_validate_nbf(_log, payload,
+					 OAUTH2_JOSE_JWT_VALIDATE_CLAIM_SKIP),
+	    true);
+	json_decref(payload);
+}
+END_TEST
+
 Suite *oauth2_check_jose_suite()
 {
 	Suite *s = suite_create("jose");
@@ -478,6 +535,7 @@ Suite *oauth2_check_jose_suite()
 	tcase_add_test(c, test_jwks_resolve_uri);
 	tcase_add_test(c, test_jwk_resolve_plain);
 	tcase_add_test(c, test_jwt_verify);
+	tcase_add_test(c, test_jwt_validate_nbf);
 
 	tcase_set_timeout(c, 8);
 

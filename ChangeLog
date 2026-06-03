@@ -1,4 +1,10 @@
 06/03/2026
+- jose: require the "exp" claim by default when verifying JWTs via a shared key
+  or a JWKS URI, so a correctly signed token without "exp" is no longer accepted
+  as non-expiring; set verify.exp=optional to restore the previous behaviour.
+  EC-key and AWS ALB token types keep "exp" optional because they carry it in
+  the JOSE header. Also add "nbf" (not-before) validation, configurable through
+  verify.nbf (CWE-613)
 - nginx: clamp the snprintf() return value before using it as the length of a
   fixed stack buffer when formatting configuration error messages; a long
   invalid variable name or expression could otherwise drive a memcpy()
