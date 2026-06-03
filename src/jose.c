@@ -882,12 +882,16 @@ end:
 #define OAUTH2_JOSE_JWT_EXP_VALIDATE "verify.exp"
 #define OAUTH2_JOSE_JWT_NBF_VALIDATE "verify.nbf"
 #define OAUTH2_JOSE_JWT_IAT_VALIDATE "verify.iat"
+#define OAUTH2_JOSE_JWT_AUD_VALIDATE "verify.aud"
 
 _OAUTH2_CFG_CTX_INIT_START(oauth2_jose_jwt_verify_ctx)
 ctx->exp_validate = OAUTH2_CFG_UINT_UNSET;
+ctx->nbf_validate = OAUTH2_CFG_UINT_UNSET;
 ctx->iat_validate = OAUTH2_CFG_UINT_UNSET;
 ctx->iss_validate = OAUTH2_CFG_UINT_UNSET;
+ctx->aud_validate = OAUTH2_CFG_UINT_UNSET;
 ctx->issuer = NULL;
+ctx->audience = NULL;
 ctx->iat_slack_after = OAUTH2_CFG_UINT_UNSET;
 ctx->iat_slack_before = OAUTH2_CFG_UINT_UNSET;
 ctx->jwks_provider = NULL;
@@ -895,9 +899,12 @@ _OAUTH2_CFG_CTX_INIT_END
 
 _OAUTH2_CFG_CTX_CLONE_START(oauth2_jose_jwt_verify_ctx)
 dst->exp_validate = src->exp_validate;
+dst->nbf_validate = src->nbf_validate;
 dst->iat_validate = src->iat_validate;
 dst->iss_validate = src->iss_validate;
+dst->aud_validate = src->aud_validate;
 dst->issuer = oauth2_strdup(src->issuer);
+dst->audience = oauth2_strdup(src->audience);
 dst->iat_slack_after = src->iat_slack_after;
 dst->iat_slack_before = src->iat_slack_before;
 dst->jwks_provider = _oauth2_jose_jwks_provider_clone(log, src->jwks_provider);
@@ -906,6 +913,8 @@ _OAUTH2_CFG_CTX_CLONE_END
 _OAUTH2_CFG_CTX_FREE_START(oauth2_jose_jwt_verify_ctx)
 if (ctx->issuer)
 	oauth2_mem_free(ctx->issuer);
+if (ctx->audience)
+	oauth2_mem_free(ctx->audience);
 if (ctx->jwks_provider)
 	_oauth2_jose_jwks_provider_free(log, ctx->jwks_provider);
 _OAUTH2_CFG_CTX_FREE_END
@@ -920,6 +929,11 @@ bool oauth2_jose_jwt_verify_set_options(
 
 	jwt_verify->iss_validate = oauth2_parse_validate_claim_option(
 	    log, oauth2_nv_list_get(log, params, OAUTH2_JOSE_JWT_ISS_VALIDATE),
+	    OAUTH2_JOSE_JWT_VALIDATE_CLAIM_OPTIONAL);
+	// NB: only enforced when an expected audience is configured on the
+	// verify context (e.g. the OIDC client_id for an id_token)
+	jwt_verify->aud_validate = oauth2_parse_validate_claim_option(
+	    log, oauth2_nv_list_get(log, params, OAUTH2_JOSE_JWT_AUD_VALIDATE),
 	    OAUTH2_JOSE_JWT_VALIDATE_CLAIM_OPTIONAL);
 	// NB: a token without an "exp" claim never expires, so require it by
 	// default; deployments that knowingly accept non-expiring tokens can
@@ -1184,6 +1198,69 @@ end:
 	return rc;
 }
 
+bool oauth2_jose_jwt_validate_aud(oauth2_log_t *log, const json_t *json_payload,
+				  const char *aud,
+				  oauth2_jose_jwt_validate_claim_t validate)
+{
+	bool rc = false;
+	json_t *value = NULL, *elem = NULL;
+	size_t i = 0;
+
+	oauth2_debug(log, "enter: aud=%s, validate=%s", aud,
+		     _oauth2_validate_claim_option2s(validate));
+
+	if (validate == OAUTH2_JOSE_JWT_VALIDATE_CLAIM_SKIP) {
+		rc = true;
+		goto end;
+	}
+
+	// no expected audience configured: nothing to match against
+	if (aud == NULL) {
+		rc = (validate != OAUTH2_JOSE_JWT_VALIDATE_CLAIM_REQUIRED);
+		goto end;
+	}
+
+	value = json_object_get(json_payload, OAUTH2_JOSE_JWT_AUD);
+	if (value == NULL) {
+		oauth2_warn(log, "JWT did not contain an \"%s\" claim",
+			    OAUTH2_JOSE_JWT_AUD);
+		rc = (validate != OAUTH2_JOSE_JWT_VALIDATE_CLAIM_REQUIRED);
+		goto end;
+	}
+
+	// "aud" may be a single string or an array of strings (RFC 7519 4.1.3)
+	if (json_is_string(value)) {
+		rc = (strcmp(aud, json_string_value(value)) == 0);
+	} else if (json_is_array(value)) {
+		json_array_foreach(value, i, elem)
+		{
+			if (json_is_string(elem) &&
+			    (strcmp(aud, json_string_value(elem)) == 0)) {
+				rc = true;
+				break;
+			}
+		}
+	} else {
+		oauth2_error(log,
+			     "\"%s\" claim is neither a string nor an array",
+			     OAUTH2_JOSE_JWT_AUD);
+		goto end;
+	}
+
+	if (rc == false)
+		oauth2_error(
+		    log,
+		    "requested audience (%s) does not match the \"%s\" "
+		    "claim in the JWT",
+		    aud, OAUTH2_JOSE_JWT_AUD);
+
+end:
+
+	oauth2_debug(log, "leave: %d", rc);
+
+	return rc;
+}
+
 bool oauth2_jose_jwt_validate_nbf(oauth2_log_t *log, const json_t *json_payload,
 				  oauth2_jose_jwt_validate_claim_t validate)
 {
@@ -1310,6 +1387,11 @@ _oauth2_jose_jwt_payload_validate(oauth2_log_t *log,
 	if (_oauth2_jose_jwt_validate_iss(
 		log, json_payload, jwt_verify_ctx->issuer,
 		jwt_verify_ctx->iss_validate) == false)
+		goto end;
+
+	if (oauth2_jose_jwt_validate_aud(log, json_payload,
+					 jwt_verify_ctx->audience,
+					 jwt_verify_ctx->aud_validate) == false)
 		goto end;
 
 	if (_oauth2_jose_jwt_validate_exp(

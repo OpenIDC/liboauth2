@@ -519,6 +519,70 @@ START_TEST(test_jwt_validate_nbf)
 }
 END_TEST
 
+START_TEST(test_jwt_validate_aud)
+{
+	json_t *payload = NULL;
+	json_error_t err;
+
+	// single-string "aud": match / mismatch
+	payload = json_loads("{\"aud\":\"client1\"}", 0, &err);
+	ck_assert_ptr_ne(payload, NULL);
+	ck_assert_int_eq(oauth2_jose_jwt_validate_aud(
+			     _log, payload, "client1",
+			     OAUTH2_JOSE_JWT_VALIDATE_CLAIM_REQUIRED),
+			 true);
+	ck_assert_int_eq(oauth2_jose_jwt_validate_aud(
+			     _log, payload, "client2",
+			     OAUTH2_JOSE_JWT_VALIDATE_CLAIM_REQUIRED),
+			 false);
+	json_decref(payload);
+
+	// array "aud": present / absent
+	payload = json_loads("{\"aud\":[\"other\",\"client1\"]}", 0, &err);
+	ck_assert_ptr_ne(payload, NULL);
+	ck_assert_int_eq(oauth2_jose_jwt_validate_aud(
+			     _log, payload, "client1",
+			     OAUTH2_JOSE_JWT_VALIDATE_CLAIM_REQUIRED),
+			 true);
+	ck_assert_int_eq(
+	    oauth2_jose_jwt_validate_aud(
+		_log, payload, "nope", OAUTH2_JOSE_JWT_VALIDATE_CLAIM_REQUIRED),
+	    false);
+	json_decref(payload);
+
+	// no expected audience configured: optional passes, required fails,
+	// skip passes
+	payload = json_loads("{\"aud\":\"client1\"}", 0, &err);
+	ck_assert_ptr_ne(payload, NULL);
+	ck_assert_int_eq(
+	    oauth2_jose_jwt_validate_aud(
+		_log, payload, NULL, OAUTH2_JOSE_JWT_VALIDATE_CLAIM_OPTIONAL),
+	    true);
+	ck_assert_int_eq(
+	    oauth2_jose_jwt_validate_aud(
+		_log, payload, NULL, OAUTH2_JOSE_JWT_VALIDATE_CLAIM_REQUIRED),
+	    false);
+	ck_assert_int_eq(
+	    oauth2_jose_jwt_validate_aud(_log, payload, "client1",
+					 OAUTH2_JOSE_JWT_VALIDATE_CLAIM_SKIP),
+	    true);
+	json_decref(payload);
+
+	// missing "aud" claim: optional passes, required fails
+	payload = json_loads("{}", 0, &err);
+	ck_assert_ptr_ne(payload, NULL);
+	ck_assert_int_eq(oauth2_jose_jwt_validate_aud(
+			     _log, payload, "client1",
+			     OAUTH2_JOSE_JWT_VALIDATE_CLAIM_OPTIONAL),
+			 true);
+	ck_assert_int_eq(oauth2_jose_jwt_validate_aud(
+			     _log, payload, "client1",
+			     OAUTH2_JOSE_JWT_VALIDATE_CLAIM_REQUIRED),
+			 false);
+	json_decref(payload);
+}
+END_TEST
+
 Suite *oauth2_check_jose_suite()
 {
 	Suite *s = suite_create("jose");
@@ -537,6 +601,7 @@ Suite *oauth2_check_jose_suite()
 	tcase_add_test(c, test_jwk_resolve_plain);
 	tcase_add_test(c, test_jwt_verify);
 	tcase_add_test(c, test_jwt_validate_nbf);
+	tcase_add_test(c, test_jwt_validate_aud);
 
 	tcase_set_timeout(c, 8);
 

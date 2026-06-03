@@ -78,10 +78,12 @@ typedef struct oauth2_jose_jwks_provider_t {
 _OAUTH2_CFG_CTX_TYPE_START(oauth2_jose_jwt_verify_ctx)
 oauth2_jose_jwks_provider_t *jwks_provider;
 char *issuer;
+char *audience;
 oauth2_jose_jwt_validate_claim_t iss_validate;
 oauth2_jose_jwt_validate_claim_t exp_validate;
 oauth2_jose_jwt_validate_claim_t nbf_validate;
 oauth2_jose_jwt_validate_claim_t iat_validate;
+oauth2_jose_jwt_validate_claim_t aud_validate;
 oauth2_uint_t iat_slack_before;
 oauth2_uint_t iat_slack_after;
 _OAUTH2_CFG_CTX_TYPE_END(oauth2_jose_jwt_verify_ctx)
@@ -126,6 +128,10 @@ bool oauth2_jose_jwt_validate_iat(oauth2_log_t *log, const json_t *json_payload,
 				  oauth2_uint_t slack_after);
 
 bool oauth2_jose_jwt_validate_nbf(oauth2_log_t *log, const json_t *json_payload,
+				  oauth2_jose_jwt_validate_claim_t validate);
+
+bool oauth2_jose_jwt_validate_aud(oauth2_log_t *log, const json_t *json_payload,
+				  const char *aud,
 				  oauth2_jose_jwt_validate_claim_t validate);
 
 #endif /* _OAUTH2_JOSE_INT_H_ */

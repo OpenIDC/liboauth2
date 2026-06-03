@@ -1,4 +1,8 @@
 06/03/2026
+- jose: add audience ("aud") validation (oauth2_jose_jwt_validate_aud), wired
+  into JWT payload validation and enforced whenever an expected audience is set
+  on the verify context; accepts both a single-string and an array "aud" claim
+  per RFC 7519 section 4.1.3 (CWE-287)
 - test: use >= 256-bit symmetric keys in the HS256 sign/verify test vectors, as
   enforced by cjose 0.6.2.6 (RFC 7518 section 3.2); recompute the affected HMAC
   signatures and skip "exp" validation for the exp-less example tokens
