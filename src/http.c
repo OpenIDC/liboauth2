@@ -222,7 +222,7 @@ bool oauth2_http_request_header_add(oauth2_log_t *log,
 static char *oauth2_http_request_header_get_left_most_only(
     oauth2_log_t *log, const oauth2_http_request_t *request, const char *name)
 {
-	char *rv = NULL, *v = NULL;
+	char *rv = NULL, *v = NULL, *tok = NULL;
 	const char *value = NULL;
 	const char *separators = ", \t";
 	value = oauth2_http_request_header_get(log, request, name);
@@ -230,8 +230,20 @@ static char *oauth2_http_request_header_get_left_most_only(
 		goto end;
 
 	v = oauth2_strdup(value);
-	if (v)
-		rv = strtok(v, separators);
+	if (v == NULL)
+		goto end;
+
+	/*
+	 * strtok skips leading separators and returns a pointer *into* v, so
+	 * duplicate the token into its own allocation: callers free the
+	 * returned pointer and must not be handed an interior pointer (which
+	 * would be an invalid free), and v itself must always be freed here.
+	 */
+	tok = strtok(v, separators);
+	if (tok != NULL)
+		rv = oauth2_strdup(tok);
+
+	oauth2_mem_free(v);
 
 end:
 	return rv;

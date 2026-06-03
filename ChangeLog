@@ -1,4 +1,9 @@
 06/03/2026
+- http: fix an invalid free / heap corruption when parsing X-Forwarded-Proto,
+  X-Forwarded-Port or X-Forwarded-Host header values that start with a
+  separator; the left-most-value helper returned an interior strtok() pointer
+  that callers subsequently freed (CWE-763); also fixes a leak of the
+  duplicated header value
 - cache: fix a NULL-pointer dereference when a non-default cache
   passphrase_hash_algo is configured; a self-assignment left the local
   variable NULL so strcmp(NULL, "none") crashed every encrypted cache get/set
