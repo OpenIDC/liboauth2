@@ -192,7 +192,7 @@ end:
 oauth2_flag_t
 oauth2_cfg_target_pass_get_as_envvars(oauth2_cfg_target_pass_t *cfg)
 {
-	if (cfg->as_headers == OAUTH2_CFG_FLAG_UNSET)
+	if (cfg->as_envvars == OAUTH2_CFG_FLAG_UNSET)
 		return OAUTH2_CFG_PASS_TARGET_AS_ENVVARS_DEFAULT;
 	return cfg->as_envvars;
 }

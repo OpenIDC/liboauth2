@@ -1,4 +1,7 @@
 06/03/2026
+- cfg: honour "envvars" target-pass setting; the getter tested the unrelated
+  as_headers field, so an explicit envvars=off was ignored and claims plus the
+  access_token were still exported into the subprocess environment (CWE-200)
 - http: fix an invalid free / heap corruption when parsing X-Forwarded-Proto,
   X-Forwarded-Port or X-Forwarded-Host header values that start with a
   separator; the left-most-value helper returned an interior strtok() pointer
