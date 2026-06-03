@@ -128,7 +128,7 @@ static bool _oauth2_http_request_header_set_add_sanitized(
 	bool rc = false;
 	char *s_value = NULL, *p = NULL;
 
-	if ((request == NULL) && (name == NULL))
+	if ((request == NULL) || (name == NULL))
 		goto end;
 
 	if (value) {

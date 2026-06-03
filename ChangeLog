@@ -1,4 +1,7 @@
 06/03/2026
+- http: fix NULL-pointer dereference in the sanitized header set/add helper; the
+  guard used && instead of || so a NULL request dereferenced request->header
+  (CWE-476)
 - ipc: fix NULL-pointer dereference in oauth2_ipc_mutex_free(); the guard used
   && instead of || so passing a NULL mutex dereferenced it (CWE-476)
 - cfg: honour "envvars" target-pass setting; the getter tested the unrelated
