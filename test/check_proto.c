@@ -307,6 +307,8 @@ START_TEST(test_proto_get_source_token_post)
 	ck_assert_str_eq(token, my_post_token);
 	oauth2_mem_free(token);
 	oauth2_cfg_source_token_free(_log, cfg);
+
+	oauth2_http_request_free(_log, request);
 }
 END_TEST
 

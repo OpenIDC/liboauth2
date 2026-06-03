@@ -1,4 +1,6 @@
 06/03/2026
+- jose: fix a memory leak of the decoded EVP_PKEY in the single-EC-key URL
+  resolver (e.g. AWS ALB) on OpenSSL 3.x; found via Valgrind
 - oauth2: re-validate the token "exp" on a verification-cache hit; the result
   cache TTL is independent of the token's own expiry, so a cached entry could
   previously be returned as valid after the token had already expired. On a hit

@@ -1141,6 +1141,9 @@ _oauth2_jose_jwt_validate_iss(oauth2_log_t *log, const json_t *json_payload,
 
 end:
 
+	if (value)
+		oauth2_mem_free(value);
+
 	oauth2_debug(log, "leave: %d", rc);
 
 	return rc;
@@ -2211,6 +2214,8 @@ end:
 		BN_free(y);
 
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
+	if (pkey)
+		EVP_PKEY_free(pkey);
 	if (dctx)
 		OSSL_DECODER_CTX_free(dctx);
 #else
