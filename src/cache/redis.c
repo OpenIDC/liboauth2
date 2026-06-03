@@ -214,13 +214,14 @@ end:
 
 static redisReply *_oauth2_cache_redis_command(oauth2_log_t *log,
 					       oauth2_cache_impl_redis_t *impl,
-					       const char *command)
+					       int argc, const char **argv,
+					       const size_t *argvlen)
 {
 
 	redisReply *reply = NULL;
 	int i = 0;
 
-	oauth2_debug(log, "enter: %s", command);
+	oauth2_debug(log, "enter: %s", argc > 0 ? argv[0] : "(null)");
 
 	for (i = 0; i < OIDC_REDIS_MAX_TRIES; i++) {
 
@@ -252,7 +253,7 @@ static redisReply *_oauth2_cache_redis_command(oauth2_log_t *log,
 			}
 		}
 
-		reply = redisCommand(impl->ctx, command);
+		reply = redisCommandArgv(impl->ctx, argc, argv, argvlen);
 
 		if ((reply != NULL) && (reply->type != REDIS_REPLY_ERROR))
 			break;
@@ -284,7 +285,8 @@ static bool oauth2_cache_redis_get(oauth2_log_t *log, oauth2_cache_t *cache,
 
 	bool rc = false;
 	redisReply *reply = NULL;
-	char *cmd = NULL;
+	const char *argv[] = {"GET", key};
+	const size_t argvlen[] = {3, key ? strlen(key) : 0};
 	oauth2_cache_impl_redis_t *impl =
 	    (oauth2_cache_impl_redis_t *)cache->impl;
 
@@ -298,8 +300,7 @@ static bool oauth2_cache_redis_get(oauth2_log_t *log, oauth2_cache_t *cache,
 	if (oauth2_ipc_thread_mutex_lock(log, impl->mutex) == false)
 		goto end;
 
-	cmd = oauth2_stradd(NULL, "GET", " ", key);
-	reply = _oauth2_cache_redis_command(log, impl, cmd);
+	reply = _oauth2_cache_redis_command(log, impl, 2, argv, argvlen);
 	if (reply == NULL)
 		goto unlock;
 
@@ -326,8 +327,6 @@ unlock:
 
 end:
 
-	if (cmd)
-		oauth2_mem_free(cmd);
 	if (reply)
 		freeReplyObject(reply);
 
@@ -344,7 +343,6 @@ static bool oauth2_cache_redis_set(oauth2_log_t *log, oauth2_cache_t *cache,
 {
 	bool rc = false;
 	redisReply *reply = NULL;
-	char *cmd = NULL;
 	char s_timeout[OAUTH2_UINT_MAX_STR];
 	oauth2_cache_impl_redis_t *impl =
 	    (oauth2_cache_impl_redis_t *)cache->impl;
@@ -359,18 +357,33 @@ static bool oauth2_cache_redis_set(oauth2_log_t *log, oauth2_cache_t *cache,
 
 	if (value) {
 
+		const char *argv[4];
+		size_t argvlen[4];
+
 		oauth2_snprintf(s_timeout, OAUTH2_UINT_MAX_STR,
 				"" OAUTH2_TIME_T_FORMAT "", ttl_s);
-		cmd = oauth2_strdup("SETEX ");
-		cmd = oauth2_stradd(cmd, key, " ", s_timeout);
-		cmd = oauth2_stradd(cmd, " ", value, NULL);
+
+		argv[0] = "SETEX";
+		argv[1] = key;
+		argv[2] = s_timeout;
+		argv[3] = value;
+		argvlen[0] = 5;
+		argvlen[1] = key ? strlen(key) : 0;
+		argvlen[2] = strlen(s_timeout);
+		argvlen[3] = strlen(value);
+
+		reply =
+		    _oauth2_cache_redis_command(log, impl, 4, argv, argvlen);
 
 	} else {
 
-		cmd = oauth2_stradd(NULL, "DEL", " ", key);
+		const char *argv[] = {"DEL", key};
+		const size_t argvlen[] = {3, key ? strlen(key) : 0};
+
+		reply =
+		    _oauth2_cache_redis_command(log, impl, 2, argv, argvlen);
 	}
 
-	reply = _oauth2_cache_redis_command(log, impl, cmd);
 	if (reply == NULL)
 		goto unlock;
 
@@ -382,8 +395,6 @@ unlock:
 
 end:
 
-	if (cmd)
-		oauth2_mem_free(cmd);
 	if (reply)
 		freeReplyObject(reply);
 

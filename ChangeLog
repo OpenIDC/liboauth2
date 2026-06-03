@@ -1,3 +1,9 @@
+06/03/2026
+- cache: pass cache keys/values to Redis via redisCommandArgv() instead of
+  building a command string that was passed as the redisCommand() printf-style
+  format argument; prevents format-string exploitation and Redis
+  command/argument injection through cache keys and values (CWE-134, CWE-74)
+
 06/02/2026
 - jose: URL-encode the JWT "kid" before constructing the AWS ALB JWKs URL to
   prevent path traversal/injection (SSRF) into the outbound key request (CWE-918)
