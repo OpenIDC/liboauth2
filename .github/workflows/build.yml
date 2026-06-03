@@ -58,4 +58,70 @@ jobs:
 
     - name: Distcheck
       run: make distcheck DISTCHECK_CONFIGURE_FLAGS="--with-nginx=/tmp/nginx" DESTDIR="/tmp/liboauth2"
+
+  valgrind:
+
+    runs-on: ubuntu-latest
+    name: Valgrind
+
+    env:
+      NGINX_VERSION: 1.27.3
+
+    services:
+
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+
+      memcached:
+        image: memcached
+        ports:
+          - 11211:11211
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Dependencies
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y apache2-dev libcjose-dev libssl-dev check pkg-config
+        sudo apt-get install -y libjansson-dev libcurl4-openssl-dev libhiredis-dev libmemcached-dev libpcre2-dev libpcre2-8-0 libjq-dev
+        sudo apt-get install -y build-essential libpcre3 libpcre3-dev zlib1g zlib1g-dev libxml2 libxml2-dev uuid-dev
+        sudo apt-get install -y valgrind
+        cd /tmp
+        wget https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz
+        tar zxvf nginx-${NGINX_VERSION}.tar.gz
+        ln -s nginx-${NGINX_VERSION} nginx
+        cd /tmp/nginx && ./configure --with-debug
+
+    - name: Configure
+      run: |
+        ./autogen.sh
+        ./configure --with-nginx=/tmp/nginx --with-jq=/usr
+
+    - name: Make
+      run: make
+
+    - name: Build tests
+      run: make check_liboauth2
+
+    - name: Wait for service containers
+      run: |
+        for i in $(seq 1 30); do
+          (exec 3<>/dev/tcp/localhost/6379) 2>/dev/null \
+            && (exec 3<>/dev/tcp/localhost/11211) 2>/dev/null \
+            && { echo "redis + memcached reachable"; exit 0; }
+          echo "waiting for service containers ($i)..."; sleep 1
+        done
+        echo "service containers did not become reachable"; exit 1
+
+    - name: Valgrind
+      run: |
+        CK_FORK=no LD_LIBRARY_PATH="$PWD/.libs" valgrind --error-exitcode=1 --leak-check=full --show-leak-kinds=definite --errors-for-leak-kinds=definite --read-inline-info=yes --keep-debuginfo=yes .libs/check_liboauth2
  
