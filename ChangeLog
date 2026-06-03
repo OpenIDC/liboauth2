@@ -1,4 +1,7 @@
 06/03/2026
+- cache: fix a NULL-pointer dereference when a non-default cache
+  passphrase_hash_algo is configured; a self-assignment left the local
+  variable NULL so strcmp(NULL, "none") crashed every encrypted cache get/set
 - cache: pass cache keys/values to Redis via redisCommandArgv() instead of
   building a command string that was passed as the redisCommand() printf-style
   format argument; prevents format-string exploitation and Redis

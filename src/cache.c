@@ -265,7 +265,7 @@ static const char *_oauth_cache_get_enc_key(oauth2_log_t *log,
 		goto end;
 
 	passphrase_hash_algo = cache->passphrase_hash_algo
-				   ? passphrase_hash_algo
+				   ? cache->passphrase_hash_algo
 				   : OAUTH2_JOSE_OPENSSL_ALG_SHA256;
 
 	if (strcmp(passphrase_hash_algo, "none") == 0) {
