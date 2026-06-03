@@ -127,6 +127,9 @@ bool oauth2_jose_jwt_validate_iat(oauth2_log_t *log, const json_t *json_payload,
 				  oauth2_uint_t slack_before,
 				  oauth2_uint_t slack_after);
 
+bool oauth2_jose_jwt_validate_exp(oauth2_log_t *log, const json_t *json_payload,
+				  oauth2_jose_jwt_validate_claim_t validate);
+
 bool oauth2_jose_jwt_validate_nbf(oauth2_log_t *log, const json_t *json_payload,
 				  oauth2_jose_jwt_validate_claim_t validate);
 

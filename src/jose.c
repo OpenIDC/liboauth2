@@ -1146,9 +1146,8 @@ end:
 	return rc;
 }
 
-static bool
-_oauth2_jose_jwt_validate_exp(oauth2_log_t *log, const json_t *json_payload,
-			      oauth2_jose_jwt_validate_claim_t validate)
+bool oauth2_jose_jwt_validate_exp(oauth2_log_t *log, const json_t *json_payload,
+				  oauth2_jose_jwt_validate_claim_t validate)
 {
 	bool rc = false;
 	json_int_t exp = -1;
@@ -1394,8 +1393,8 @@ _oauth2_jose_jwt_payload_validate(oauth2_log_t *log,
 					 jwt_verify_ctx->aud_validate) == false)
 		goto end;
 
-	if (_oauth2_jose_jwt_validate_exp(
-		log, json_payload, jwt_verify_ctx->exp_validate) == false)
+	if (oauth2_jose_jwt_validate_exp(log, json_payload,
+					 jwt_verify_ctx->exp_validate) == false)
 		goto end;
 
 	if (oauth2_jose_jwt_validate_nbf(log, json_payload,

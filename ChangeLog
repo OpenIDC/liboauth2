@@ -1,4 +1,9 @@
 06/03/2026
+- oauth2: re-validate the token "exp" on a verification-cache hit; the result
+  cache TTL is independent of the token's own expiry, so a cached entry could
+  previously be returned as valid after the token had already expired. On a hit
+  with a passed "exp" the entry is dropped and the token re-verified under the
+  configured policy (CWE-613)
 - openidc: store the authentication-request nonce in the (encrypted) state and
   validate that the returned id_token's "nonce" claim matches it, per OpenID
   Connect Core 1.0 section 3.1.3.7 step 11; previously the nonce was sent but

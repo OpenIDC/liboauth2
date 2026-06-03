@@ -652,6 +652,51 @@ START_TEST(test_jwt_verify_iss_aud)
 }
 END_TEST
 
+START_TEST(test_jwt_verify_cache_exp)
+{
+	bool rc = false;
+	json_t *json_payload = NULL;
+	char *jwt = NULL;
+	oauth2_jose_jwk_t *jwk = NULL;
+	const char *rv = NULL;
+	const char *secret = "my_good_secret_0123456789abcdef!";
+	oauth2_cfg_token_verify_t *verify = NULL;
+
+	rc = oauth2_jose_jwk_create_symmetric(_log, secret, NULL, &jwk);
+	ck_assert_int_eq(rc, true);
+	// short-lived token: expires 2 seconds from now
+	jwt = oauth2_jwt_create(_log, jwk->jwk, CJOSE_HDR_ALG_HS256,
+				"https://cache.example.org", "subject-cache",
+				"my_client_id", "https://rs.example.org", 2,
+				true, true, NULL);
+	ck_assert_ptr_ne(jwt, NULL);
+	oauth2_jose_jwk_release(jwk);
+
+	// cache the verification result for much longer than the token's "exp"
+	rv = oauth2_cfg_token_verify_add_options(_log, &verify, "plain", secret,
+						 "kid=my_good_kid&expiry=300");
+	ck_assert_ptr_eq(rv, NULL);
+
+	// first verification succeeds and is cached
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
+	ck_assert_int_eq(rc, true);
+	json_decref(json_payload);
+	json_payload = NULL;
+
+	// let the token expire while the cache entry is still live
+	sleep(3);
+
+	// a cache hit must NOT return success for the now-expired token
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
+	ck_assert_int_eq(rc, false);
+	if (json_payload)
+		json_decref(json_payload);
+
+	oauth2_cfg_token_verify_free(_log, verify);
+	oauth2_mem_free(jwt);
+}
+END_TEST
+
 Suite *oauth2_check_jose_suite()
 {
 	Suite *s = suite_create("jose");
@@ -672,6 +717,7 @@ Suite *oauth2_check_jose_suite()
 	tcase_add_test(c, test_jwt_validate_nbf);
 	tcase_add_test(c, test_jwt_validate_aud);
 	tcase_add_test(c, test_jwt_verify_iss_aud);
+	tcase_add_test(c, test_jwt_verify_cache_exp);
 
 	tcase_set_timeout(c, 8);
 

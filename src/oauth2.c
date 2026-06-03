@@ -884,8 +884,22 @@ bool oauth2_token_verify(oauth2_log_t *log, oauth2_http_request_t *request,
 		oauth2_cache_get(log, ptr->cache, token, &s_payload);
 		if ((s_payload) &&
 		    (oauth2_json_decode_object(log, s_payload, json_payload))) {
-			rc = true;
-			break;
+			// the cache TTL is independent of the token's own
+			// "exp", so a cached entry may outlive the token;
+			// re-validate "exp" on a cache hit and, if the token
+			// has since expired, drop the entry and fall through to
+			// a fresh verification (which re-applies the configured
+			// policy)
+			if (oauth2_jose_jwt_validate_exp(
+				log, *json_payload,
+				OAUTH2_JOSE_JWT_VALIDATE_CLAIM_OPTIONAL)) {
+				rc = true;
+				break;
+			}
+			json_decref(*json_payload);
+			*json_payload = NULL;
+			oauth2_mem_free(s_payload);
+			s_payload = NULL;
 		}
 
 		if (ptr->callback(log, ptr, token, json_payload, &s_payload,
