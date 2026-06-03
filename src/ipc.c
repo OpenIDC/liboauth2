@@ -216,7 +216,7 @@ oauth2_ipc_mutex_t *oauth2_ipc_mutex_init(oauth2_log_t *log)
 
 void oauth2_ipc_mutex_free(oauth2_log_t *log, oauth2_ipc_mutex_t *m)
 {
-	if ((m == NULL) && (m->mutex == NULL))
+	if ((m == NULL) || (m->mutex == NULL))
 		goto end;
 
 	oauth2_ipc_sema_free(log, m->mutex);

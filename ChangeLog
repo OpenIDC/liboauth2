@@ -1,4 +1,6 @@
 06/03/2026
+- ipc: fix NULL-pointer dereference in oauth2_ipc_mutex_free(); the guard used
+  && instead of || so passing a NULL mutex dereferenced it (CWE-476)
 - cfg: honour "envvars" target-pass setting; the getter tested the unrelated
   as_headers field, so an explicit envvars=off was ignored and claims plus the
   access_token were still exported into the subprocess environment (CWE-200)
