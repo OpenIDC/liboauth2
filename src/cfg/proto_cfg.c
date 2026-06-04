@@ -438,7 +438,7 @@ const char *oauth2_cfg_ropc_get_client_id(oauth2_cfg_ropc_t *cfg)
 const oauth2_nv_list_t *
 oauth2_cfg_ropc_get_request_parameters(oauth2_cfg_ropc_t *cfg)
 {
-	return cfg->request_parameters;
+	return cfg ? cfg->request_parameters : NULL;
 }
 
 const char *oauth2_cfg_ropc_get_username(oauth2_cfg_ropc_t *cfg)
@@ -607,5 +607,5 @@ const char *oauth2_cfg_cc_get_client_id(oauth2_cfg_cc_t *cfg)
 const oauth2_nv_list_t *
 oauth2_cfg_cc_get_request_parameters(oauth2_cfg_cc_t *cfg)
 {
-	return cfg->request_parameters;
+	return cfg ? cfg->request_parameters : NULL;
 }

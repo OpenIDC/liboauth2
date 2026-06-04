@@ -810,6 +810,281 @@ START_TEST(test_oauth2_verify_dpop_private_key_rejected)
 }
 END_TEST
 
+// build a DPoP claims payload; any NULL/0 field is omitted so callers can drop
+// a single required claim to exercise its validation-failure branch
+static json_t *_dpop_claims(const char *jti, const char *htm, const char *htu,
+			    oauth2_time_t iat, const char *ath)
+{
+	json_t *p = json_object();
+	if (jti != NULL)
+		json_object_set_new(p, "jti", json_string(jti));
+	if (htm != NULL)
+		json_object_set_new(p, "htm", json_string(htm));
+	if (htu != NULL)
+		json_object_set_new(p, "htu", json_string(htu));
+	if (iat != 0)
+		json_object_set_new(p, "iat", json_integer(iat));
+	if (ath != NULL)
+		json_object_set_new(p, "ath", json_string(ath));
+	return p;
+}
+
+// sign a DPoP proof; "typ" and "jwk" header fields are only set when non-NULL,
+// so a caller can omit them to drive the corresponding error path
+static char *_dpop_proof_build(cjose_jwk_t *sign_jwk, const char *alg,
+			       const char *typ, const char *jwk_hdr_json,
+			       json_t *payload)
+{
+	char *rv = NULL, *payload_str = NULL;
+	cjose_header_t *hdr = NULL;
+	cjose_jws_t *jws = NULL;
+	const char *proof = NULL;
+	cjose_err err;
+
+	hdr = cjose_header_new(&err);
+	if (hdr == NULL)
+		goto end;
+	if (cjose_header_set(hdr, CJOSE_HDR_ALG, alg, &err) == false)
+		goto end;
+	if ((typ != NULL) && (cjose_header_set(hdr, "typ", typ, &err) == false))
+		goto end;
+	if ((jwk_hdr_json != NULL) &&
+	    (cjose_header_set_raw(hdr, "jwk", jwk_hdr_json, &err) == false))
+		goto end;
+
+	payload_str = json_dumps(payload, JSON_COMPACT);
+	jws = cjose_jws_sign(sign_jwk, hdr, (const uint8_t *)payload_str,
+			     strlen(payload_str), &err);
+	if (jws == NULL)
+		goto end;
+	if (cjose_jws_export(jws, &proof, &err) == false)
+		goto end;
+	rv = oauth2_strdup(proof);
+
+end:
+	if (payload_str)
+		free(payload_str);
+	if (hdr)
+		cjose_header_release(hdr);
+	if (jws)
+		cjose_jws_release(jws);
+	return rv;
+}
+
+// run a single DPoP verification against a freshly-built GET request to
+// https://localhost.zmartzone.eu/api/ (a NULL proof omits the DPoP header)
+static bool _dpop_verify_proof(oauth2_cfg_dpop_verify_t *dpop,
+			       const char *proof, const char *access_token,
+			       json_t *at_payload)
+{
+	bool rc = false;
+	oauth2_http_request_t *r = oauth2_http_request_init(_log);
+	oauth2_http_request_scheme_set(_log, r, "https");
+	oauth2_http_request_hostname_set(_log, r, "localhost.zmartzone.eu");
+	oauth2_http_request_path_set(_log, r, "/api/");
+	oauth2_http_request_method_set(_log, r, OAUTH2_HTTP_METHOD_GET);
+	if (proof != NULL)
+		oauth2_http_request_header_set(_log, r, "DPoP", proof);
+	rc = oauth2_dpop_token_verify(_log, dpop, r, access_token, at_payload);
+	oauth2_http_request_free(_log, r);
+	return rc;
+}
+
+START_TEST(test_oauth2_dpop_branches)
+{
+	bool rc = false;
+	oauth2_cfg_token_verify_t *verify = NULL;
+	oauth2_cfg_dpop_verify_t *dpop = NULL;
+	const char *rv = NULL;
+	cjose_jwk_t *jwk = NULL;
+	cjose_err err;
+	char *jwk_pub = NULL, *access_token = NULL, *jkt = NULL, *ath = NULL;
+	char *proof = NULL;
+	unsigned char *thumb = NULL, *ath_bytes = NULL;
+	unsigned int thumb_len = 0, ath_len = 0;
+	json_t *at_payload = NULL, *cnf = NULL, *claims = NULL;
+	oauth2_http_request_t *r = NULL;
+	const char *HTU = "https://localhost.zmartzone.eu/api/";
+	oauth2_time_t iat = oauth2_time_now_sec();
+
+	const char *ec_key =
+	    "{\"kty\":\"EC\",\"crv\":\"P-256\","
+	    "\"x\":\"f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU\","
+	    "\"y\":\"x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0\","
+	    "\"d\":\"jpsQnnGQmL-YBIffH1136cspYG6-0iY7X1fCE9-E9LI\"}";
+
+	jwk = cjose_jwk_import(ec_key, strlen(ec_key), &err);
+	ck_assert_ptr_ne(jwk, NULL);
+	jwk_pub = cjose_jwk_to_json(jwk, false, &err);
+	ck_assert_ptr_ne(jwk_pub, NULL);
+
+	rc = oauth2_jose_jwk_thumbprint(_log, jwk, &thumb, &thumb_len);
+	ck_assert_int_eq(rc, true);
+	oauth2_base64url_encode(_log, thumb, thumb_len, &jkt);
+
+	at_payload = json_object();
+	cnf = json_object();
+	json_object_set_new(cnf, "jkt", json_string(jkt));
+	json_object_set_new(at_payload, "cnf", cnf);
+	access_token = oauth2_jwt_create(_log, jwk, "ES256", NULL, NULL, NULL,
+					 NULL, 0, false, false, at_payload);
+	ck_assert_ptr_ne(access_token, NULL);
+
+	rc = oauth2_jose_hash_bytes(_log, "sha256",
+				    (const unsigned char *)access_token,
+				    strlen(access_token), &ath_bytes, &ath_len);
+	ck_assert_int_eq(rc, true);
+	oauth2_base64url_encode(_log, ath_bytes, ath_len, &ath);
+
+	rv = oauth2_cfg_token_verify_add_options(
+	    _log, &verify, "jwk", jwk_pub,
+	    "verify.exp=skip&type=dpop&dpop.iat.verify=skip");
+	ck_assert_ptr_eq(rv, NULL);
+	dpop = &verify->dpop;
+
+	// NULL request / NULL json_payload guards
+	r = oauth2_http_request_init(_log);
+	rc = oauth2_dpop_token_verify(_log, dpop, NULL, access_token,
+				      at_payload);
+	ck_assert_int_eq(rc, false);
+	rc = oauth2_dpop_token_verify(_log, dpop, r, access_token, NULL);
+	ck_assert_int_eq(rc, false);
+	oauth2_http_request_free(_log, r);
+
+	// no DPoP header on the request
+	rc = _dpop_verify_proof(dpop, NULL, access_token, at_payload);
+	ck_assert_int_eq(rc, false);
+
+	// malformed proof (not a parseable JWS)
+	rc = _dpop_verify_proof(dpop, "not-a-jws", access_token, at_payload);
+	ck_assert_int_eq(rc, false);
+
+#define DPOP_REJECT(_typ, _jwkhdr, _claims)                                    \
+	do {                                                                   \
+		claims = (_claims);                                            \
+		proof = _dpop_proof_build(jwk, "ES256", (_typ), (_jwkhdr),     \
+					  claims);                             \
+		ck_assert_ptr_ne(proof, NULL);                                 \
+		rc =                                                           \
+		    _dpop_verify_proof(dpop, proof, access_token, at_payload); \
+		ck_assert_int_eq(rc, false);                                   \
+		oauth2_mem_free(proof);                                        \
+		proof = NULL;                                                  \
+		json_decref(claims);                                           \
+		claims = NULL;                                                 \
+	} while (0)
+
+	// missing "typ" header
+	DPOP_REJECT(NULL, jwk_pub, _dpop_claims("j1", "GET", HTU, iat, ath));
+	// missing "jwk" header
+	DPOP_REJECT("dpop+jwt", NULL, _dpop_claims("j2", "GET", HTU, iat, ath));
+	// wrong "typ" value
+	DPOP_REJECT("JWT", jwk_pub, _dpop_claims("j3", "GET", HTU, iat, ath));
+	// each required claim omitted in turn
+	DPOP_REJECT("dpop+jwt", jwk_pub,
+		    _dpop_claims("j4", "GET", NULL, iat, ath)); // no htu
+	DPOP_REJECT("dpop+jwt", jwk_pub,
+		    _dpop_claims("j5", NULL, HTU, iat, ath)); // no htm
+	DPOP_REJECT("dpop+jwt", jwk_pub,
+		    _dpop_claims(NULL, "GET", HTU, iat, ath)); // no jti
+	DPOP_REJECT("dpop+jwt", jwk_pub,
+		    _dpop_claims("j6", "GET", HTU, 0, ath)); // no iat
+	DPOP_REJECT("dpop+jwt", jwk_pub,
+		    _dpop_claims("j7", "GET", HTU, iat, NULL)); // no ath
+	// htm mismatch (proof says POST, request is GET)
+	DPOP_REJECT("dpop+jwt", jwk_pub,
+		    _dpop_claims("j8", "POST", HTU, iat, ath));
+	// htu mismatch
+	DPOP_REJECT(
+	    "dpop+jwt", jwk_pub,
+	    _dpop_claims("j9", "GET", "https://elsewhere.example/x", iat, ath));
+	// ath is valid base64url but does not match the access token hash
+	DPOP_REJECT(
+	    "dpop+jwt", jwk_pub,
+	    _dpop_claims("j10", "GET", HTU, iat,
+			 "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"));
+	// ath is not valid base64url at all
+	DPOP_REJECT("dpop+jwt", jwk_pub,
+		    _dpop_claims("j11", "GET", HTU, iat, "!!!not-base64!!!"));
+
+	// the next cases use a fully valid proof, so the failure is in the
+	// access-token confirmation (cnf/jkt) handling
+	// access token without a cnf claim
+	claims = _dpop_claims("j12", "GET", HTU, iat, ath);
+	proof = _dpop_proof_build(jwk, "ES256", "dpop+jwt", jwk_pub, claims);
+	json_t *at_nocnf = json_object();
+	rc = _dpop_verify_proof(dpop, proof, access_token, at_nocnf);
+	ck_assert_int_eq(rc, false);
+	json_decref(at_nocnf);
+	oauth2_mem_free(proof);
+	json_decref(claims);
+
+	// cnf.jkt is valid base64url but binds a different key
+	claims = _dpop_claims("j13", "GET", HTU, iat, ath);
+	proof = _dpop_proof_build(jwk, "ES256", "dpop+jwt", jwk_pub, claims);
+	json_t *at_badjkt =
+	    json_pack("{s:{s:s}}", "cnf", "jkt",
+		      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+	rc = _dpop_verify_proof(dpop, proof, access_token, at_badjkt);
+	ck_assert_int_eq(rc, false);
+	json_decref(at_badjkt);
+	oauth2_mem_free(proof);
+	json_decref(claims);
+
+	// cnf.jkt is not valid base64url
+	claims = _dpop_claims("j14", "GET", HTU, iat, ath);
+	proof = _dpop_proof_build(jwk, "ES256", "dpop+jwt", jwk_pub, claims);
+	json_t *at_invjkt =
+	    json_pack("{s:{s:s}}", "cnf", "jkt", "!!!not-base64!!!");
+	rc = _dpop_verify_proof(dpop, proof, access_token, at_invjkt);
+	ck_assert_int_eq(rc, false);
+	json_decref(at_invjkt);
+	oauth2_mem_free(proof);
+	json_decref(claims);
+
+	// positive control: a fully valid proof bound to the access token
+	claims = _dpop_claims("j15", "GET", HTU, iat, ath);
+	proof = _dpop_proof_build(jwk, "ES256", "dpop+jwt", jwk_pub, claims);
+	rc = _dpop_verify_proof(dpop, proof, access_token, at_payload);
+	ck_assert_int_eq(rc, true);
+	oauth2_mem_free(proof);
+	json_decref(claims);
+
+	// invalid JWK JSON in the proof header
+	DPOP_REJECT("dpop+jwt", "{\"kty\":\"oops\"}",
+		    _dpop_claims("j16", "GET", HTU, iat, ath));
+
+	// a fully valid proof but a NULL access token at confirmation time
+	claims = _dpop_claims("j17", "GET", HTU, iat, ath);
+	proof = _dpop_proof_build(jwk, "ES256", "dpop+jwt", jwk_pub, claims);
+	rc = _dpop_verify_proof(dpop, proof, NULL, at_payload);
+	ck_assert_int_eq(rc, false);
+	oauth2_mem_free(proof);
+	json_decref(claims);
+
+	// a valid proof carrying an optional "nonce" claim still verifies
+	claims = _dpop_claims("j18", "GET", HTU, iat, ath);
+	json_object_set_new(claims, "nonce", json_string("server-nonce"));
+	proof = _dpop_proof_build(jwk, "ES256", "dpop+jwt", jwk_pub, claims);
+	rc = _dpop_verify_proof(dpop, proof, access_token, at_payload);
+	ck_assert_int_eq(rc, true);
+	oauth2_mem_free(proof);
+	json_decref(claims);
+
+#undef DPOP_REJECT
+
+	oauth2_cfg_token_verify_free(_log, verify);
+	json_decref(at_payload);
+	oauth2_mem_free(jkt);
+	oauth2_mem_free(ath);
+	oauth2_mem_free(thumb);
+	oauth2_mem_free(ath_bytes);
+	oauth2_mem_free(access_token);
+	cjose_get_dealloc()(jwk_pub);
+	cjose_jwk_release(jwk);
+}
+END_TEST
+
 START_TEST(test_oauth2_verify_jwks_uri)
 {
 	bool rc = false;
@@ -1397,6 +1672,7 @@ Suite *oauth2_check_oauth2_suite()
 	tcase_add_test(c, test_oauth2_verify_jwk);
 	tcase_add_test(c, test_oauth2_verify_jwk_dpop);
 	tcase_add_test(c, test_oauth2_verify_dpop_private_key_rejected);
+	tcase_add_test(c, test_oauth2_dpop_branches);
 	tcase_add_test(c, test_oauth2_verify_eckey_uri);
 	tcase_add_test(c, test_oauth2_verify_aws_alb);
 	tcase_add_test(c, test_oauth2_verify_token_introspection);

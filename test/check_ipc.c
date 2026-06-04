@@ -130,6 +130,141 @@ START_TEST(test_shm)
 }
 END_TEST
 
+START_TEST(test_sema_null_guards)
+{
+	bool rc = false;
+
+	// NULL guards must not crash
+	oauth2_ipc_sema_free(_log, NULL);
+
+	rc = oauth2_ipc_sema_post_config(_log, NULL);
+	ck_assert_int_eq(rc, false);
+
+	rc = oauth2_ipc_sema_post(_log, NULL);
+	ck_assert_int_eq(rc, false);
+
+	// wait/trywait short-circuit to a no-op on NULL
+	(void)oauth2_ipc_sema_wait(_log, NULL);
+	(void)oauth2_ipc_sema_trywait(_log, NULL);
+}
+END_TEST
+
+START_TEST(test_sema_post_config_reinit)
+{
+	bool rc = false;
+	oauth2_ipc_sema_t *s = NULL;
+
+	s = oauth2_ipc_sema_init(_log);
+	ck_assert_ptr_ne(s, NULL);
+
+	rc = oauth2_ipc_sema_post_config(_log, s);
+	ck_assert_int_eq(rc, true);
+
+	// re-running post_config frees and rebuilds the existing name
+	rc = oauth2_ipc_sema_post_config(_log, s);
+	ck_assert_int_eq(rc, true);
+
+	oauth2_ipc_sema_free(_log, s);
+	s = NULL;
+}
+END_TEST
+
+START_TEST(test_sema_trywait)
+{
+	bool rc = false;
+	oauth2_ipc_sema_t *s = NULL;
+
+	s = oauth2_ipc_sema_init(_log);
+	ck_assert_ptr_ne(s, NULL);
+
+	rc = oauth2_ipc_sema_post_config(_log, s);
+	ck_assert_int_eq(rc, true);
+
+	// count starts at 0 -> trywait fails with EAGAIN
+	rc = oauth2_ipc_sema_trywait(_log, s);
+	ck_assert_int_eq(rc, false);
+
+	// post bumps the count -> trywait now succeeds
+	rc = oauth2_ipc_sema_post(_log, s);
+	ck_assert_int_eq(rc, true);
+	rc = oauth2_ipc_sema_trywait(_log, s);
+	ck_assert_int_eq(rc, true);
+
+	oauth2_ipc_sema_free(_log, s);
+	s = NULL;
+}
+END_TEST
+
+START_TEST(test_mutex_null_guards)
+{
+	bool rc = false;
+
+	oauth2_ipc_mutex_free(_log, NULL);
+
+	rc = oauth2_ipc_mutex_post_config(_log, NULL);
+	ck_assert_int_eq(rc, false);
+
+	rc = oauth2_ipc_mutex_lock(_log, NULL);
+	ck_assert_int_eq(rc, false);
+
+	rc = oauth2_ipc_mutex_unlock(_log, NULL);
+	ck_assert_int_eq(rc, false);
+}
+END_TEST
+
+START_TEST(test_thread_mutex_null_guards)
+{
+	bool rc = false;
+
+	oauth2_ipc_thread_mutex_free(_log, NULL);
+
+	rc = oauth2_ipc_thread_mutex_lock(_log, NULL);
+	ck_assert_int_eq(rc, false);
+
+	rc = oauth2_ipc_thread_mutex_unlock(_log, NULL);
+	ck_assert_int_eq(rc, false);
+}
+END_TEST
+
+START_TEST(test_shm_null_guards)
+{
+	bool rc = false;
+	void *ptr = NULL;
+
+	oauth2_ipc_shm_free(_log, NULL);
+
+	rc = oauth2_ipc_shm_post_config(_log, NULL);
+	ck_assert_int_eq(rc, false);
+
+	ptr = oauth2_ipc_shm_get(_log, NULL);
+	ck_assert_ptr_eq(ptr, NULL);
+}
+END_TEST
+
+START_TEST(test_shm_child_init)
+{
+	bool rc = false;
+	oauth2_ipc_shm_t *shm = NULL;
+
+	// NULL short-circuits to false
+	rc = oauth2_ipc_shm_child_init(_log, NULL);
+	ck_assert_int_eq(rc, false);
+
+	shm = oauth2_ipc_shm_init(_log, 64);
+	ck_assert_ptr_ne(shm, NULL);
+
+	rc = oauth2_ipc_shm_post_config(_log, shm);
+	ck_assert_int_eq(rc, true);
+
+	// child_init posts the shm's "num" semaphore
+	rc = oauth2_ipc_shm_child_init(_log, shm);
+	ck_assert_int_eq(rc, true);
+
+	oauth2_ipc_shm_free(_log, shm);
+	shm = NULL;
+}
+END_TEST
+
 Suite *oauth2_check_ipc_suite()
 {
 	Suite *s = suite_create("ipc");
@@ -138,9 +273,16 @@ Suite *oauth2_check_ipc_suite()
 	tcase_add_checked_fixture(c, setup, teardown);
 
 	tcase_add_test(c, test_sema);
+	tcase_add_test(c, test_sema_null_guards);
+	tcase_add_test(c, test_sema_post_config_reinit);
+	tcase_add_test(c, test_sema_trywait);
 	tcase_add_test(c, test_mutex);
+	tcase_add_test(c, test_mutex_null_guards);
 	tcase_add_test(c, test_thread_mutex);
+	tcase_add_test(c, test_thread_mutex_null_guards);
 	tcase_add_test(c, test_shm);
+	tcase_add_test(c, test_shm_null_guards);
+	tcase_add_test(c, test_shm_child_init);
 
 	suite_add_tcase(s, c);
 

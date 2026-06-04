@@ -3,6 +3,7 @@
 #include "check_liboauth2.h"
 #include "oauth2/cfg.h"
 #include <oauth2/mem.h>
+#include <string.h>
 
 #include "cfg_int.h"
 
@@ -21,7 +22,25 @@ static void teardown(void)
 typedef struct test_cfg_slot_struct {
 	oauth2_flag_t flag;
 	oauth2_uint_t uint;
+	oauth2_time_t time;
 } test_cfg_slot_struct;
+
+typedef struct test_cfg_str_struct {
+	char *str;
+} test_cfg_str_struct;
+
+static char *_cfg_dummy_set_cb(oauth2_log_t *log, const char *value,
+			       const oauth2_nv_list_t *params, void *cfg)
+{
+	return NULL;
+}
+
+static void _cfg_dummy_ctx_free(oauth2_log_t *log, void *ptr)
+{
+}
+
+static oauth2_cfg_ctx_funcs_t _cfg_dummy_funcs = {NULL, NULL,
+						  _cfg_dummy_ctx_free};
 
 START_TEST(test_flag_slot)
 {
@@ -200,6 +219,139 @@ START_TEST(test_target_pass)
 }
 END_TEST
 
+START_TEST(test_time_slot)
+{
+	const char *rv = NULL;
+	test_cfg_slot_struct st = {OAUTH2_CFG_FLAG_UNSET, OAUTH2_CFG_UINT_UNSET,
+				   OAUTH2_CFG_TIME_UNSET};
+
+	rv = oauth2_cfg_set_time_slot(
+	    NULL, offsetof(test_cfg_slot_struct, time), "1");
+	ck_assert_ptr_ne(rv, NULL);
+
+	rv = oauth2_cfg_set_time_slot(&st, offsetof(test_cfg_slot_struct, time),
+				      NULL);
+	ck_assert_ptr_ne(rv, NULL);
+
+	rv = oauth2_cfg_set_time_slot(&st, offsetof(test_cfg_slot_struct, time),
+				      "");
+	ck_assert_ptr_ne(rv, NULL);
+
+	rv = oauth2_cfg_set_time_slot(&st, offsetof(test_cfg_slot_struct, time),
+				      "1two");
+	ck_assert_ptr_ne(rv, NULL);
+
+	rv = oauth2_cfg_set_time_slot(&st, offsetof(test_cfg_slot_struct, time),
+				      "-1");
+	ck_assert_ptr_ne(rv, NULL);
+
+	rv = oauth2_cfg_set_time_slot(&st, offsetof(test_cfg_slot_struct, time),
+				      "3600");
+	ck_assert_ptr_eq(rv, NULL);
+	ck_assert_uint_eq(st.time, 3600);
+}
+END_TEST
+
+START_TEST(test_str_slot)
+{
+	const char *rv = NULL;
+	test_cfg_str_struct st = {NULL};
+
+	rv = oauth2_cfg_set_str_slot(NULL, offsetof(test_cfg_str_struct, str),
+				     "hello");
+	ck_assert_ptr_ne(rv, NULL);
+	ck_assert_ptr_eq(st.str, NULL);
+
+	rv = oauth2_cfg_set_str_slot(&st, offsetof(test_cfg_str_struct, str),
+				     NULL);
+	ck_assert_ptr_ne(rv, NULL);
+	ck_assert_ptr_eq(st.str, NULL);
+
+	rv = oauth2_cfg_set_str_slot(&st, offsetof(test_cfg_str_struct, str),
+				     "hello");
+	ck_assert_ptr_eq(rv, NULL);
+	ck_assert_str_eq(st.str, "hello");
+
+	oauth2_mem_free(st.str);
+	st.str = NULL;
+}
+END_TEST
+
+START_TEST(test_crypto_passphrase)
+{
+	const char *rv = NULL;
+	const char *p = NULL;
+
+	rv = oauth2_crypto_passphrase_set(_log, NULL, "secret1");
+	ck_assert_ptr_eq(rv, NULL);
+
+	// a second set frees the previously stored passphrase
+	rv = oauth2_crypto_passphrase_set(_log, NULL, "secret2");
+	ck_assert_ptr_eq(rv, NULL);
+
+	p = oauth2_crypto_passphrase_get(_log);
+	ck_assert_ptr_ne(p, NULL);
+	ck_assert_str_eq(p, "secret2");
+}
+END_TEST
+
+START_TEST(test_cfg_ctx)
+{
+	oauth2_cfg_ctx_t *ctx = NULL, *clone = NULL, *ctx2 = NULL;
+
+	// free(NULL) is a no-op
+	oauth2_cfg_ctx_free(_log, NULL);
+
+	ctx = oauth2_cfg_ctx_init(_log);
+	ck_assert_ptr_ne(ctx, NULL);
+
+	// clone(NULL) returns NULL
+	clone = oauth2_cfg_ctx_clone(_log, NULL);
+	ck_assert_ptr_eq(clone, NULL);
+
+	// clone of a ctx that has no callbacks
+	clone = oauth2_cfg_ctx_clone(_log, ctx);
+	ck_assert_ptr_ne(clone, NULL);
+	oauth2_cfg_ctx_free(_log, clone);
+
+	oauth2_cfg_ctx_free(_log, ctx);
+
+	// free path that invokes callbacks->free() on a non-NULL ptr
+	ctx2 = oauth2_cfg_ctx_init(_log);
+	ck_assert_ptr_ne(ctx2, NULL);
+	ctx2->ptr = (void *)0x1;
+	ctx2->callbacks = &_cfg_dummy_funcs;
+	oauth2_cfg_ctx_free(_log, ctx2);
+}
+END_TEST
+
+START_TEST(test_set_options)
+{
+	char *rv = NULL;
+	int dummy_cfg = 0;
+	static const oauth2_cfg_set_options_ctx_t set[] = {
+	    {"typeA", _cfg_dummy_set_cb},
+	    {"typeB", _cfg_dummy_set_cb},
+	    {NULL, NULL}};
+
+	// NULL cfg -> no-op, returns NULL
+	rv = oauth2_cfg_set_options(_log, NULL, "typeA", "val", NULL, set);
+	ck_assert_ptr_eq(rv, NULL);
+
+	// known type -> callback runs, returns NULL (success)
+	rv =
+	    oauth2_cfg_set_options(_log, &dummy_cfg, "typeA", "val", NULL, set);
+	ck_assert_ptr_eq(rv, NULL);
+
+	// unknown type -> error string listing the valid types
+	rv = oauth2_cfg_set_options(_log, &dummy_cfg, "nope", "val", NULL, set);
+	ck_assert_ptr_ne(rv, NULL);
+	ck_assert_ptr_ne(strstr(rv, "typeA"), NULL);
+	ck_assert_ptr_ne(strstr(rv, "typeB"), NULL);
+	oauth2_mem_free(rv);
+}
+END_TEST
+
 Suite *oauth2_check_cfg_suite()
 {
 	Suite *s = suite_create("cfg");
@@ -209,6 +361,11 @@ Suite *oauth2_check_cfg_suite()
 
 	tcase_add_test(c, test_flag_slot);
 	tcase_add_test(c, test_uint_slot);
+	tcase_add_test(c, test_time_slot);
+	tcase_add_test(c, test_str_slot);
+	tcase_add_test(c, test_crypto_passphrase);
+	tcase_add_test(c, test_cfg_ctx);
+	tcase_add_test(c, test_set_options);
 	tcase_add_test(c, test_target_pass);
 
 	suite_add_tcase(s, c);

@@ -420,6 +420,149 @@ START_TEST(test_proto_cc)
 }
 END_TEST
 
+START_TEST(test_proto_cfg_endpoint)
+{
+	char *rv = NULL;
+	oauth2_cfg_endpoint_t *cfg = NULL, *clone = NULL;
+	oauth2_nv_list_t *params = NULL;
+
+	// NULL guards
+	oauth2_cfg_endpoint_free(_log, NULL);
+	clone = oauth2_cfg_endpoint_clone(_log, NULL);
+	ck_assert_ptr_eq(clone, NULL);
+	rv = oauth2_cfg_set_endpoint(_log, NULL, "http://example.com", NULL,
+				     NULL);
+	ck_assert_ptr_ne(rv, NULL);
+	oauth2_mem_free(rv);
+
+	// url taken from params, plus every endpoint option
+	cfg = oauth2_cfg_endpoint_init(_log);
+	ck_assert_ptr_ne(cfg, NULL);
+	oauth2_parse_form_encoded_params(
+	    _log,
+	    "url=http%3A%2F%2Fexample.com%2Ftoken&http_timeout=30&http_retries="
+	    "2&http_retry_interval=60&outgoing_proxy=http%3A%2F%2Fproxy%3A3128&"
+	    "ssl_verify=false",
+	    &params);
+	rv = oauth2_cfg_set_endpoint(_log, cfg, NULL, params, NULL);
+	ck_assert_ptr_eq(rv, NULL);
+
+	ck_assert_str_eq(oauth2_cfg_endpoint_get_url(cfg),
+			 "http://example.com/token");
+	ck_assert_uint_eq(oauth2_cfg_endpoint_get_http_timeout(cfg), 30);
+	ck_assert_uint_eq(oauth2_cfg_endpoint_get_http_retries(cfg), 2);
+	ck_assert_uint_eq(oauth2_cfg_endpoint_get_http_retry_interval(cfg), 60);
+	ck_assert_str_eq(oauth2_cfg_endpoint_get_outgoing_proxy(cfg),
+			 "http://proxy:3128");
+	ck_assert_uint_eq(oauth2_cfg_endpoint_get_ssl_verify(cfg), false);
+
+	// clone (copies the outgoing_proxy too) then free both
+	clone = oauth2_cfg_endpoint_clone(_log, cfg);
+	ck_assert_ptr_ne(clone, NULL);
+	ck_assert_str_eq(oauth2_cfg_endpoint_get_outgoing_proxy(clone),
+			 "http://proxy:3128");
+
+	oauth2_nv_list_free(_log, params);
+	oauth2_cfg_endpoint_free(_log, clone);
+	oauth2_cfg_endpoint_free(_log, cfg);
+}
+END_TEST
+
+START_TEST(test_proto_ropc_cfg)
+{
+	char *rv = NULL;
+	oauth2_cfg_ropc_t *cfg = NULL, *cfg2 = NULL, *cfg3 = NULL;
+
+	// NULL cfg guard
+	rv = oauth2_cfg_set_ropc(_log, NULL, "http://example.com/token", NULL);
+	ck_assert_ptr_ne(rv, NULL);
+	oauth2_mem_free(rv);
+
+	// auth options + endpoint options through the same setter
+	cfg = oauth2_cfg_ropc_init(_log);
+	rv = oauth2_cfg_set_ropc(_log, cfg, "http://example.com/token",
+				 "client_id=myclient&username=joe&password="
+				 "secret&params=scope%3Dopenid&http_timeout=30&"
+				 "outgoing_proxy=http%3A%2F%2Fproxy%3A3128");
+	ck_assert_ptr_eq(rv, NULL);
+
+	ck_assert_ptr_ne(oauth2_cfg_ropc_get_token_endpoint(cfg), NULL);
+	ck_assert_str_eq(oauth2_cfg_ropc_get_client_id(cfg), "myclient");
+	ck_assert_str_eq(oauth2_cfg_ropc_get_username(cfg), "joe");
+	ck_assert_str_eq(oauth2_cfg_ropc_get_password(cfg), "secret");
+	ck_assert_ptr_ne(oauth2_cfg_ropc_get_request_parameters(cfg), NULL);
+
+	// NULL-cfg accessor branches
+	ck_assert_ptr_eq(oauth2_cfg_ropc_get_token_endpoint(NULL), NULL);
+	(void)oauth2_cfg_ropc_get_client_id(NULL);
+	(void)oauth2_cfg_ropc_get_username(NULL);
+	(void)oauth2_cfg_ropc_get_password(NULL);
+	ck_assert_ptr_eq(oauth2_cfg_ropc_get_request_parameters(NULL), NULL);
+
+	// clone + clone(NULL)
+	cfg2 = oauth2_cfg_ropc_clone(_log, cfg);
+	ck_assert_ptr_ne(cfg2, NULL);
+	ck_assert_str_eq(oauth2_cfg_ropc_get_client_id(cfg2), "myclient");
+	ck_assert_ptr_eq(oauth2_cfg_ropc_clone(_log, NULL), NULL);
+
+	// merge null guards + a real merge into a fresh (all-NULL) dst
+	cfg3 = oauth2_cfg_ropc_init(_log);
+	oauth2_cfg_ropc_merge(_log, NULL, NULL, NULL);
+	oauth2_cfg_ropc_merge(_log, cfg3, NULL, NULL);
+	oauth2_cfg_ropc_merge(_log, cfg3, cfg, cfg2);
+	ck_assert_str_eq(oauth2_cfg_ropc_get_client_id(cfg3), "myclient");
+
+	oauth2_cfg_ropc_free(_log, cfg);
+	oauth2_cfg_ropc_free(_log, cfg2);
+	oauth2_cfg_ropc_free(_log, cfg3);
+}
+END_TEST
+
+START_TEST(test_proto_cc_cfg)
+{
+	char *rv = NULL;
+	oauth2_cfg_cc_t *cfg = NULL, *cfg2 = NULL, *cfg3 = NULL;
+
+	// NULL cfg guard
+	rv = oauth2_cfg_set_cc(_log, NULL, "http://example.com/token", NULL);
+	ck_assert_ptr_ne(rv, NULL);
+	oauth2_mem_free(rv);
+
+	cfg = oauth2_cfg_cc_init(_log);
+	rv = oauth2_cfg_set_cc(_log, cfg, "http://example.com/token",
+			       "client_id=myclient&params=scope%3Dopenid&http_"
+			       "timeout=45&outgoing_proxy=http%3A%2F%2Fproxy%"
+			       "3A3128&ssl_verify=true");
+	ck_assert_ptr_eq(rv, NULL);
+
+	ck_assert_ptr_ne(oauth2_cfg_cc_get_token_endpoint(cfg), NULL);
+	ck_assert_str_eq(oauth2_cfg_cc_get_client_id(cfg), "myclient");
+	ck_assert_ptr_ne(oauth2_cfg_cc_get_request_parameters(cfg), NULL);
+
+	// NULL-cfg accessor branches
+	ck_assert_ptr_eq(oauth2_cfg_cc_get_token_endpoint(NULL), NULL);
+	(void)oauth2_cfg_cc_get_client_id(NULL);
+	ck_assert_ptr_eq(oauth2_cfg_cc_get_request_parameters(NULL), NULL);
+
+	// clone + clone(NULL)
+	cfg2 = oauth2_cfg_cc_clone(_log, cfg);
+	ck_assert_ptr_ne(cfg2, NULL);
+	ck_assert_str_eq(oauth2_cfg_cc_get_client_id(cfg2), "myclient");
+	ck_assert_ptr_eq(oauth2_cfg_cc_clone(_log, NULL), NULL);
+
+	// merge null guards + a real merge into a fresh dst
+	cfg3 = oauth2_cfg_cc_init(_log);
+	oauth2_cfg_cc_merge(_log, NULL, NULL, NULL);
+	oauth2_cfg_cc_merge(_log, cfg3, NULL, NULL);
+	oauth2_cfg_cc_merge(_log, cfg3, cfg, cfg2);
+	ck_assert_str_eq(oauth2_cfg_cc_get_client_id(cfg3), "myclient");
+
+	oauth2_cfg_cc_free(_log, cfg);
+	oauth2_cfg_cc_free(_log, cfg2);
+	oauth2_cfg_cc_free(_log, cfg3);
+}
+END_TEST
+
 Suite *oauth2_check_proto_suite()
 {
 	Suite *s = suite_create("proto");
@@ -435,6 +578,9 @@ Suite *oauth2_check_proto_suite()
 	tcase_add_test(c, test_proto_get_source_token_basic);
 	tcase_add_test(c, test_proto_ropc);
 	tcase_add_test(c, test_proto_cc);
+	tcase_add_test(c, test_proto_cfg_endpoint);
+	tcase_add_test(c, test_proto_ropc_cfg);
+	tcase_add_test(c, test_proto_cc_cfg);
 
 	suite_add_tcase(s, c);
 

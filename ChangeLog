@@ -4,6 +4,9 @@
   (test/http_server.c) that scripts the response sequence for each outbound
   request and captures the requests for assertions, on a kernel-assigned or
   caller-chosen port via POSIX sockets and a pthread (no APR dependency)
+- test: add unit tests raising line coverage of cfg.c, proto_cfg.c, dpop.c and
+  ipc.c, exercising option parsing, config clone/merge, the IPC semaphore/mutex/
+  shm NULL-guard and try-wait paths, and the DPoP proof validation branches
 - bump to 2.3.1dev
 
 06/03/2026

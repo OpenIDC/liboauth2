@@ -195,7 +195,8 @@ check_liboauth2_LDADD += liboauth2_nginx.la
 endif
 check_liboauth2_LDADD += @OPENSSL_LIBS@ @CURL_LIBS@ @CJOSE_LIBS@ @PCRE2_LIBS@ @CHECK_LIBS@
 check_liboauth2_CFLAGS += -pthread
-check_liboauth2_LDFLAGS = -pthread
+# keep AM_LDFLAGS (carries --coverage when code coverage is enabled) and add -pthread
+check_liboauth2_LDFLAGS = $(AM_LDFLAGS) -pthread
 
 check_liboauth2_SOURCES = \
 	test/check_liboauth2.h \
