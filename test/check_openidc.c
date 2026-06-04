@@ -19,6 +19,7 @@
  **************************************************************************/
 
 #include "check_liboauth2.h"
+#include "http_server.h"
 
 #include "oauth2/jose.h"
 #include "oauth2/mem.h"
@@ -37,7 +38,8 @@ static oauth2_log_t *_log = 0;
 
 static char *_openidc_metadata = NULL;
 
-OAUTH2_CHECK_HTTP_PATHS
+/* metadata endpoints for tests that never actually contact them */
+static char *openidc_unused_base_url = "http://127.0.0.1:8888";
 
 static void setup(void)
 {
@@ -46,7 +48,6 @@ static void setup(void)
 
 void oauth2_check_openidc_cleanup()
 {
-	oauth2_check_http_base_free();
 }
 
 static void teardown(void)
@@ -102,11 +103,6 @@ static char *jwk_rsa_str =
 
 static cjose_jwk_t *jwk_rsa = NULL;
 
-static char *jwks_uri_path = "/jwks_uri";
-static char *token_endpoint_path = "/token";
-static char *userinfo_endpoint_path = "/userinfo";
-static char *discovery_endpoint_path = "/.well-known/openid-configuration";
-
 static cjose_jwk_t *oauth2_jwk_rsa_get()
 {
 	cjose_err err;
@@ -124,26 +120,14 @@ static cjose_jwk_t *oauth2_jwk_rsa_get()
 	return jwk_rsa;
 }
 
-static char *oauth2_check_openidc_serve_get(const char *request)
+/* a JWKS document carrying the public part of the RSA key the test signs
+ * id_tokens with; caller frees */
+static char *build_openidc_jwks_json(void)
 {
-	char *rv = NULL, *s = NULL;
 	cjose_err err;
-	if (strncmp(request, jwks_uri_path, strlen(jwks_uri_path)) == 0) {
-		// TODO: static
-		s = cjose_jwk_to_json(oauth2_jwk_rsa_get(), false, &err);
-		rv = oauth2_stradd(NULL, "{ \"keys\": [ ", s, " ] }");
-		cjose_get_dealloc()(s);
-	} else if (strncmp(request, userinfo_endpoint_path,
-			   strlen(userinfo_endpoint_path)) == 0) {
-		rv = oauth2_strdup("{ \"sub\": \"myclient\", "
-				   "\"myuserinfoclaim\": \"somevalue\" }");
-	} else if (strncmp(request, discovery_endpoint_path,
-			   strlen(discovery_endpoint_path)) == 0) {
-		rv =
-		    oauth2_strdup("{ \"issuer\": \"https://op.example.org\" }");
-	} else {
-		rv = oauth2_strdup("problem");
-	}
+	char *s = cjose_jwk_to_json(oauth2_jwk_rsa_get(), false, &err);
+	char *rv = oauth2_stradd(NULL, "{ \"keys\": [ ", s, " ] }");
+	cjose_get_dealloc()(s);
 	return rv;
 }
 
@@ -224,52 +208,22 @@ end:
 	return rc;
 }
 
-static char *oauth2_check_openidc_serve_post(const char *request)
+/* a token-endpoint response carrying an id_token whose "nonce" claim is set to
+ * the given value (so the test can make it match - or not match - the nonce the
+ * library bound into the state cookie); caller frees */
+static char *build_openidc_token_json(const char *nonce)
 {
-	oauth2_nv_list_t *params = NULL;
-	const char *data = NULL;
-	const char *code = NULL;
-	const char *sep = "****";
-	char *rv = NULL;
-	char *id_token = NULL;
+	char *id_token = NULL, *rv = NULL;
 
-	if (strncmp(request, token_endpoint_path,
-		    strlen(token_endpoint_path)) == 0) {
-		request += strlen(token_endpoint_path) + 5;
-		data = strstr(request, sep);
-		if (data == NULL)
-			goto error;
-		data += strlen(sep);
-		if (oauth2_parse_form_encoded_params(_log, data, &params) ==
-		    false)
-			goto error;
-		code = oauth2_nv_list_get(_log, params, "code");
-		if (code == NULL)
-			goto error;
+	if (_oauth2_check_openidc_idtoken_create(
+		_log, oauth2_jwk_rsa_get(), "RS256", "https://op.example.org",
+		"myclient", "myclient", nonce, &id_token) == false)
+		return NULL;
 
-		// the test carries the authentication-request nonce through the
-		// authorization "code", so echo it back in the id_token "nonce"
-		if (_oauth2_check_openidc_idtoken_create(
-			_log, oauth2_jwk_rsa_get(), "RS256",
-			"https://op.example.org", "myclient", "myclient", code,
-			&id_token) == false)
-			goto error;
+	rv = oauth2_stradd(NULL, "{ \"id_token\": \"", id_token, "\", ");
+	rv = oauth2_stradd(rv, "\"access_token\": \"", "xxxx", "\" }");
 
-		rv =
-		    oauth2_stradd(NULL, "{ \"id_token\": \"", id_token, "\", ");
-		rv = oauth2_stradd(rv, "\"access_token\": \"", "xxxx", "\" }");
-
-		oauth2_mem_free(id_token);
-		oauth2_nv_list_free(_log, params);
-		goto end;
-	}
-
-error:
-
-	rv = oauth2_strdup("problem");
-
-end:
-
+	oauth2_mem_free(id_token);
 	return rv;
 }
 
@@ -389,18 +343,16 @@ START_TEST(test_openidc_cfg)
 }
 END_TEST
 
-static char *test_openidc_metadata_get()
+static char *test_openidc_metadata_get(const char *base_url)
 {
 
 	if (_openidc_metadata)
 		goto end;
 
-	char *token_endpoint = oauth2_stradd(NULL, oauth2_check_http_base_url(),
-					     token_endpoint_path, NULL);
-	char *userinfo_endpoint = oauth2_stradd(
-	    NULL, oauth2_check_http_base_url(), userinfo_endpoint_path, NULL);
-	char *jwks_uri = oauth2_stradd(NULL, oauth2_check_http_base_url(),
-				       jwks_uri_path, NULL);
+	char *token_endpoint = oauth2_stradd(NULL, base_url, "/token", NULL);
+	char *userinfo_endpoint =
+	    oauth2_stradd(NULL, base_url, "/userinfo", NULL);
+	char *jwks_uri = oauth2_stradd(NULL, base_url, "/jwks_uri", NULL);
 	_openidc_metadata =
 	    oauth2_strdup("{ "
 			  "\"issuer\": \"https://op.example.org\","
@@ -436,7 +388,8 @@ START_TEST(test_openidc_proto_state)
 
 	c = oauth2_cfg_openidc_init(_log);
 	oauth2_cfg_openidc_provider_resolver_set_options(
-	    _log, c, "string", test_openidc_metadata_get(), NULL);
+	    _log, c, "string",
+	    test_openidc_metadata_get(openidc_unused_base_url), NULL);
 
 	oauth2_openidc_proto_state_t *p1 =
 	    oauth2_openidc_proto_state_init(_log);
@@ -546,8 +499,18 @@ START_TEST(test_openidc_resolver_url)
 	oauth2_cfg_openidc_t *c = NULL;
 	oauth2_http_request_t *r = NULL;
 	oauth2_openidc_provider_t *provider = NULL;
-	char *discovery_uri = oauth2_stradd(NULL, oauth2_check_http_base_url(),
-					    discovery_endpoint_path, NULL);
+	char *discovery_uri = NULL;
+	oauth2_check_http_response_t resp = {
+	    .status_code = 200,
+	    .content_type = "application/json",
+	    .body = "{ \"issuer\": \"https://op.example.org\" }"};
+	oauth2_check_http_server_t *srv = NULL;
+
+	srv = oauth2_check_http_server_start(&resp);
+	ck_assert_ptr_ne(srv, NULL);
+	discovery_uri =
+	    oauth2_stradd(NULL, oauth2_check_http_server_url(srv),
+			  "/.well-known/openid-configuration", NULL);
 
 	c = oauth2_cfg_openidc_init(_log);
 	r = oauth2_http_request_init(_log);
@@ -567,6 +530,7 @@ START_TEST(test_openidc_resolver_url)
 	oauth2_openidc_provider_free(_log, provider);
 	provider = NULL;
 
+	oauth2_check_http_server_stop(srv);
 	oauth2_mem_free(discovery_uri);
 	oauth2_http_request_free(_log, r);
 	oauth2_cfg_openidc_free(_log, c);
@@ -586,7 +550,8 @@ START_TEST(test_openidc_resolver)
 	r = oauth2_http_request_init(_log);
 
 	rv = oauth2_cfg_openidc_provider_resolver_set_options(
-	    _log, c, "string", test_openidc_metadata_get(), NULL);
+	    _log, c, "string",
+	    test_openidc_metadata_get(openidc_unused_base_url), NULL);
 	ck_assert_ptr_eq(rv, NULL);
 
 	rc = _oauth2_openidc_provider_resolve(_log, c, r, NULL, &provider);
@@ -846,8 +811,8 @@ static void _openidc_verify_authentication_request_state(
 		*p = '\0';
 
 	// optionally return the nonce the library put in the authentication
-	// request so the caller can have the mock token endpoint echo it back
-	// in the id_token
+	// request so the caller can mint an id_token carrying the matching
+	// nonce
 	if (r_nonce != NULL) {
 		const char *nonce = strstr(location, "nonce=");
 		ck_assert_ptr_ne(NULL, nonce);
@@ -869,7 +834,7 @@ static void _openidc_verify_authentication_request_state(
 	ck_assert_ptr_ne(NULL, *state_cookie);
 }
 
-static void _test_openidc_handle(oauth2_cfg_openidc_t *c)
+static void _test_openidc_handle(oauth2_cfg_openidc_t *c, int port)
 {
 	bool rc = false;
 	oauth2_http_request_t *r = NULL;
@@ -877,6 +842,8 @@ static void _test_openidc_handle(oauth2_cfg_openidc_t *c)
 	const char *location = NULL;
 	char *state = NULL, *state_cookie_name = NULL, *state_cookie = NULL;
 	char *query_str = NULL, *session_cookie = NULL, *nonce = NULL;
+	char *token_json = NULL, *jwks_json = NULL;
+	oauth2_check_http_server_t *srv = NULL;
 	json_t *claims = NULL;
 
 	r = oauth2_http_request_init(_log);
@@ -898,6 +865,27 @@ static void _test_openidc_handle(oauth2_cfg_openidc_t *c)
 	response = NULL;
 	oauth2_http_request_free(_log, r);
 
+	// now that the library has generated the nonce (bound into the state
+	// cookie), mint an id_token carrying that nonce and script the
+	// token-endpoint exchange the callback will drive: token (#0), jwks
+	// (#1), userinfo (#2)
+	token_json = build_openidc_token_json(nonce);
+	ck_assert_ptr_ne(token_json, NULL);
+	jwks_json = build_openidc_jwks_json();
+	oauth2_check_http_response_t resp[3] = {
+	    {.status_code = 200,
+	     .content_type = "application/json",
+	     .body = token_json},
+	    {.status_code = 200,
+	     .content_type = "application/json",
+	     .body = jwks_json},
+	    {.status_code = 200,
+	     .content_type = "application/json",
+	     .body = "{ \"sub\": \"myclient\", "
+		     "\"myuserinfoclaim\": \"somevalue\" }"}};
+	srv = oauth2_check_http_server_start_at(port, resp, 3);
+	ck_assert_ptr_ne(srv, NULL);
+
 	r = oauth2_http_request_init(_log);
 	rc = oauth2_http_request_path_set(_log, r,
 					  "/openid-connect/redirect_uri");
@@ -909,10 +897,9 @@ static void _test_openidc_handle(oauth2_cfg_openidc_t *c)
 	rc = oauth2_http_request_header_set(_log, r, "Cookie", state_cookie);
 	ck_assert_int_eq(rc, true);
 
-	// carry the nonce back through the authorization "code" so the mock
-	// token endpoint echoes the matching value in the id_token
-	query_str = oauth2_stradd(NULL, "code=", nonce, "&state=");
-	query_str = oauth2_stradd(query_str, state, NULL, NULL);
+	// the "code" value is irrelevant - the scripted token endpoint returns
+	// the id_token minted above regardless - so use a fixed dummy code
+	query_str = oauth2_stradd(NULL, "code=mock_code&state=", state, NULL);
 	rc = oauth2_http_request_query_set(_log, r, query_str);
 	ck_assert_int_eq(rc, true);
 
@@ -945,6 +932,13 @@ static void _test_openidc_handle(oauth2_cfg_openidc_t *c)
 	json_decref(claims);
 	oauth2_http_response_free(_log, response);
 	oauth2_http_request_free(_log, r);
+
+	// the callback drove exactly the token/jwks/userinfo exchange; the
+	// remaining phases are served from the session, with no further HTTP
+	ck_assert_int_eq(oauth2_check_http_server_request_count(srv), 3);
+	oauth2_check_http_server_stop(srv);
+	oauth2_mem_free(token_json);
+	oauth2_mem_free(jwks_json);
 
 	r = oauth2_http_request_init(_log);
 	rc = oauth2_http_request_path_set(_log, r, "/secure");
@@ -1008,6 +1002,13 @@ START_TEST(test_openidc_handle_cookie)
 {
 	oauth2_cfg_openidc_t *c = NULL;
 	oauth2_cfg_session_t *session_cfg = NULL;
+	int port = oauth2_check_http_free_port();
+	char numbuf[16];
+	char *base_url = NULL;
+
+	ck_assert_int_ne(port, 0);
+	oauth2_snprintf(numbuf, sizeof(numbuf), "%d", port);
+	base_url = oauth2_stradd(NULL, "http://127.0.0.1:", numbuf, NULL);
 
 	c = oauth2_cfg_openidc_init(_log);
 
@@ -1017,7 +1018,7 @@ START_TEST(test_openidc_handle_cookie)
 	    "name=short_cookie&inactivity_timeout=2");
 
 	oauth2_cfg_openidc_provider_resolver_set_options(
-	    _log, c, "string", test_openidc_metadata_get(),
+	    _log, c, "string", test_openidc_metadata_get(base_url),
 	    "session=short_cookie");
 
 	oauth2_openidc_client_set_options(
@@ -1027,8 +1028,9 @@ START_TEST(test_openidc_handle_cookie)
 	    "mysecret&scope=openid%20profile",
 	    "ssl_verify=false");
 
-	_test_openidc_handle(c);
+	_test_openidc_handle(c, port);
 
+	oauth2_mem_free(base_url);
 	oauth2_cfg_openidc_free(_log, c);
 }
 END_TEST
@@ -1039,6 +1041,13 @@ START_TEST(test_openidc_handle_cache)
 	oauth2_cfg_session_t *session_cfg = NULL;
 	oauth2_cfg_openidc_t *c = NULL;
 	char *rv = NULL;
+	int port = oauth2_check_http_free_port();
+	char numbuf[16];
+	char *base_url = NULL;
+
+	ck_assert_int_ne(port, 0);
+	oauth2_snprintf(numbuf, sizeof(numbuf), "%d", port);
+	base_url = oauth2_stradd(NULL, "http://127.0.0.1:", numbuf, NULL);
 
 	c = oauth2_cfg_openidc_init(_log);
 
@@ -1054,7 +1063,7 @@ START_TEST(test_openidc_handle_cache)
 	    "name=short_memory&cache=memory&inactivity_timeout=2");
 
 	oauth2_cfg_openidc_provider_resolver_set_options(
-	    _log, c, "string", test_openidc_metadata_get(),
+	    _log, c, "string", test_openidc_metadata_get(base_url),
 	    "session=short_memory");
 
 	oauth2_openidc_client_set_options(
@@ -1064,8 +1073,9 @@ START_TEST(test_openidc_handle_cache)
 	    "mysecret&scope=openid%20profile",
 	    "ssl_verify=false");
 
-	_test_openidc_handle(c);
+	_test_openidc_handle(c, port);
 
+	oauth2_mem_free(base_url);
 	oauth2_cfg_openidc_free(_log, c);
 }
 END_TEST
@@ -1079,7 +1089,15 @@ START_TEST(test_openidc_handle_nonce_mismatch)
 	bool rc = false;
 	char *state = NULL, *state_cookie_name = NULL, *state_cookie = NULL;
 	char *query_str = NULL, *nonce = NULL;
+	char *token_json = NULL, *jwks_json = NULL, *base_url = NULL;
+	int port = oauth2_check_http_free_port();
+	char numbuf[16];
+	oauth2_check_http_server_t *srv = NULL;
 	json_t *claims = NULL;
+
+	ck_assert_int_ne(port, 0);
+	oauth2_snprintf(numbuf, sizeof(numbuf), "%d", port);
+	base_url = oauth2_stradd(NULL, "http://127.0.0.1:", numbuf, NULL);
 
 	c = oauth2_cfg_openidc_init(_log);
 	session_cfg = oauth2_cfg_session_init(_log);
@@ -1087,7 +1105,7 @@ START_TEST(test_openidc_handle_nonce_mismatch)
 	    _log, session_cfg, "cookie",
 	    "name=short_cookie&inactivity_timeout=2");
 	oauth2_cfg_openidc_provider_resolver_set_options(
-	    _log, c, "string", test_openidc_metadata_get(),
+	    _log, c, "string", test_openidc_metadata_get(base_url),
 	    "session=short_cookie");
 	oauth2_openidc_client_set_options(
 	    _log, c, "string",
@@ -1111,19 +1129,37 @@ START_TEST(test_openidc_handle_nonce_mismatch)
 	response = NULL;
 	oauth2_http_request_free(_log, r);
 
-	// step 2: callback carrying a "code" (hence id_token nonce) that does
-	// NOT match the nonce bound into the (encrypted) state cookie -> fail
+	// the scripted token endpoint returns an id_token whose nonce does NOT
+	// match the one bound into the state cookie
+	token_json = build_openidc_token_json("a_different_nonce");
+	ck_assert_ptr_ne(token_json, NULL);
+	jwks_json = build_openidc_jwks_json();
+	oauth2_check_http_response_t resp[2] = {
+	    {.status_code = 200,
+	     .content_type = "application/json",
+	     .body = token_json},
+	    {.status_code = 200,
+	     .content_type = "application/json",
+	     .body = jwks_json}};
+	srv = oauth2_check_http_server_start_at(port, resp, 2);
+	ck_assert_ptr_ne(srv, NULL);
+
+	// step 2: callback carrying a "code" -> token exchange yields the
+	// mismatching id_token -> verification fails
 	r = oauth2_http_request_init(_log);
 	oauth2_http_request_path_set(_log, r, "/openid-connect/redirect_uri");
 	oauth2_http_request_header_set(_log, r, "Host", "app.example.org");
 	oauth2_http_request_header_set(_log, r, "Accept", "text/html");
 	oauth2_http_request_header_set(_log, r, "Cookie", state_cookie);
-	query_str =
-	    oauth2_stradd(NULL, "code=a_different_nonce&state", "=", state);
+	query_str = oauth2_stradd(NULL, "code=mock_code&state=", state, NULL);
 	oauth2_http_request_query_set(_log, r, query_str);
 	rc = oauth2_openidc_handle(_log, c, r, &response, &claims);
 	ck_assert_int_eq(rc, false);
 
+	oauth2_check_http_server_stop(srv);
+	oauth2_mem_free(token_json);
+	oauth2_mem_free(jwks_json);
+	oauth2_mem_free(base_url);
 	oauth2_mem_free(query_str);
 	oauth2_mem_free(state);
 	oauth2_mem_free(nonce);
@@ -1156,7 +1192,8 @@ START_TEST(test_openidc_state_cookie)
 	    _log, c, "state.cookie.max=1&state.cookie.delete.oldest=true");
 
 	oauth2_cfg_openidc_provider_resolver_set_options(
-	    _log, c, "string", test_openidc_metadata_get(), NULL);
+	    _log, c, "string",
+	    test_openidc_metadata_get(openidc_unused_base_url), NULL);
 	oauth2_openidc_client_set_options(
 	    _log, c, "string", "client_id=myclient&client_secret=mysecret",
 	    NULL);
@@ -1219,10 +1256,6 @@ Suite *oauth2_check_openidc_suite()
 {
 	Suite *s = suite_create("openidc");
 	TCase *c = tcase_create("core");
-
-	liboauth2_check_register_http_callbacks(
-	    oauth2_check_http_base_path(), oauth2_check_openidc_serve_get,
-	    oauth2_check_openidc_serve_post);
 
 	tcase_add_checked_fixture(c, setup, teardown);
 

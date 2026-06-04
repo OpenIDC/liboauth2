@@ -1,3 +1,11 @@
+06/04/2026
+- test: replace the suite-wide forked HTTP server (fixed port 8888 with
+  path-routed callbacks serving fixtures) with a per-test loopback fixture
+  (test/http_server.c) that scripts the response sequence for each outbound
+  request and captures the requests for assertions, on a kernel-assigned or
+  caller-chosen port via POSIX sockets and a pthread (no APR dependency)
+- bump to 2.3.1dev
+
 06/03/2026
 - oauth2: re-validate the token "exp" on a verification-cache hit; the result
   cache TTL is independent of the token's own expiry, so a cached entry could

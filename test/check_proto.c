@@ -19,6 +19,7 @@
  **************************************************************************/
 
 #include "check_liboauth2.h"
+#include "http_server.h"
 #include "oauth2/mem.h"
 #include "oauth2/proto.h"
 #include <check.h>
@@ -26,11 +27,8 @@
 
 static oauth2_log_t *_log = 0;
 
-OAUTH2_CHECK_HTTP_PATHS
-
 void oauth2_check_proto_cleanup()
 {
-	oauth2_check_http_base_free();
 }
 
 static void setup(void)
@@ -338,55 +336,6 @@ START_TEST(test_proto_get_source_token_basic)
 }
 END_TEST
 
-static char *token_endpoint_path = "/token";
-
-static char *ropc_result_json = "{ \"access_token\": \"my_ropc_token\" }";
-static char *cc_result_json = "{ \"access_token\": \"my_cc_token\" }";
-
-static char *oauth2_check_proto_serve_post(const char *request)
-{
-	oauth2_nv_list_t *params = NULL;
-	char *data = NULL;
-	const char *grant_type = NULL;
-	const char *sep = "****";
-	char *rv = NULL;
-
-	if (strncmp(request, token_endpoint_path,
-		    strlen(token_endpoint_path)) == 0) {
-		request += strlen(token_endpoint_path) + 5;
-		data = strstr((char *)request, sep);
-		if (data == NULL)
-			goto error;
-		data += strlen(sep);
-		if (oauth2_parse_form_encoded_params(_log, data, &params) ==
-		    false)
-			goto error;
-		grant_type = oauth2_nv_list_get(_log, params, "grant_type");
-		if (grant_type == NULL)
-			goto error;
-		if ((grant_type) && (strcmp(grant_type, "password") == 0)) {
-			// TODO: check username password
-			rv = oauth2_strdup(ropc_result_json);
-		} else if ((grant_type) &&
-			   (strcmp(grant_type, "client_credentials") == 0)) {
-			rv = oauth2_strdup(cc_result_json);
-		} else {
-			rv = oauth2_strdup(
-			    "{ \"error\": \"unsupported grant_type\" }");
-		}
-		oauth2_nv_list_free(_log, params);
-		goto end;
-	}
-
-error:
-
-	rv = oauth2_strdup("problem");
-
-end:
-
-	return rv;
-}
-
 START_TEST(test_proto_ropc)
 {
 	bool rc = false;
@@ -395,9 +344,18 @@ START_TEST(test_proto_ropc)
 	oauth2_uint_t status_code = 0;
 	char *rv = NULL;
 	char *url = NULL;
+	oauth2_check_http_response_t resp = {
+	    .status_code = 200,
+	    .content_type = "application/json",
+	    .body = "{ \"access_token\": \"my_ropc_token\" }"};
+	oauth2_check_http_server_t *srv = NULL;
+	const oauth2_check_http_captured_t *cap = NULL;
 
-	url = oauth2_stradd(NULL, NULL, oauth2_check_http_base_url(),
-			    token_endpoint_path);
+	srv = oauth2_check_http_server_start(&resp);
+	ck_assert_ptr_ne(srv, NULL);
+
+	url = oauth2_stradd(NULL, oauth2_check_http_server_url(srv), "/token",
+			    NULL);
 
 	cfg = oauth2_cfg_ropc_init(_log);
 	rv = oauth2_cfg_set_ropc(_log, cfg, url, NULL);
@@ -408,6 +366,12 @@ START_TEST(test_proto_ropc)
 	ck_assert_int_eq(rc, true);
 	ck_assert_str_eq(token, "my_ropc_token");
 
+	cap = oauth2_check_http_server_wait(srv);
+	ck_assert_ptr_ne(cap, NULL);
+	ck_assert_str_eq(cap->method, "POST");
+	ck_assert_ptr_ne(strstr(cap->body, "grant_type=password"), NULL);
+
+	oauth2_check_http_server_stop(srv);
 	oauth2_mem_free(token);
 	oauth2_cfg_ropc_free(_log, cfg);
 	oauth2_mem_free(url);
@@ -422,9 +386,18 @@ START_TEST(test_proto_cc)
 	oauth2_uint_t status_code = 0;
 	char *rv = NULL;
 	char *url = NULL;
+	oauth2_check_http_response_t resp = {
+	    .status_code = 200,
+	    .content_type = "application/json",
+	    .body = "{ \"access_token\": \"my_cc_token\" }"};
+	oauth2_check_http_server_t *srv = NULL;
+	const oauth2_check_http_captured_t *cap = NULL;
 
-	url = oauth2_stradd(NULL, NULL, oauth2_check_http_base_url(),
-			    token_endpoint_path);
+	srv = oauth2_check_http_server_start(&resp);
+	ck_assert_ptr_ne(srv, NULL);
+
+	url = oauth2_stradd(NULL, oauth2_check_http_server_url(srv), "/token",
+			    NULL);
 
 	cfg = oauth2_cfg_cc_init(_log);
 	rv = oauth2_cfg_set_cc(_log, cfg, url, NULL);
@@ -434,6 +407,13 @@ START_TEST(test_proto_cc)
 	ck_assert_int_eq(rc, true);
 	ck_assert_str_eq(token, "my_cc_token");
 
+	cap = oauth2_check_http_server_wait(srv);
+	ck_assert_ptr_ne(cap, NULL);
+	ck_assert_str_eq(cap->method, "POST");
+	ck_assert_ptr_ne(strstr(cap->body, "grant_type=client_credentials"),
+			 NULL);
+
+	oauth2_check_http_server_stop(srv);
 	oauth2_mem_free(token);
 	oauth2_cfg_cc_free(_log, cfg);
 	oauth2_mem_free(url);
@@ -444,9 +424,6 @@ Suite *oauth2_check_proto_suite()
 {
 	Suite *s = suite_create("proto");
 	TCase *c = tcase_create("core");
-
-	liboauth2_check_register_http_callbacks(
-	    oauth2_check_http_base_path(), NULL, oauth2_check_proto_serve_post);
 
 	tcase_add_checked_fixture(c, setup, teardown);
 

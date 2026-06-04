@@ -19,6 +19,7 @@
  **************************************************************************/
 
 #include "check_liboauth2.h"
+#include "http_server.h"
 #include "oauth2/http.h"
 #include "oauth2/mem.h"
 #include "oauth2/util.h"
@@ -26,11 +27,8 @@
 
 static oauth2_log_t *_log = NULL;
 
-OAUTH2_CHECK_HTTP_PATHS
-
 void oauth2_check_http_cleanup()
 {
-	oauth2_check_http_base_free();
 }
 
 static void setup(void)
@@ -607,27 +605,8 @@ START_TEST(test_form_encode)
 END_TEST
 
 static char *get_json = "{ \"my\": \"json\" }";
-static char *get_json_path = "/my_json";
-
-static char *oauth2_check_http_serve_get(const char *request)
-{
-	if (strncmp(request, get_json_path, strlen(get_json_path)) == 0) {
-		return oauth2_strdup(get_json);
-	}
-	return oauth2_strdup("problem");
-}
 
 static char *post_json = "{ \"form\": \"post\" }";
-static char *post_form_json_path = "/post_json";
-
-static char *oauth2_check_http_serve_post(const char *request)
-{
-	if (strncmp(request, post_form_json_path,
-		    strlen(post_form_json_path)) == 0) {
-		return oauth2_strdup(post_json);
-	}
-	return oauth2_strdup("problem");
-}
 
 START_TEST(test_http_get)
 {
@@ -635,8 +614,22 @@ START_TEST(test_http_get)
 	char *response = NULL, *url = NULL;
 	oauth2_nv_list_t *params = oauth2_nv_list_init(_log);
 	oauth2_http_call_ctx_t *ctx = oauth2_http_call_ctx_init(_log);
+	/* the first GET passes a NULL response pointer and never reaches the
+	 * wire, so only the two latter GETs are actually served */
+	oauth2_check_http_response_t resp[2] = {
+	    {.status_code = 200,
+	     .content_type = "application/json",
+	     .body = get_json},
+	    {.status_code = 200,
+	     .content_type = "application/json",
+	     .body = get_json}};
+	oauth2_check_http_server_t *srv = NULL;
+	const oauth2_check_http_captured_t *cap = NULL;
 
-	url = oauth2_stradd(NULL, oauth2_check_http_base_url(), get_json_path,
+	srv = oauth2_check_http_server_start_seq(resp, 2);
+	ck_assert_ptr_ne(srv, NULL);
+
+	url = oauth2_stradd(NULL, oauth2_check_http_server_url(srv), "/my_json",
 			    NULL);
 	rc = oauth2_http_get(_log, url, NULL, NULL, NULL, NULL);
 	ck_assert_int_eq(rc, false);
@@ -658,6 +651,14 @@ START_TEST(test_http_get)
 	ck_assert_str_eq(response, get_json);
 	oauth2_mem_free(response);
 
+	/* the second served request carried the query param and the custom
+	 * Authorization/cookie headers */
+	cap = oauth2_check_http_server_captured(srv, 1);
+	ck_assert_ptr_ne(cap, NULL);
+	ck_assert_str_eq(cap->method, "GET");
+	ck_assert_ptr_ne(strstr(cap->path, "jan=piet"), NULL);
+
+	oauth2_check_http_server_stop(srv);
 	oauth2_nv_list_free(_log, params);
 	oauth2_http_call_ctx_free(_log, ctx);
 	oauth2_mem_free(url);
@@ -669,15 +670,29 @@ START_TEST(test_http_post_form)
 	bool rc;
 	char *response = NULL, *url = NULL;
 	oauth2_nv_list_t *params = oauth2_nv_list_init(_log);
+	oauth2_check_http_response_t resp = {.status_code = 200,
+					     .content_type = "application/json",
+					     .body = post_json};
+	oauth2_check_http_server_t *srv = NULL;
+	const oauth2_check_http_captured_t *cap = NULL;
 
-	url = oauth2_stradd(NULL, oauth2_check_http_base_url(),
-			    post_form_json_path, NULL);
+	srv = oauth2_check_http_server_start(&resp);
+	ck_assert_ptr_ne(srv, NULL);
+
+	url = oauth2_stradd(NULL, oauth2_check_http_server_url(srv),
+			    "/post_json", NULL);
 	oauth2_nv_list_add(_log, params, "jan", "piet");
 	rc = oauth2_http_post_form(_log, url, params, NULL, &response, NULL);
 	ck_assert_int_eq(rc, true);
 	ck_assert_str_eq(response, post_json);
 	oauth2_mem_free(response);
 
+	cap = oauth2_check_http_server_wait(srv);
+	ck_assert_ptr_ne(cap, NULL);
+	ck_assert_str_eq(cap->method, "POST");
+	ck_assert_ptr_ne(strstr(cap->body, "jan=piet"), NULL);
+
+	oauth2_check_http_server_stop(srv);
 	oauth2_nv_list_free(_log, params);
 	oauth2_mem_free(url);
 }
@@ -781,10 +796,6 @@ Suite *oauth2_check_http_suite()
 {
 	Suite *s = suite_create("http");
 	TCase *c = tcase_create("core");
-
-	liboauth2_check_register_http_callbacks(oauth2_check_http_base_path(),
-						oauth2_check_http_serve_get,
-						oauth2_check_http_serve_post);
 
 	tcase_add_checked_fixture(c, setup, teardown);
 

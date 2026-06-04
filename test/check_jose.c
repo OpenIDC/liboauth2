@@ -26,92 +26,72 @@
 #include <unistd.h>
 
 #include "check_liboauth2.h"
+#include "http_server.h"
 #include "jose_int.h"
 
 static oauth2_log_t *_log = 0;
 
-static const char *secret1 = NULL;
-static const char *secret2 = NULL;
+static const char *secret1 = "12345";
+static const char *secret2 = "abcde";
 
 static json_t *payload1 = NULL;
-const char *s_payload1 = NULL;
+const char *s_payload1 = "{\"iss\":\"https://example.org\"}";
 
 static json_t *payload2 = NULL;
-const char *s_payload2 = NULL;
+const char *s_payload2 = "{\"aud\":\"https://another.org\"}";
 
-static const char *serialized_hdr = NULL;
-static const char *encrypted1 = NULL;
-static const char *encrypted1_corrupt_tag = NULL;
+static const char *serialized_hdr =
+    "eyJhbGciOiAiZGlyIiwgImVuYyI6ICJBMjU2R0NNIn0..";
+static const char *encrypted1 =
+    "eyJhbGciOiAiZGlyIiwgImVuYyI6ICJBMjU2R0NNIn0..-"
+    "jvbGVBwu8GOvVwF.3lPSed2UdIu-"
+    "obtRNcMaCP7WUYETLwkXD2BZbx0sjOUiRNbHXQmYm7c0B4Mp2f2m-C-"
+    "hAzBdlPGDjeNP1PiFZiWFtDRGuskW4qGrUoFCSWZx5vAyfOFjuRN2ydst7"
+    "geoD32_8zY-pYyVzQ.HWN2Hq8sLnFWT_XKU20Mpw";
+static const char *encrypted1_corrupt_tag =
+    "eyJhbGciOiAiZGlyIiwgImVuYyI6ICJBMjU2R0NNIn0..-"
+    "jvbGVBwu8GOvVwF.3lPSed2UdIu-"
+    "obtRNcMaCP7WUYETLwkXD2BZbx0sjOUiRNbHXQmYm7c0B4Mp2f2m-C-"
+    "hAzBdlPGDjeNP1PiFZiWFtDRGuskW4qGrUoFCSWZx5vAyfOFjuRN2ydst7"
+    "geoD32_8zY-pYyVzQ.HWN2Hq8sLnFWT_XKU20MpW";
 
-static const char *encrypted1_signed2 = NULL;
-static const char *encrypted1_signed2_corrupt_sig = NULL;
-static const char *encrypted1_signed2_corrupt_hdr = NULL;
-static const char *encrypted1_signed2_corrupt_payload = NULL;
-
-OAUTH2_CHECK_HTTP_PATHS
+static const char *encrypted1_signed2 =
+    "eyJhbGciOiAiZGlyIiwgImVuYyI6ICJBMjU2R0NNIn0.."
+    "4lW9e06wrl3DMuNs.-"
+    "wmcLlYUPuGGWKPIimR3j66Y15yarBpaF75g07Q23epRmYO7NL"
+    "Gvwt7tiGYJGxqh_6f9SHJDK7wMYR4GsP6W4AZWZOurCxY_"
+    "PdwZWnrPit11s7zi77fFEqz3b3g2scYbZd9PfN-KJ4Ol0g."
+    "oH5VdKxGZanSP0H0-XuGtg";
+static const char *encrypted1_signed2_corrupt_sig =
+    "eyJhbGciOiAiZGlyIiwgImVuYyI6ICJBMjU2R0NNIn0..f-t6lZhrSTUwQUhe."
+    "1fIV8PJSgpoOgiR-0yVlkzzcgfpEghVnevJuYbO06DA9x-"
+    "X47wzpoIPIX941fXmSFIItQDiF1t9lVxfIhnJ46JYuYlOCwkn_"
+    "6vUIQKpCbGbUNwvrPo8aF8g75T8FMKmeqjjawmby2nwawQ."
+    "Sm6gRVXw7RhI7NI2hfIglg";
+static const char *encrypted1_signed2_corrupt_hdr =
+    "eyJhbGciOiAiZGlyIiwgImVuYyI6ICJBMjU2R0NNIn0..0yJnmp9r_YW8am-4."
+    "Qe6GoANyIV3ET_bb4Npr-QguqGzzTNrm_"
+    "iWvx5iYchUr8HL1Qv8jWQq8FOeuNHhbdNW0huKhH_rjfNA_"
+    "bNHN6nUGmHmeSkhWMKPsf2JnrDZIdcCN7uXVxhKeMXe5TGZ6sY5AdF7lX8Ufcg."
+    "auXeS-tKPnxFj-iUYULfOQ";
+static const char *encrypted1_signed2_corrupt_payload =
+    "eyJhbGciOiAiZGlyIiwgImVuYyI6ICJBMjU2R0NNIn0..eeCTIS3jEdKO45ao.PM_"
+    "PHuxN-zPZ9gNVLgpuXZl5dXCTCTQedYCj_"
+    "QBoOrKhg93A1QOrj1NcHt0NSspDkJ9PpVnJG6T1nzKPIZsdWHHjse33xqs4HNbDW2y"
+    "bBMuZFQ_S9eEDfEVusEcls0cg0pcrtemeJ8fb.NDWKfDRNgbl5anMH1NCbIw";
 
 void oauth2_check_jose_cleanup()
 {
-	oauth2_check_http_base_free();
 }
 
 static void setup(void)
 {
 	_log = oauth2_init(OAUTH2_LOG_TRACE1, 0);
 
-	secret1 = "12345";
-	secret2 = "abcde";
-
-	s_payload1 = "{\"iss\":\"https://example.org\"}";
 	json_error_t err;
 	payload1 = json_loads(s_payload1, 0, &err);
 
-	s_payload2 = "{\"aud\":\"https://another.org\"}";
 	payload2 = json_loads(s_payload2, 0, &err);
-
-	serialized_hdr = "eyJhbGciOiAiZGlyIiwgImVuYyI6ICJBMjU2R0NNIn0..";
-	encrypted1 =
-	    "eyJhbGciOiAiZGlyIiwgImVuYyI6ICJBMjU2R0NNIn0..-"
-	    "jvbGVBwu8GOvVwF.3lPSed2UdIu-"
-	    "obtRNcMaCP7WUYETLwkXD2BZbx0sjOUiRNbHXQmYm7c0B4Mp2f2m-C-"
-	    "hAzBdlPGDjeNP1PiFZiWFtDRGuskW4qGrUoFCSWZx5vAyfOFjuRN2ydst7"
-	    "geoD32_8zY-pYyVzQ.HWN2Hq8sLnFWT_XKU20Mpw";
-
-	// encrypted_wrong_payload =
-
-	encrypted1_corrupt_tag =
-	    "eyJhbGciOiAiZGlyIiwgImVuYyI6ICJBMjU2R0NNIn0..-"
-	    "jvbGVBwu8GOvVwF.3lPSed2UdIu-"
-	    "obtRNcMaCP7WUYETLwkXD2BZbx0sjOUiRNbHXQmYm7c0B4Mp2f2m-C-"
-	    "hAzBdlPGDjeNP1PiFZiWFtDRGuskW4qGrUoFCSWZx5vAyfOFjuRN2ydst7"
-	    "geoD32_8zY-pYyVzQ.HWN2Hq8sLnFWT_XKU20MpW";
-
-	encrypted1_signed2 = "eyJhbGciOiAiZGlyIiwgImVuYyI6ICJBMjU2R0NNIn0.."
-			     "4lW9e06wrl3DMuNs.-"
-			     "wmcLlYUPuGGWKPIimR3j66Y15yarBpaF75g07Q23epRmYO7NL"
-			     "Gvwt7tiGYJGxqh_6f9SHJDK7wMYR4GsP6W4AZWZOurCxY_"
-			     "PdwZWnrPit11s7zi77fFEqz3b3g2scYbZd9PfN-KJ4Ol0g."
-			     "oH5VdKxGZanSP0H0-XuGtg";
-
-	encrypted1_signed2_corrupt_sig =
-	    "eyJhbGciOiAiZGlyIiwgImVuYyI6ICJBMjU2R0NNIn0..f-t6lZhrSTUwQUhe."
-	    "1fIV8PJSgpoOgiR-0yVlkzzcgfpEghVnevJuYbO06DA9x-"
-	    "X47wzpoIPIX941fXmSFIItQDiF1t9lVxfIhnJ46JYuYlOCwkn_"
-	    "6vUIQKpCbGbUNwvrPo8aF8g75T8FMKmeqjjawmby2nwawQ."
-	    "Sm6gRVXw7RhI7NI2hfIglg";
-
-	encrypted1_signed2_corrupt_hdr =
-	    "eyJhbGciOiAiZGlyIiwgImVuYyI6ICJBMjU2R0NNIn0..0yJnmp9r_YW8am-4."
-	    "Qe6GoANyIV3ET_bb4Npr-QguqGzzTNrm_"
-	    "iWvx5iYchUr8HL1Qv8jWQq8FOeuNHhbdNW0huKhH_rjfNA_"
-	    "bNHN6nUGmHmeSkhWMKPsf2JnrDZIdcCN7uXVxhKeMXe5TGZ6sY5AdF7lX8Ufcg."
-	    "auXeS-tKPnxFj-iUYULfOQ";
-
-	encrypted1_signed2_corrupt_payload =
-	    "eyJhbGciOiAiZGlyIiwgImVuYyI6ICJBMjU2R0NNIn0..eeCTIS3jEdKO45ao.PM_"
-	    "PHuxN-zPZ9gNVLgpuXZl5dXCTCTQedYCj_"
-	    "QBoOrKhg93A1QOrj1NcHt0NSspDkJ9PpVnJG6T1nzKPIZsdWHHjse33xqs4HNbDW2y"
-	    "bBMuZFQ_S9eEDfEVusEcls0cg0pcrtemeJ8fb.NDWKfDRNgbl5anMH1NCbIw";
 }
 
 static void teardown(void)
@@ -342,16 +322,6 @@ static char *get_jwks_uri_json =
     "yEmnouFbV0UBMZck7gMNseCtwSYdkwls/LDFEp9D4rF1gHRlSBRskNc/"
     "NaasTSX4JpNf+xakm7yePtuWyAY/"
     "fQ7ETSPMJdVEaL\"],\"x5t\":\"31YdH_bv2Hlg89wmwBphxJZaK64\"}]}";
-static char *jwks_uri_path = "/jwks_uri";
-
-static char *oauth2_check_jose_serve_get(const char *request)
-{
-	if (strncmp(request, jwks_uri_path, strlen(jwks_uri_path)) == 0) {
-		return oauth2_strdup(get_jwks_uri_json);
-	}
-	return oauth2_strdup("problem");
-}
-
 START_TEST(test_jwks_resolve_uri)
 {
 	oauth2_cfg_token_verify_t *verify = NULL;
@@ -360,9 +330,16 @@ START_TEST(test_jwks_resolve_uri)
 	bool refresh = false;
 	char *url = NULL;
 	oauth2_jose_jwt_verify_ctx_t *ptr = NULL;
+	oauth2_check_http_response_t resp = {.status_code = 200,
+					     .content_type = "application/json",
+					     .body = get_jwks_uri_json};
+	oauth2_check_http_server_t *srv = NULL;
 
-	url = oauth2_stradd(NULL, oauth2_check_http_base_url(), jwks_uri_path,
-			    NULL);
+	srv = oauth2_check_http_server_start(&resp);
+	ck_assert_ptr_ne(srv, NULL);
+
+	url = oauth2_stradd(NULL, oauth2_check_http_server_url(srv),
+			    "/jwks_uri", NULL);
 	rv = oauth2_cfg_token_verify_add_options(_log, &verify, "jwks_uri", url,
 						 "ssl_verify=false");
 	ck_assert_ptr_eq(rv, NULL);
@@ -372,6 +349,7 @@ START_TEST(test_jwks_resolve_uri)
 					   NULL);
 	ck_assert_ptr_ne(list, NULL);
 
+	oauth2_check_http_server_stop(srv);
 	oauth2_jose_jwk_list_free(_log, list);
 	oauth2_mem_free(url);
 	oauth2_cfg_token_verify_free(_log, verify);
@@ -701,9 +679,6 @@ Suite *oauth2_check_jose_suite()
 {
 	Suite *s = suite_create("jose");
 	TCase *c = tcase_create("core");
-
-	liboauth2_check_register_http_callbacks(
-	    oauth2_check_http_base_path(), oauth2_check_jose_serve_get, NULL);
 
 	tcase_add_checked_fixture(c, setup, teardown);
 

@@ -19,6 +19,7 @@
  **************************************************************************/
 
 #include "check_liboauth2.h"
+#include "http_server.h"
 #include "oauth2/jose.h"
 #include "oauth2/mem.h"
 #include "oauth2/oauth2.h"
@@ -28,11 +29,8 @@
 
 static oauth2_log_t *_log = 0;
 
-OAUTH2_CHECK_HTTP_PATHS
-
 void oauth2_check_oauth2_cleanup()
 {
-	oauth2_check_http_base_free();
 }
 
 static void setup(void)
@@ -482,7 +480,6 @@ static char *get_jwks_uri_json =
     "yEmnouFbV0UBMZck7gMNseCtwSYdkwls/LDFEp9D4rF1gHRlSBRskNc/"
     "NaasTSX4JpNf+xakm7yePtuWyAY/"
     "fQ7ETSPMJdVEaL\"],\"x5t\":\"31YdH_bv2Hlg89wmwBphxJZaK64\"}]}";
-static char *get_jwks_uri_path = "/jwks_uri";
 
 static char *get_eckey_pem =
     "-----BEGIN PUBLIC "
@@ -490,94 +487,23 @@ static char *get_eckey_pem =
     "U6z4PGV0++"
     "Qdj1Ev2363\n47i7PxTx8Tr87RYHXIIXLRmH1aIz0OVLt4eM9iXDlDGB6ldBFsM8P61nqQ=="
     "\n-----END PUBLIC KEY-----";
-static char *get_eckey_url_path = "/ec_key";
 
-static char *introspection_result_json = "{ \"active\": true }";
-
-static char *post_introspection_path = "/introspection";
 const char *valid_access_token = "my_valid_token";
 
-static char *metadata_path = "/.well-known/oauth2-configuration";
-
-static char metadata[512];
-
-static char *get_metadata_json()
+/* build an oauth2 metadata document whose jwks_uri / introspection_endpoint
+ * point back at the given (test server) base URL; caller frees */
+static char *build_metadata_json(const char *base_url)
 {
-	static char *format = "{"
-			      "\"issuer\": \"https://example.com\","
-			      "\"jwks_uri\": \"%s%s\","
-			      "\"introspection_endpoint\": \"%s%s\""
-			      "}";
-	oauth2_snprintf(metadata, sizeof(metadata), format,
-			oauth2_check_http_base_url(), get_jwks_uri_path,
-			oauth2_check_http_base_url(), post_introspection_path);
-	return metadata;
-}
-
-static char *oauth2_check_oauth2_serve_get(const char *request)
-{
-	char *rv = NULL;
-
-	if (strncmp(request, get_jwks_uri_path, strlen(get_jwks_uri_path)) ==
-	    0) {
-		rv = oauth2_strdup(get_jwks_uri_json);
-		goto end;
-	}
-	if (strncmp(request, get_eckey_url_path, strlen(get_eckey_url_path)) ==
-	    0) {
-		rv = oauth2_strdup(get_eckey_pem);
-		goto end;
-	}
-	if (strncmp(request, metadata_path, strlen(metadata_path)) == 0) {
-		rv = oauth2_strdup(get_metadata_json());
-		goto end;
-	}
-
-	rv = oauth2_strdup("problem");
-
-end:
-
-	return rv;
-}
-
-static char *oauth2_check_oauth2_serve_post(const char *request)
-{
-	oauth2_nv_list_t *params = NULL;
-	char *data = NULL;
-	const char *token = NULL;
-	const char *sep = "****";
-	char *rv = NULL;
-
-	if (strncmp(request, post_introspection_path,
-		    strlen(post_introspection_path)) == 0) {
-		request += strlen(post_introspection_path) + 5;
-		data = strstr((char *)request, sep);
-		if (data == NULL)
-			goto error;
-		data += strlen(sep);
-		if (oauth2_parse_form_encoded_params(_log, data, &params) ==
-		    false)
-			goto error;
-		token = oauth2_nv_list_get(_log, params, "key2");
-		if ((token == NULL) || (strcmp(token, "two") != 0))
-			goto error;
-		token = oauth2_nv_list_get(_log, params, "token");
-		if (token == NULL)
-			goto error;
-		if ((token) && (strcmp(token, valid_access_token) == 0))
-			rv = oauth2_strdup(introspection_result_json);
-		else
-			rv = oauth2_strdup("{ \"active\": false }");
-		oauth2_nv_list_free(_log, params);
-		goto end;
-	}
-
-error:
-
-	rv = oauth2_strdup("{ \"error\": \"problem\" }");
-
-end:
-
+	char *jwks_uri = oauth2_stradd(NULL, base_url, "/jwks_uri", NULL);
+	char *introspection_endpoint =
+	    oauth2_stradd(NULL, base_url, "/introspection", NULL);
+	char *rv = oauth2_stradd(
+	    NULL, "{\"issuer\": \"https://example.com\",\"jwks_uri\": \"",
+	    jwks_uri, "\",");
+	rv = oauth2_stradd(rv, "\"introspection_endpoint\": \"",
+			   introspection_endpoint, "\"}");
+	oauth2_mem_free(jwks_uri);
+	oauth2_mem_free(introspection_endpoint);
 	return rv;
 }
 
@@ -904,9 +830,16 @@ START_TEST(test_oauth2_verify_jwks_uri)
 	json_t *json_payload = NULL;
 	const char *rv = NULL;
 	char *url = NULL;
+	oauth2_check_http_response_t resp = {.status_code = 200,
+					     .content_type = "application/json",
+					     .body = get_jwks_uri_json};
+	oauth2_check_http_server_t *srv = NULL;
 
-	url = oauth2_stradd(NULL, oauth2_check_http_base_url(),
-			    get_jwks_uri_path, NULL);
+	srv = oauth2_check_http_server_start(&resp);
+	ck_assert_ptr_ne(srv, NULL);
+
+	url = oauth2_stradd(NULL, oauth2_check_http_server_url(srv),
+			    "/jwks_uri", NULL);
 	rv = oauth2_cfg_token_verify_add_options(_log, &verify, "jwks_uri", url,
 						 "verify.exp=skip");
 	ck_assert_ptr_eq(rv, NULL);
@@ -914,6 +847,7 @@ START_TEST(test_oauth2_verify_jwks_uri)
 	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
 	ck_assert_int_eq(rc, true);
 
+	oauth2_check_http_server_stop(srv);
 	oauth2_cfg_token_verify_free(_log, verify);
 	oauth2_mem_free(url);
 	json_decref(json_payload);
@@ -943,9 +877,15 @@ START_TEST(test_oauth2_verify_eckey_uri)
 	json_t *json_payload = NULL;
 	const char *rv = NULL;
 	char *url = NULL;
+	oauth2_check_http_response_t resp = {.status_code = 200,
+					     .body = get_eckey_pem};
+	oauth2_check_http_server_t *srv = NULL;
 
-	url = oauth2_stradd(NULL, oauth2_check_http_base_url(),
-			    get_eckey_url_path, NULL);
+	srv = oauth2_check_http_server_start(&resp);
+	ck_assert_ptr_ne(srv, NULL);
+
+	url = oauth2_stradd(NULL, oauth2_check_http_server_url(srv), "/ec_key",
+			    NULL);
 	rv = oauth2_cfg_token_verify_add_options(_log, &verify, "eckey_uri",
 						 url, NULL);
 	ck_assert_ptr_eq(rv, NULL);
@@ -953,6 +893,7 @@ START_TEST(test_oauth2_verify_eckey_uri)
 	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
 	ck_assert_int_eq(rc, true);
 
+	oauth2_check_http_server_stop(srv);
 	oauth2_cfg_token_verify_free(_log, verify);
 	oauth2_mem_free(url);
 	json_decref(json_payload);
@@ -982,9 +923,15 @@ START_TEST(test_oauth2_verify_aws_alb)
 	json_t *json_payload = NULL;
 	const char *rv = NULL;
 	char *url = NULL, *options = NULL;
+	oauth2_check_http_response_t resp = {.status_code = 200,
+					     .body = get_eckey_pem};
+	oauth2_check_http_server_t *srv = NULL;
 
-	url = oauth2_stradd(NULL, oauth2_check_http_base_url(),
-			    get_eckey_url_path, NULL);
+	srv = oauth2_check_http_server_start(&resp);
+	ck_assert_ptr_ne(srv, NULL);
+
+	url = oauth2_stradd(NULL, oauth2_check_http_server_url(srv), "/ec_key",
+			    NULL);
 	options = oauth2_stradd(NULL, "alb_base_url", "=", url);
 	rv = oauth2_cfg_token_verify_add_options(
 	    _log, &verify, "aws_alb",
@@ -996,6 +943,7 @@ START_TEST(test_oauth2_verify_aws_alb)
 	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
 	ck_assert_int_eq(rc, true);
 
+	oauth2_check_http_server_stop(srv);
 	oauth2_cfg_token_verify_free(_log, verify);
 	oauth2_mem_free(options);
 	oauth2_mem_free(url);
@@ -1010,9 +958,23 @@ START_TEST(test_oauth2_verify_token_introspection)
 	json_t *json_payload = NULL;
 	const char *rv = NULL;
 	char *url = NULL;
+	oauth2_check_http_response_t resp[2] = {
+	    {.status_code = 200,
+	     .content_type = "application/json",
+	     .body = "{ \"active\": false }"},
+	    {.status_code = 200,
+	     .content_type = "application/json",
+	     .body = "{ \"active\": true }"}};
+	oauth2_check_http_server_t *srv = NULL;
+	const oauth2_check_http_captured_t *cap = NULL;
 
-	url = oauth2_stradd(NULL, oauth2_check_http_base_url(),
-			    post_introspection_path, NULL);
+	/* the third verify is served from the cache, so only two introspection
+	 * requests actually reach the server */
+	srv = oauth2_check_http_server_start_seq(resp, 2);
+	ck_assert_ptr_ne(srv, NULL);
+
+	url = oauth2_stradd(NULL, oauth2_check_http_server_url(srv),
+			    "/introspection", NULL);
 
 	rv = oauth2_cfg_token_verify_add_options(
 	    _log, &verify, "introspect", url,
@@ -1036,6 +998,15 @@ START_TEST(test_oauth2_verify_token_introspection)
 	ck_assert_int_eq(rc, true);
 	json_decref(json_payload);
 
+	// the first introspection request carried token=bogus and the
+	// configured key2=two parameter
+	cap = oauth2_check_http_server_captured(srv, 0);
+	ck_assert_ptr_ne(cap, NULL);
+	ck_assert_str_eq(cap->method, "POST");
+	ck_assert_ptr_ne(strstr(cap->body, "token=bogus"), NULL);
+	ck_assert_ptr_ne(strstr(cap->body, "key2=two"), NULL);
+
+	oauth2_check_http_server_stop(srv);
 	oauth2_cfg_token_verify_free(_log, verify);
 	oauth2_mem_free(url);
 }
@@ -1231,9 +1202,47 @@ START_TEST(test_oauth2_verify_token_metadata)
 	oauth2_cfg_token_verify_t *verify = NULL;
 	json_t *json_payload = NULL;
 	const char *rv = NULL;
-	char *url = NULL;
+	char *url = NULL, *base_url = NULL, *metadata_json = NULL;
+	int port = 0;
+	char numbuf[16];
+	oauth2_check_http_server_t *srv = NULL;
 
-	url = oauth2_stradd(NULL, oauth2_check_http_base_url(), metadata_path,
+	/* the metadata document must advertise endpoints on the very server
+	 * that serves it, so reserve the port first and bind to it */
+	port = oauth2_check_http_free_port();
+	ck_assert_int_ne(port, 0);
+	oauth2_snprintf(numbuf, sizeof(numbuf), "%d", port);
+	base_url = oauth2_stradd(NULL, "http://127.0.0.1:", numbuf, NULL);
+	metadata_json = build_metadata_json(base_url);
+
+	/* one connection per outbound request, in order: discovery (#0), then
+	 * introspect "bogus" (#1) and introspect valid_access_token (#2), then
+	 * for the JWT a jwks fetch (#3) and a fall-through introspect (#4). The
+	 * second verify config reuses the globally cached discovery/jwks and
+	 * repeated verifies hit the verification cache, so no further requests
+	 * are made; set OAUTH2_CHECK_HTTP_TRACE=1 to print the sequence */
+	oauth2_check_http_response_t resp[] = {
+	    {.status_code = 200,
+	     .content_type = "application/json",
+	     .body = metadata_json},
+	    {.status_code = 200,
+	     .content_type = "application/json",
+	     .body = "{ \"active\": false }"},
+	    {.status_code = 200,
+	     .content_type = "application/json",
+	     .body = "{ \"active\": true }"},
+	    {.status_code = 200,
+	     .content_type = "application/json",
+	     .body = get_jwks_uri_json},
+	    {.status_code = 200,
+	     .content_type = "application/json",
+	     .body = "{ \"active\": false }"}};
+
+	srv = oauth2_check_http_server_start_at(port, resp,
+						sizeof(resp) / sizeof(resp[0]));
+	ck_assert_ptr_ne(srv, NULL);
+
+	url = oauth2_stradd(NULL, base_url, "/.well-known/oauth2-configuration",
 			    NULL);
 
 	rv = oauth2_cfg_token_verify_add_options(
@@ -1295,8 +1304,13 @@ START_TEST(test_oauth2_verify_token_metadata)
 	ck_assert_int_eq(rc, true);
 	json_decref(json_payload);
 
+	ck_assert_int_eq(oauth2_check_http_server_request_count(srv), 5);
+
+	oauth2_check_http_server_stop(srv);
 	oauth2_cfg_token_verify_free(_log, verify);
 	oauth2_mem_free(url);
+	oauth2_mem_free(base_url);
+	oauth2_mem_free(metadata_json);
 }
 END_TEST
 
@@ -1369,10 +1383,6 @@ Suite *oauth2_check_oauth2_suite()
 {
 	Suite *s = suite_create("oauth2");
 	TCase *c = tcase_create("core");
-
-	liboauth2_check_register_http_callbacks(oauth2_check_http_base_path(),
-						oauth2_check_oauth2_serve_get,
-						oauth2_check_oauth2_serve_post);
 
 	tcase_add_checked_fixture(c, setup, teardown);
 	tcase_add_test(c, test_oauth2_auth_client_secret_basic);

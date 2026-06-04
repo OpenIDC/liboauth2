@@ -194,10 +194,14 @@ check_liboauth2_CFLAGS += $(liboauth2_nginx_la_CFLAGS)
 check_liboauth2_LDADD += liboauth2_nginx.la
 endif
 check_liboauth2_LDADD += @OPENSSL_LIBS@ @CURL_LIBS@ @CJOSE_LIBS@ @PCRE2_LIBS@ @CHECK_LIBS@
+check_liboauth2_CFLAGS += -pthread
+check_liboauth2_LDFLAGS = -pthread
 
 check_liboauth2_SOURCES = \
 	test/check_liboauth2.h \
 	test/check_liboauth2.c \
+	test/http_server.h \
+	test/http_server.c \
 	test/check_version.c \
 	test/check_mem.c \
 	test/check_log.c \
