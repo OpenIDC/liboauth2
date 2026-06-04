@@ -35,6 +35,13 @@ Suite *oauth2_check_cfg_suite();
 Suite *oauth2_check_util_suite();
 Suite *oauth2_check_ipc_suite();
 Suite *oauth2_check_cache_suite();
+Suite *oauth2_check_cache_file_suite();
+#ifdef HAVE_LIBMEMCACHE
+Suite *oauth2_check_cache_memcache_suite();
+#endif
+#ifdef HAVE_LIBHIREDIS
+Suite *oauth2_check_cache_redis_suite();
+#endif
 Suite *oauth2_check_jose_suite();
 void oauth2_check_jose_cleanup();
 Suite *oauth2_check_http_suite();

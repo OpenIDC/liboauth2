@@ -243,6 +243,30 @@ clang-format:
 
 test: check
 
+# run the registered suites concurrently (one process per suite) instead of the
+# single serial check_liboauth2 run that "make check" performs; optional suites
+# that were not built simply run no tests. fails if any suite fails.
+CHECK_SUITES = version mem log cfg util ipc cache cache_file cache_memcache \
+	cache_redis jose http proto oauth2 openidc jq apache nginx
+
+check-parallel: check_liboauth2$(EXEEXT)
+	@echo "running $(words $(CHECK_SUITES)) suites in parallel ..."; \
+	failed=""; \
+	for s in $(CHECK_SUITES); do \
+		CK_RUN_SUITE=$$s ./check_liboauth2$(EXEEXT) \
+			>check-parallel-$$s.log 2>&1 & \
+		eval "pid_$$s=$$!"; \
+	done; \
+	for s in $(CHECK_SUITES); do \
+		eval "p=\$$pid_$$s"; \
+		if wait $$p; then echo "  PASS $$s"; \
+		else echo "  FAIL $$s"; failed="$$failed $$s"; fi; \
+	done; \
+	for s in $$failed; do echo "=== $$s ==="; cat check-parallel-$$s.log; done; \
+	rm -f check-parallel-*.log; \
+	if test -n "$$failed"; then echo "FAILED:$$failed"; exit 1; fi; \
+	echo "all suites passed"
+
 TAG=liboauth2/test
 
 docker: clean

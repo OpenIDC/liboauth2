@@ -58,7 +58,7 @@ static void _test_basic_cache(oauth2_cache_t *c)
 	bool rc = false;
 	char *value = NULL;
 
-	rc = oauth2_cache_set(_log, c, "piet", "klaas", 2);
+	rc = oauth2_cache_set(_log, c, "piet", "klaas", 1);
 	ck_assert_int_eq(rc, true);
 
 	value = NULL;
@@ -68,7 +68,8 @@ static void _test_basic_cache(oauth2_cache_t *c)
 	ck_assert_str_eq(value, "klaas");
 	oauth2_mem_free(value);
 
-	sleep(3);
+	// ttl=1 + sleep(2) keeps a 1s margin past expiry (1s clock granularity)
+	sleep(2);
 
 	value = NULL;
 	rc = oauth2_cache_get(_log, c, "piet", &value);
@@ -467,6 +468,11 @@ START_TEST(test_cache_redis_options)
 END_TEST
 #endif
 
+// the cache backends each have their own TTL-expiry mechanism (shm: in-process
+// slot cleanup, file: file removal, memcache/redis: server-side), each tested
+// with a real-time sleep(); registering one suite per backend lets them run
+// concurrently (CK_RUN_SUITE=cache_file etc.) instead of serially
+
 Suite *oauth2_check_cache_suite()
 {
 	Suite *s = suite_create("cache");
@@ -474,22 +480,13 @@ Suite *oauth2_check_cache_suite()
 
 	tcase_add_checked_fixture(c, setup, teardown);
 
+	// common + shm-backend tests
 	tcase_add_test(c, test_cache_bogus);
 	tcase_add_test(c, test_cache_shm);
-	tcase_add_test(c, test_cache_file);
 	tcase_add_test(c, test_cache_encrypt);
 	tcase_add_test(c, test_cache_obtain_and_child_init);
 	tcase_add_test(c, test_cache_shm_eviction);
 	tcase_add_test(c, test_cache_key_too_long);
-	tcase_add_test(c, test_cache_file_dir);
-#ifdef HAVE_LIBMEMCACHE
-	tcase_add_test(c, test_cache_memcache);
-	tcase_add_test(c, test_cache_memcache_options);
-#endif
-#ifdef HAVE_LIBHIREDIS
-	tcase_add_test(c, test_cache_redis);
-	tcase_add_test(c, test_cache_redis_options);
-#endif
 
 	tcase_set_timeout(c, 12);
 
@@ -497,3 +494,58 @@ Suite *oauth2_check_cache_suite()
 
 	return s;
 }
+
+Suite *oauth2_check_cache_file_suite()
+{
+	Suite *s = suite_create("cache_file");
+	TCase *c = tcase_create("core");
+
+	tcase_add_checked_fixture(c, setup, teardown);
+
+	tcase_add_test(c, test_cache_file);
+	tcase_add_test(c, test_cache_file_dir);
+
+	tcase_set_timeout(c, 12);
+
+	suite_add_tcase(s, c);
+
+	return s;
+}
+
+#ifdef HAVE_LIBMEMCACHE
+Suite *oauth2_check_cache_memcache_suite()
+{
+	Suite *s = suite_create("cache_memcache");
+	TCase *c = tcase_create("core");
+
+	tcase_add_checked_fixture(c, setup, teardown);
+
+	tcase_add_test(c, test_cache_memcache);
+	tcase_add_test(c, test_cache_memcache_options);
+
+	tcase_set_timeout(c, 12);
+
+	suite_add_tcase(s, c);
+
+	return s;
+}
+#endif
+
+#ifdef HAVE_LIBHIREDIS
+Suite *oauth2_check_cache_redis_suite()
+{
+	Suite *s = suite_create("cache_redis");
+	TCase *c = tcase_create("core");
+
+	tcase_add_checked_fixture(c, setup, teardown);
+
+	tcase_add_test(c, test_cache_redis);
+	tcase_add_test(c, test_cache_redis_options);
+
+	tcase_set_timeout(c, 12);
+
+	suite_add_tcase(s, c);
+
+	return s;
+}
+#endif

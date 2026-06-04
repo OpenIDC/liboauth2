@@ -968,7 +968,9 @@ static void _test_openidc_handle(oauth2_cfg_openidc_t *c, int port)
 	oauth2_http_request_free(_log, r);
 	oauth2_http_response_free(_log, response);
 
-	sleep(3);
+	// inactivity_timeout=1 + sleep(2) keeps a 1s margin (1s clock
+	// granularity)
+	sleep(2);
 
 	r = oauth2_http_request_init(_log);
 	rc = oauth2_http_request_path_set(_log, r, "/secure");
@@ -1015,7 +1017,7 @@ START_TEST(test_openidc_handle_cookie)
 	session_cfg = oauth2_cfg_session_init(_log);
 	oauth2_cfg_session_set_options(
 	    _log, session_cfg, "cookie",
-	    "name=short_cookie&inactivity_timeout=2");
+	    "name=short_cookie&inactivity_timeout=1");
 
 	oauth2_cfg_openidc_provider_resolver_set_options(
 	    _log, c, "string", test_openidc_metadata_get(base_url),
@@ -1060,7 +1062,7 @@ START_TEST(test_openidc_handle_cache)
 	session_cfg = oauth2_cfg_session_init(_log);
 	oauth2_cfg_session_set_options(
 	    _log, session_cfg, "cache",
-	    "name=short_memory&cache=memory&inactivity_timeout=2");
+	    "name=short_memory&cache=memory&inactivity_timeout=1");
 
 	oauth2_cfg_openidc_provider_resolver_set_options(
 	    _log, c, "string", test_openidc_metadata_get(base_url),

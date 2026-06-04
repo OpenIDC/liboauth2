@@ -12,6 +12,12 @@
   ipc.c and the cache backends, exercising option parsing, config clone/merge,
   the IPC semaphore/mutex/shm NULL-guard and try-wait paths, the DPoP proof
   validation branches and the cache encryption/eviction/child-init paths
+- test: split the cache suite into per-backend suites (cache, cache_file,
+  cache_memcache, cache_redis) and add a "make check-parallel" target that runs
+  the suites concurrently (one process per suite); this overlaps the backends'
+  real-time TTL-expiry waits. also trim the per-site expiry waits (ttl/timeout
+  2 + sleep 3 -> 1 + sleep 2, keeping a 1s margin against the 1s clock
+  granularity), taking the suite from ~29s to ~21s serial and ~5s in parallel
 - bump to 2.3.1dev
 
 06/03/2026

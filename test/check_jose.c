@@ -424,12 +424,12 @@ START_TEST(test_jwt_verify)
 	oauth2_cfg_token_verify_free(_log, verify);
 	verify = NULL;
 
-	sleep(3);
+	sleep(2);
 
 	rv = oauth2_cfg_token_verify_add_options(
 	    _log, &verify, "plain", "my_good_secret_0123456789abcdef!",
 	    "kid=my_good_kid&expiry=1&verify.iat=required&verify.iat.slack_"
-	    "before=2");
+	    "before=1");
 	ck_assert_ptr_eq(rv, NULL);
 	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
 	ck_assert_int_eq(rc, false);
@@ -642,10 +642,10 @@ START_TEST(test_jwt_verify_cache_exp)
 
 	rc = oauth2_jose_jwk_create_symmetric(_log, secret, NULL, &jwk);
 	ck_assert_int_eq(rc, true);
-	// short-lived token: expires 2 seconds from now
+	// short-lived token: expires 1 second from now
 	jwt = oauth2_jwt_create(_log, jwk->jwk, CJOSE_HDR_ALG_HS256,
 				"https://cache.example.org", "subject-cache",
-				"my_client_id", "https://rs.example.org", 2,
+				"my_client_id", "https://rs.example.org", 1,
 				true, true, NULL);
 	ck_assert_ptr_ne(jwt, NULL);
 	oauth2_jose_jwk_release(jwk);
@@ -662,7 +662,7 @@ START_TEST(test_jwt_verify_cache_exp)
 	json_payload = NULL;
 
 	// let the token expire while the cache entry is still live
-	sleep(3);
+	sleep(2);
 
 	// a cache hit must NOT return success for the now-expired token
 	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);

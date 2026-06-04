@@ -43,6 +43,13 @@ int main(void)
 	srunner_add_suite(sr, oauth2_check_util_suite());
 	srunner_add_suite(sr, oauth2_check_ipc_suite());
 	srunner_add_suite(sr, oauth2_check_cache_suite());
+	srunner_add_suite(sr, oauth2_check_cache_file_suite());
+#ifdef HAVE_LIBMEMCACHE
+	srunner_add_suite(sr, oauth2_check_cache_memcache_suite());
+#endif
+#ifdef HAVE_LIBHIREDIS
+	srunner_add_suite(sr, oauth2_check_cache_redis_suite());
+#endif
 	srunner_add_suite(sr, oauth2_check_jose_suite());
 	srunner_add_suite(sr, oauth2_check_http_suite());
 	srunner_add_suite(sr, oauth2_check_proto_suite());
