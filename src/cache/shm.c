@@ -30,6 +30,7 @@
 typedef struct oauth2_cache_impl_shm_t {
 	oauth2_ipc_shm_t *shm;
 	oauth2_ipc_mutex_t *mutex;
+	oauth2_uint_t key_size_limit;
 	oauth2_uint_t max_key_size;
 	oauth2_uint_t max_val_size;
 	oauth2_uint_t max_entries;
@@ -88,6 +89,9 @@ static bool oauth2_cache_shm_init(oauth2_log_t *log, oauth2_cache_t *cache,
 	    log,
 	    oauth2_nv_list_get(log, options, OAUTH2_CACHE_SHM_MAX_KEY_SIZE),
 	    OAUTH2_CACHE_SHM_MAX_KEY_SIZE_DEFAULT);
+	// the configured value bounds the accepted key length; the key is
+	// stored in a 64-aligned slot that is at least that large
+	impl->key_size_limit = n;
 	impl->max_key_size = (n / 64 + 1) * 64;
 
 	impl->max_val_size = oauth2_parse_uint(
@@ -228,11 +232,11 @@ static bool oauth2_cache_shm_check_key(oauth2_log_t *log,
 				       const char *key)
 {
 	bool rc = true;
-	if (strlen(key) > impl->max_key_size) {
+	if (strlen(key) > impl->key_size_limit) {
 		oauth2_error(log,
 			     "could not construct cache key since key size is "
 			     "too large (%lu > " OAUTH2_UINT_FORMAT ") : %s",
-			     (unsigned long)strlen(key), impl->max_key_size,
+			     (unsigned long)strlen(key), impl->key_size_limit,
 			     key);
 		rc = false;
 	}

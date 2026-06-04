@@ -1,12 +1,17 @@
 06/04/2026
+- cache: honour the configured shm "max_key_size" when checking the key
+  length; it was first rounded up to a multiple of 64 (minimum 64), so a
+  smaller configured limit was never enforced - the rounded size now only
+  dimensions the storage slot
 - test: replace the suite-wide forked HTTP server (fixed port 8888 with
   path-routed callbacks serving fixtures) with a per-test loopback fixture
   (test/http_server.c) that scripts the response sequence for each outbound
   request and captures the requests for assertions, on a kernel-assigned or
   caller-chosen port via POSIX sockets and a pthread (no APR dependency)
-- test: add unit tests raising line coverage of cfg.c, proto_cfg.c, dpop.c and
-  ipc.c, exercising option parsing, config clone/merge, the IPC semaphore/mutex/
-  shm NULL-guard and try-wait paths, and the DPoP proof validation branches
+- test: add unit tests raising line coverage of cfg.c, proto_cfg.c, dpop.c,
+  ipc.c and the cache backends, exercising option parsing, config clone/merge,
+  the IPC semaphore/mutex/shm NULL-guard and try-wait paths, the DPoP proof
+  validation branches and the cache encryption/eviction/child-init paths
 - bump to 2.3.1dev
 
 06/03/2026

@@ -29,6 +29,9 @@
 
 static oauth2_log_t *_log = 0;
 
+// defined in src/cache.c, linked via liboauth2.la, not (yet) in a public header
+bool oauth2_cache_child_init(oauth2_log_t *log, oauth2_cache_t *cache);
+
 static void setup(void)
 {
 	_log = oauth2_init(OAUTH2_LOG_TRACE1, 0);
@@ -214,6 +217,256 @@ START_TEST(test_cache_redis)
 END_TEST
 #endif
 
+START_TEST(test_cache_encrypt)
+{
+	bool rc = false;
+	char *value = NULL;
+	oauth2_cache_t *c = NULL;
+	char *rv = NULL;
+
+	oauth2_crypto_passphrase_set(_log, NULL, "test-passphrase-1234");
+
+	// encrypted cache: passphrase hashed with "none" + a hashed key
+	rv = oauth2_cfg_set_cache(_log, NULL, "shm",
+				  "name=enc_shm&encrypt=true&key_hash_algo="
+				  "sha256&passphrase_hash_algo=none");
+	ck_assert_ptr_eq(rv, NULL);
+	c = oauth2_cache_obtain(_log, "enc_shm");
+	ck_assert_ptr_ne(c, NULL);
+
+	// round-trip: the value is encrypted on set and decrypted on get
+	rc = oauth2_cache_set(_log, c, "mykey", "myvalue", 10);
+	ck_assert_int_eq(rc, true);
+	value = NULL;
+	rc = oauth2_cache_get(_log, c, "mykey", &value);
+	ck_assert_int_eq(rc, true);
+	ck_assert_ptr_ne(value, NULL);
+	ck_assert_str_eq(value, "myvalue");
+	oauth2_mem_free(value);
+
+	rc = oauth2_cache_set(_log, c, "mykey", NULL, 0);
+	ck_assert_int_eq(rc, true);
+
+	// a second encrypted cache using the default (SHA256) passphrase hash
+	rv = oauth2_cfg_set_cache(_log, NULL, "shm",
+				  "name=enc_shm2&encrypt=true");
+	ck_assert_ptr_eq(rv, NULL);
+	c = oauth2_cache_obtain(_log, "enc_shm2");
+	ck_assert_ptr_ne(c, NULL);
+	rc = oauth2_cache_set(_log, c, "k1", "v1", 10);
+	ck_assert_int_eq(rc, true);
+	value = NULL;
+	rc = oauth2_cache_get(_log, c, "k1", &value);
+	ck_assert_int_eq(rc, true);
+	ck_assert_str_eq(value, "v1");
+	oauth2_mem_free(value);
+}
+END_TEST
+
+START_TEST(test_cache_obtain_and_child_init)
+{
+	bool rc = false;
+	oauth2_cache_t *c = NULL;
+	char *rv = NULL;
+
+	// obtaining a cache with no prior configuration auto-creates a default
+	c = oauth2_cache_obtain(_log, NULL);
+	ck_assert_ptr_ne(c, NULL);
+
+	// child_init NULL guard
+	rc = oauth2_cache_child_init(_log, NULL);
+	ck_assert_int_eq(rc, false);
+
+	// child_init dispatches to the shm backend
+	rv = oauth2_cfg_set_cache(_log, NULL, "shm", "name=ci_shm");
+	ck_assert_ptr_eq(rv, NULL);
+	c = oauth2_cache_obtain(_log, "ci_shm");
+	ck_assert_ptr_ne(c, NULL);
+	rc = oauth2_cache_child_init(_log, c);
+	ck_assert_int_eq(rc, true);
+
+	// child_init dispatches to the file backend
+	rv = oauth2_cfg_set_cache(_log, NULL, "file",
+				  "name=ci_file&key_hash_algo=none");
+	ck_assert_ptr_eq(rv, NULL);
+	c = oauth2_cache_obtain(_log, "ci_file");
+	ck_assert_ptr_ne(c, NULL);
+	rc = oauth2_cache_child_init(_log, c);
+	ck_assert_int_eq(rc, true);
+}
+END_TEST
+
+START_TEST(test_cache_shm_eviction)
+{
+	bool rc = false;
+	char *value = NULL;
+	oauth2_cache_t *c = NULL;
+	char *rv = NULL;
+
+	// expired-slot reuse: fill both slots and let them expire WITHOUT a
+	// get() (so the keys are not cleaned), then a set() reuses an
+	// expired slot
+	rv = oauth2_cfg_set_cache(
+	    _log, NULL, "shm", "name=evict&key_hash_algo=none&max_entries=2");
+	ck_assert_ptr_eq(rv, NULL);
+	c = oauth2_cache_obtain(_log, "evict");
+	ck_assert_ptr_ne(c, NULL);
+	rc = oauth2_cache_set(_log, c, "k0", "v0", 1);
+	ck_assert_int_eq(rc, true);
+	rc = oauth2_cache_set(_log, c, "k1", "v1", 1);
+	ck_assert_int_eq(rc, true);
+	sleep(2);
+	rc = oauth2_cache_set(_log, c, "k2", "v2", 60);
+	ck_assert_int_eq(rc, true);
+	value = NULL;
+	rc = oauth2_cache_get(_log, c, "k2", &value);
+	ck_assert_int_eq(rc, true);
+	ck_assert_str_eq(value, "v2");
+	oauth2_mem_free(value);
+
+	// LRU eviction: both slots full+unexpired; touching one makes the other
+	// least-recently-used and it is evicted by the next set()
+	rv = oauth2_cfg_set_cache(_log, NULL, "shm",
+				  "name=lru&key_hash_algo=none&max_entries=2");
+	ck_assert_ptr_eq(rv, NULL);
+	c = oauth2_cache_obtain(_log, "lru");
+	ck_assert_ptr_ne(c, NULL);
+	rc = oauth2_cache_set(_log, c, "alpha", "a", 60);
+	ck_assert_int_eq(rc, true);
+	rc = oauth2_cache_set(_log, c, "beta", "b", 60);
+	ck_assert_int_eq(rc, true);
+	sleep(1);
+	value = NULL;
+	rc = oauth2_cache_get(_log, c, "alpha", &value);
+	ck_assert_int_eq(rc, true);
+	oauth2_mem_free(value);
+	rc = oauth2_cache_set(_log, c, "gamma", "g", 60);
+	ck_assert_int_eq(rc, true);
+	value = NULL;
+	rc = oauth2_cache_get(_log, c, "gamma", &value);
+	ck_assert_int_eq(rc, true);
+	ck_assert_str_eq(value, "g");
+	oauth2_mem_free(value);
+}
+END_TEST
+
+START_TEST(test_cache_key_too_long)
+{
+	bool rc = false;
+	char *value = NULL;
+	oauth2_cache_t *c = NULL;
+	char *rv = NULL;
+
+	rv = oauth2_cfg_set_cache(
+	    _log, NULL, "shm", "name=klen&key_hash_algo=none&max_key_size=8");
+	ck_assert_ptr_eq(rv, NULL);
+	c = oauth2_cache_obtain(_log, "klen");
+	ck_assert_ptr_ne(c, NULL);
+
+	// a key longer than the configured max_key_size is rejected by set();
+	// get() must reject it the same way instead of reporting a cache miss
+	const char *longkey = "key_longer_than_eight_chars";
+	rc = oauth2_cache_set(_log, c, longkey, "v", 10);
+	ck_assert_int_eq(rc, false);
+
+	value = NULL;
+	rc = oauth2_cache_get(_log, c, longkey, &value);
+	ck_assert_int_eq(rc, false);
+	ck_assert_ptr_eq(value, NULL);
+}
+END_TEST
+
+START_TEST(test_cache_file_dir)
+{
+	bool rc = false;
+	char *value = NULL;
+	oauth2_cache_t *c = NULL;
+	char *rv = NULL;
+
+	// explicit "dir" option
+	rv = oauth2_cfg_set_cache(
+	    _log, NULL, "file",
+	    "name=file_dir&key_hash_algo=none&dir=/tmp&clean_interval=60");
+	ck_assert_ptr_eq(rv, NULL);
+	c = oauth2_cache_obtain(_log, "file_dir");
+	ck_assert_ptr_ne(c, NULL);
+	rc = oauth2_cache_set(_log, c, "fk", "fv", 10);
+	ck_assert_int_eq(rc, true);
+	value = NULL;
+	rc = oauth2_cache_get(_log, c, "fk", &value);
+	ck_assert_int_eq(rc, true);
+	ck_assert_str_eq(value, "fv");
+	oauth2_mem_free(value);
+
+	// a non-existent directory makes the underlying fopen fail -> set false
+	rv = oauth2_cfg_set_cache(_log, NULL, "file",
+				  "name=file_baddir&key_hash_algo=none&dir=/no/"
+				  "such/oauth2/dir&clean_interval=0");
+	ck_assert_ptr_eq(rv, NULL);
+	c = oauth2_cache_obtain(_log, "file_baddir");
+	ck_assert_ptr_ne(c, NULL);
+	rc = oauth2_cache_set(_log, c, "k", "v", 10);
+	ck_assert_int_eq(rc, false);
+}
+END_TEST
+
+#ifdef HAVE_LIBMEMCACHE
+START_TEST(test_cache_memcache_options)
+{
+	bool rc = false;
+	oauth2_cache_t *c = NULL;
+	char *rv = NULL;
+
+	// explicit config_string + round-trip + child_init
+	rv = oauth2_cfg_set_cache(
+	    _log, NULL, "memcache",
+	    "name=mc_cfg&config_string=--SERVER=127.0.0.1");
+	ck_assert_ptr_eq(rv, NULL);
+	c = oauth2_cache_obtain(_log, "mc_cfg");
+	ck_assert_ptr_ne(c, NULL);
+	rc = oauth2_cache_set(_log, c, "mk", "mv", 10);
+	ck_assert_int_eq(rc, true);
+	rc = oauth2_cache_child_init(_log, c);
+	ck_assert_int_eq(rc, true);
+}
+END_TEST
+#endif
+
+#ifdef HAVE_LIBHIREDIS
+START_TEST(test_cache_redis_options)
+{
+	bool rc = false;
+	char *value = NULL;
+	oauth2_cache_t *c = NULL;
+	char *rv = NULL;
+
+	// explicit host/port + round-trip + child_init
+	rv = oauth2_cfg_set_cache(_log, NULL, "redis",
+				  "name=redis_hp&host=127.0.0.1&port=6379");
+	ck_assert_ptr_eq(rv, NULL);
+	c = oauth2_cache_obtain(_log, "redis_hp");
+	ck_assert_ptr_ne(c, NULL);
+	rc = oauth2_cache_set(_log, c, "rk", "rv", 10);
+	ck_assert_int_eq(rc, true);
+	rc = oauth2_cache_child_init(_log, c);
+	ck_assert_int_eq(rc, true);
+
+	// a dead port makes the connection fail -> set/get return false
+	rv = oauth2_cfg_set_cache(_log, NULL, "redis",
+				  "name=redis_dead&host=127.0.0.1&port=16399");
+	ck_assert_ptr_eq(rv, NULL);
+	c = oauth2_cache_obtain(_log, "redis_dead");
+	ck_assert_ptr_ne(c, NULL);
+	rc = oauth2_cache_set(_log, c, "x", "y", 10);
+	ck_assert_int_eq(rc, false);
+	value = NULL;
+	rc = oauth2_cache_get(_log, c, "x", &value);
+	ck_assert_int_eq(rc, false);
+	ck_assert_ptr_eq(value, NULL);
+}
+END_TEST
+#endif
+
 Suite *oauth2_check_cache_suite()
 {
 	Suite *s = suite_create("cache");
@@ -224,14 +477,21 @@ Suite *oauth2_check_cache_suite()
 	tcase_add_test(c, test_cache_bogus);
 	tcase_add_test(c, test_cache_shm);
 	tcase_add_test(c, test_cache_file);
+	tcase_add_test(c, test_cache_encrypt);
+	tcase_add_test(c, test_cache_obtain_and_child_init);
+	tcase_add_test(c, test_cache_shm_eviction);
+	tcase_add_test(c, test_cache_key_too_long);
+	tcase_add_test(c, test_cache_file_dir);
 #ifdef HAVE_LIBMEMCACHE
 	tcase_add_test(c, test_cache_memcache);
+	tcase_add_test(c, test_cache_memcache_options);
 #endif
 #ifdef HAVE_LIBHIREDIS
 	tcase_add_test(c, test_cache_redis);
+	tcase_add_test(c, test_cache_redis_options);
 #endif
 
-	tcase_set_timeout(c, 8);
+	tcase_set_timeout(c, 12);
 
 	suite_add_tcase(s, c);
 
