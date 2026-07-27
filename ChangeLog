@@ -1,4 +1,9 @@
 06/04/2026
+- oauth2: require an "iss" claim in JWTs verified against the issuer discovered
+  from the AS metadata document (the "metadata" verification type); it bound
+  the token to that issuer but left "verify.iss" at its "optional" default,
+  which tolerates a token carrying no "iss" claim at all; an explicit
+  "verify.iss" still wins
 - jose: allow the expected "iss" and "aud" values to be configured for token
   verification, using the claim names themselves as options, e.g.:
     OAuth2TokenVerify jwks_uri <url> aud=https://my-api&iss=https://my-as

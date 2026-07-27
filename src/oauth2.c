@@ -689,6 +689,15 @@ _OAUTH_CFG_CTX_CALLBACK(oauth2_verify_options_set_metadata_url)
 		goto end;
 	}
 
+	// the metadata document always carries an "issuer" and the token is
+	// bound to it, so a JWT that carries no "iss" claim at all cannot be
+	// matched against it and must be rejected (RFC 9068 section 4); an
+	// explicit "verify.iss" still wins
+	if (oauth2_nv_list_get(log, params, OAUTH2_JOSE_JWT_ISS_VALIDATE) ==
+	    NULL)
+		ptr->jwks_uri_verify->iss_validate =
+		    OAUTH2_JOSE_JWT_VALIDATE_CLAIM_REQUIRED;
+
 	rv = oauth2_jose_options_uri_ctx(
 	    log, value, params, ptr->jwks_uri_verify->jwks_provider->jwks_uri,
 	    "jwks_uri");
