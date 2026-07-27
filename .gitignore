@@ -17,6 +17,9 @@
 /build/
 /liboauth2-*-coverage/
 /liboauth2-*-coverage.info
+# gcov artifacts: unanchored, they are emitted next to the objects in src/ and test/
+*.gcno
+*.gcda
 /liboauth2.pc
 /.libs/
 /*.log
