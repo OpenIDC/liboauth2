@@ -578,8 +578,25 @@ jwks_uri:
 		json_issuer = json_object_get(json_metadata, "issuer");
 		if (json_issuer) {
 			if (json_is_string(json_issuer)) {
-				jwks_uri_verify->issuer = oauth2_strdup(
-				    json_string_value(json_issuer));
+				// an explicitly configured "iss=" takes
+				// precedence over the discovered issuer;
+				// without this the clone's configured value
+				// would be overwritten (and leaked)
+				if (jwks_uri_verify->issuer == NULL)
+					jwks_uri_verify->issuer = oauth2_strdup(
+					    json_string_value(json_issuer));
+				else if (strcmp(jwks_uri_verify->issuer,
+						json_string_value(
+						    json_issuer)) != 0)
+					oauth2_warn(
+					    log,
+					    "configured \"%s\" (%s) differs "
+					    "from the issuer published in the "
+					    "metadata (%s); the configured "
+					    "value is used",
+					    OAUTH2_JOSE_JWT_ISS,
+					    jwks_uri_verify->issuer,
+					    json_string_value(json_issuer));
 			} else {
 				oauth2_error(
 				    log, "\"issuer\" value is not a string");

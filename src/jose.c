@@ -876,14 +876,6 @@ end:
 
 #define OAUTH2_JOSE_JWT_IAT_SLACK_DEFAULT (oauth2_uint_t)10
 
-#define OAUTH2_JOSE_JWT_IAT_SLACK_BEFORE "verify.iat.slack_before"
-#define OAUTH2_JOSE_JWT_IAT_SLACK_AFTER "verify.iat.slack_after"
-#define OAUTH2_JOSE_JWT_ISS_VALIDATE "verify.iss"
-#define OAUTH2_JOSE_JWT_EXP_VALIDATE "verify.exp"
-#define OAUTH2_JOSE_JWT_NBF_VALIDATE "verify.nbf"
-#define OAUTH2_JOSE_JWT_IAT_VALIDATE "verify.iat"
-#define OAUTH2_JOSE_JWT_AUD_VALIDATE "verify.aud"
-
 _OAUTH2_CFG_CTX_INIT_START(oauth2_jose_jwt_verify_ctx)
 ctx->exp_validate = OAUTH2_CFG_UINT_UNSET;
 ctx->nbf_validate = OAUTH2_CFG_UINT_UNSET;
@@ -927,14 +919,32 @@ bool oauth2_jose_jwt_verify_set_options(
 {
 	jwt_verify->jwks_provider = _oauth2_jose_jwks_provider_init(log, type);
 
+	// the expected "iss"/"aud" values; the matching
+	// "verify.iss"/"verify.aud" options only express *how* strictly the
+	// claim is validated, so without an expected value there is nothing to
+	// match against and the claim is not checked at all: default those to
+	// "required" as soon as a value is configured, so that "iss="/"aud=" is
+	// all a deployment needs to bind a token to its issuer and to this
+	// resource (RFC 9068 section 4)
+	const char *iss = oauth2_nv_list_get(log, params, OAUTH2_JOSE_JWT_ISS);
+	const char *aud = oauth2_nv_list_get(log, params, OAUTH2_JOSE_JWT_AUD);
+
+	if (iss != NULL)
+		jwt_verify->issuer = oauth2_strdup(iss);
+	if (aud != NULL)
+		jwt_verify->audience = oauth2_strdup(aud);
+
 	jwt_verify->iss_validate = oauth2_parse_validate_claim_option(
 	    log, oauth2_nv_list_get(log, params, OAUTH2_JOSE_JWT_ISS_VALIDATE),
-	    OAUTH2_JOSE_JWT_VALIDATE_CLAIM_OPTIONAL);
+	    iss ? OAUTH2_JOSE_JWT_VALIDATE_CLAIM_REQUIRED
+		: OAUTH2_JOSE_JWT_VALIDATE_CLAIM_OPTIONAL);
 	// NB: only enforced when an expected audience is configured on the
-	// verify context (e.g. the OIDC client_id for an id_token)
+	// verify context, either through "aud=" above or programmatically
+	// (e.g. the OIDC client_id for an id_token)
 	jwt_verify->aud_validate = oauth2_parse_validate_claim_option(
 	    log, oauth2_nv_list_get(log, params, OAUTH2_JOSE_JWT_AUD_VALIDATE),
-	    OAUTH2_JOSE_JWT_VALIDATE_CLAIM_OPTIONAL);
+	    aud ? OAUTH2_JOSE_JWT_VALIDATE_CLAIM_REQUIRED
+		: OAUTH2_JOSE_JWT_VALIDATE_CLAIM_OPTIONAL);
 	// NB: a token without an "exp" claim never expires, so require it by
 	// default; deployments that knowingly accept non-expiring tokens can
 	// still set verify.exp=optional (or skip). AWS ALB and EC-key tokens

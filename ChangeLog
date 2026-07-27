@@ -1,4 +1,16 @@
 06/04/2026
+- jose: allow the expected "iss" and "aud" values to be configured for token
+  verification, using the claim names themselves as options, e.g.:
+    OAuth2TokenVerify jwks_uri <url> aud=https://my-api&iss=https://my-as
+  the "verify.iss"/"verify.aud" options only expressed *how* strictly a claim
+  was validated; the expected values themselves could not be configured outside
+  of an OIDC id_token, so for the other verification types there was nothing to
+  match either claim against.
+  Configuring a value defaults the matching "verify.<claim>" option to
+  "required", so that "aud=" alone suffices; an explicit "verify.aud"/
+  "verify.iss" still wins. With no value configured nothing changes. An
+  explicitly configured "iss=" now also takes precedence over the issuer
+  discovered from AS metadata, which additionally fixes leaking it there
 - cache: honour the configured shm "max_key_size" when checking the key
   length; it was first rounded up to a multiple of 64 (minimum 64), so a
   smaller configured limit was never enforced - the rounded size now only

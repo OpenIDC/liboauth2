@@ -114,6 +114,17 @@ void *oauth2_jose_jwt_verify_ctx_init(oauth2_log_t *log);
 void *oauth2_jose_jwt_verify_ctx_clone(oauth2_log_t *log, void *s);
 void oauth2_jose_jwt_verify_ctx_free(oauth2_log_t *log, void *c);
 
+// the options that express how strictly each claim is validated; the expected
+// "iss"/"aud" values themselves are configured with the claim names as options
+// (OAUTH2_JOSE_JWT_ISS/OAUTH2_JOSE_JWT_AUD)
+#define OAUTH2_JOSE_JWT_IAT_SLACK_BEFORE "verify.iat.slack_before"
+#define OAUTH2_JOSE_JWT_IAT_SLACK_AFTER "verify.iat.slack_after"
+#define OAUTH2_JOSE_JWT_ISS_VALIDATE "verify.iss"
+#define OAUTH2_JOSE_JWT_EXP_VALIDATE "verify.exp"
+#define OAUTH2_JOSE_JWT_NBF_VALIDATE "verify.nbf"
+#define OAUTH2_JOSE_JWT_IAT_VALIDATE "verify.iat"
+#define OAUTH2_JOSE_JWT_AUD_VALIDATE "verify.aud"
+
 bool oauth2_jose_jwt_verify_set_options(
     oauth2_log_t *log, oauth2_jose_jwt_verify_ctx_t *jwt_verify,
     oauth2_jose_jwks_provider_type_t type, const oauth2_nv_list_t *params);

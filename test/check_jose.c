@@ -630,6 +630,118 @@ START_TEST(test_jwt_verify_iss_aud)
 }
 END_TEST
 
+START_TEST(test_jwt_verify_iss_aud_options)
+{
+	bool rc = false;
+	json_t *json_payload = NULL;
+	char *jwt = NULL, *jwt_no_aud = NULL, *jwt_other_aud = NULL;
+	oauth2_jose_jwk_t *jwk = NULL;
+	const char *rv = NULL;
+	const char *secret = "my_good_secret_0123456789abcdef!";
+	oauth2_cfg_token_verify_t *verify = NULL;
+
+	rc = oauth2_jose_jwk_create_symmetric(_log, secret, NULL, &jwk);
+	ck_assert_int_eq(rc, true);
+	jwt = oauth2_jwt_create(_log, jwk->jwk, CJOSE_HDR_ALG_HS256,
+				"https://issuer.example.org", "subject1",
+				"my_client_id", "https://rs.example.org", 60,
+				true, true, NULL);
+	ck_assert_ptr_ne(jwt, NULL);
+	// a token that carries no "aud" claim at all
+	jwt_no_aud = oauth2_jwt_create(
+	    _log, jwk->jwk, CJOSE_HDR_ALG_HS256, "https://issuer.example.org",
+	    "subject1", "my_client_id", NULL, 60, true, true, NULL);
+	ck_assert_ptr_ne(jwt_no_aud, NULL);
+	// a validly signed token issued for a *different* resource server
+	jwt_other_aud = oauth2_jwt_create(
+	    _log, jwk->jwk, CJOSE_HDR_ALG_HS256, "https://issuer.example.org",
+	    "subject1", "my_client_id", "https://other.example.org", 60, true,
+	    true, NULL);
+	ck_assert_ptr_ne(jwt_other_aud, NULL);
+	oauth2_jose_jwk_release(jwk);
+
+	// NB: run the negative cases first -- oauth2_token_verify() only caches
+	// *successful* verifications, so a rejected token is never cached and
+	// cannot mask a later check of the same token
+
+	// "aud=" configured, token audience does not match -> rejected
+	rv = oauth2_cfg_token_verify_add_options(
+	    _log, &verify, "plain", secret,
+	    "kid=my_good_kid&aud=https://other.example.org");
+	ck_assert_ptr_eq(rv, NULL);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
+	ck_assert_int_eq(rc, false);
+	oauth2_cfg_token_verify_free(_log, verify);
+	verify = NULL;
+
+	// "iss=" configured, token issuer does not match -> rejected
+	rv = oauth2_cfg_token_verify_add_options(
+	    _log, &verify, "plain", secret,
+	    "kid=my_good_kid&iss=https://evil.example.org");
+	ck_assert_ptr_eq(rv, NULL);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
+	ck_assert_int_eq(rc, false);
+	oauth2_cfg_token_verify_free(_log, verify);
+	verify = NULL;
+
+	// configuring "aud=" defaults "verify.aud" to required, so a token
+	// without an "aud" claim can no longer satisfy it -> rejected
+	rv = oauth2_cfg_token_verify_add_options(
+	    _log, &verify, "plain", secret,
+	    "kid=my_good_kid&aud=https://rs.example.org");
+	ck_assert_ptr_eq(rv, NULL);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt_no_aud, &json_payload,
+				 NULL);
+	ck_assert_int_eq(rc, false);
+	oauth2_cfg_token_verify_free(_log, verify);
+	verify = NULL;
+
+	// matching "iss=" and "aud=" -> accepted
+	rv = oauth2_cfg_token_verify_add_options(_log, &verify, "plain", secret,
+						 "kid=my_good_kid&iss=https://"
+						 "issuer.example.org&aud=https:"
+						 "//rs.example.org");
+	ck_assert_ptr_eq(rv, NULL);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt, &json_payload, NULL);
+	ck_assert_int_eq(rc, true);
+	json_decref(json_payload);
+	json_payload = NULL;
+	oauth2_cfg_token_verify_free(_log, verify);
+	verify = NULL;
+
+	// an explicit "verify.aud" still wins over the "required" default that
+	// configuring "aud=" implies: absence of the claim is tolerated again
+	rv = oauth2_cfg_token_verify_add_options(
+	    _log, &verify, "plain", secret,
+	    "kid=my_good_kid&aud=https://rs.example.org&verify.aud=optional");
+	ck_assert_ptr_eq(rv, NULL);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt_no_aud, &json_payload,
+				 NULL);
+	ck_assert_int_eq(rc, true);
+	json_decref(json_payload);
+	json_payload = NULL;
+	oauth2_cfg_token_verify_free(_log, verify);
+	verify = NULL;
+
+	// backwards compatibility: with no "aud=" configured there is nothing
+	// to match against, so any audience is accepted
+	rv = oauth2_cfg_token_verify_add_options(_log, &verify, "plain", secret,
+						 "kid=my_good_kid");
+	ck_assert_ptr_eq(rv, NULL);
+	rc = oauth2_token_verify(_log, NULL, verify, jwt_other_aud,
+				 &json_payload, NULL);
+	ck_assert_int_eq(rc, true);
+	json_decref(json_payload);
+	json_payload = NULL;
+	oauth2_cfg_token_verify_free(_log, verify);
+	verify = NULL;
+
+	oauth2_mem_free(jwt);
+	oauth2_mem_free(jwt_no_aud);
+	oauth2_mem_free(jwt_other_aud);
+}
+END_TEST
+
 START_TEST(test_jwt_verify_cache_exp)
 {
 	bool rc = false;
@@ -692,6 +804,7 @@ Suite *oauth2_check_jose_suite()
 	tcase_add_test(c, test_jwt_validate_nbf);
 	tcase_add_test(c, test_jwt_validate_aud);
 	tcase_add_test(c, test_jwt_verify_iss_aud);
+	tcase_add_test(c, test_jwt_verify_iss_aud_options);
 	tcase_add_test(c, test_jwt_verify_cache_exp);
 
 	tcase_set_timeout(c, 8);
