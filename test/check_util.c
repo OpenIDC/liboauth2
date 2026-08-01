@@ -359,6 +359,40 @@ START_TEST(test_html_encode)
 }
 END_TEST
 
+START_TEST(test_utf8_to_latin1)
+{
+	char *dst = NULL;
+
+	// pure US-ASCII is passed through untouched
+	dst = oauth2_utf8_to_latin1("Joe Doe");
+	ck_assert_str_eq(dst, "Joe Doe");
+	oauth2_mem_free(dst);
+
+	// U+00D6 (LATIN CAPITAL LETTER O WITH DIAERESIS) is 0xc3 0x96 in UTF-8
+	// and exists in ISO-8859-1 as the single byte 0xd6
+	dst = oauth2_utf8_to_latin1("Cem \xc3\x96zdemir");
+	ck_assert_str_eq(dst, "Cem \xd6zdemir");
+	oauth2_mem_free(dst);
+
+	// U+20AC (EURO SIGN), 3 bytes in UTF-8, has no ISO-8859-1 equivalent
+	dst = oauth2_utf8_to_latin1("10 \xe2\x82\xac");
+	ck_assert_str_eq(dst, "10 ?");
+	oauth2_mem_free(dst);
+
+	// U+1F600 (GRINNING FACE), 4 bytes in UTF-8
+	dst = oauth2_utf8_to_latin1("hi \xf0\x9f\x98\x80");
+	ck_assert_str_eq(dst, "hi ?");
+	oauth2_mem_free(dst);
+
+	dst = oauth2_utf8_to_latin1("");
+	ck_assert_str_eq(dst, "");
+	oauth2_mem_free(dst);
+
+	dst = oauth2_utf8_to_latin1(NULL);
+	ck_assert_ptr_eq(dst, NULL);
+}
+END_TEST
+
 START_TEST(test_random)
 {
 	char *rv = NULL;
@@ -398,6 +432,7 @@ Suite *oauth2_check_util_suite()
 	tcase_add_test(c, test_url_encode);
 	tcase_add_test(c, test_url_decode);
 	tcase_add_test(c, test_html_encode);
+	tcase_add_test(c, test_utf8_to_latin1);
 	tcase_add_test(c, test_random);
 
 	suite_add_tcase(s, c);

@@ -1,4 +1,18 @@
 08/01/2026
+- cfg: encode claim values passed on to the target application in headers and
+  environment variables, using a new "encoding" option on the target pass
+  configuration, e.g.:
+    OAuth2TargetPass encoding=latin1
+  a claim value is UTF-8, but an HTTP header field value is US-ASCII (RFC 9110
+  section 5.5) with ISO-8859-1 as its historical fallback, so a claim such as
+  "Cem Özdemir" produced a header that strict clients reject. "latin1" (the new
+  default) converts to ISO-8859-1 and represents anything that does not fit as
+  "?", "base64url" applies base64url encoding, and "none" restores the previous
+  behaviour of copying the value verbatim. Follows the approach taken for
+  mod_auth_openidc's OIDCPassClaimsAs
+  thanks @maltesmann; closes OpenIDC/mod_oauth2#77
+- build: bump the libtool version-info to 2:0:1 for the interfaces added above;
+  the soname stays liboauth2.so.1 since nothing was removed or changed
 - oauth2: always return an HTTP error status code from oauth2_token_verify when
   a token is rejected; the local (JWT) verification callback never set the
   "status_code" out-parameter, so it kept the value the caller initialized it

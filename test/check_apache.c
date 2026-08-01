@@ -41,6 +41,7 @@ static request_rec *setup_request(apr_pool_t *pool)
 	request->headers_in = apr_table_make(request->pool, 0);
 	request->headers_out = apr_table_make(request->pool, 0);
 	request->err_headers_out = apr_table_make(request->pool, 0);
+	request->subprocess_env = apr_table_make(request->pool, 0);
 
 	apr_table_set(request->headers_in, "Host", "www.example.com");
 	apr_table_set(request->headers_in, "OIDC_foo", "some-value");
@@ -252,6 +253,61 @@ START_TEST(test_apache_authorize)
 }
 END_TEST
 
+START_TEST(test_apache_target_pass)
+{
+	json_error_t err;
+	oauth2_apache_request_ctx_t *ctx = NULL;
+	oauth2_cfg_target_pass_t *target_pass = NULL;
+	// "Cem Özdemir": the "Ö" is U+00D6, i.e. 0xc3 0x96 in UTF-8
+	const char *s_claims = "{ \"sub\": \"joe\", \"name\": \"Cem "
+			       "\xc3\x96zdemir\" }";
+	json_t *claims = NULL;
+	char *rv = NULL;
+
+	ctx = oauth2_apache_request_context(request, check_apache_log_request,
+					    "check_apache");
+	claims = json_loads(s_claims, 0, &err);
+	ck_assert_ptr_ne(claims, NULL);
+
+	target_pass = oauth2_cfg_target_pass_init(_log);
+
+	// by default a claim value is converted to ISO-8859-1 so that it is a
+	// valid HTTP header field value
+	oauth2_apache_target_pass(ctx, target_pass, NULL, claims);
+	ck_assert_str_eq(
+	    apr_table_get(request->headers_in, "OAUTH2_CLAIM_name"),
+	    "Cem \xd6zdemir");
+	ck_assert_str_eq(
+	    apr_table_get(request->subprocess_env, "OAUTH2_CLAIM_name"),
+	    "Cem \xd6zdemir");
+
+	rv = oauth2_cfg_set_target_pass_options(_log, target_pass,
+						"encoding=base64url");
+	ck_assert_ptr_eq(rv, NULL);
+	oauth2_apache_target_pass(ctx, target_pass, NULL, claims);
+	ck_assert_str_eq(
+	    apr_table_get(request->headers_in, "OAUTH2_CLAIM_name"),
+	    "Q2VtIMOWemRlbWly");
+
+	// "none" restores the pre-2.3.1 behaviour of copying the claim value
+	// verbatim
+	rv = oauth2_cfg_set_target_pass_options(_log, target_pass,
+						"encoding=none");
+	ck_assert_ptr_eq(rv, NULL);
+	oauth2_apache_target_pass(ctx, target_pass, NULL, claims);
+	ck_assert_str_eq(
+	    apr_table_get(request->headers_in, "OAUTH2_CLAIM_name"),
+	    "Cem \xc3\x96zdemir");
+
+	// US-ASCII values are unaffected by any of this
+	ck_assert_str_eq(apr_table_get(request->headers_in, "OAUTH2_CLAIM_sub"),
+			 "joe");
+
+	oauth2_cfg_target_pass_free(_log, target_pass);
+	json_decref(claims);
+}
+END_TEST
+
 START_TEST(test_apache_http_response_set)
 {
 	bool rc = false;
@@ -277,6 +333,7 @@ Suite *oauth2_check_apache_suite()
 	tcase_add_test(c, test_apache_authz_match_claim);
 	tcase_add_test(c, test_apache_authz_match_claim_expr);
 	tcase_add_test(c, test_apache_authorize);
+	tcase_add_test(c, test_apache_target_pass);
 	tcase_add_test(c, test_apache_http_response_set);
 
 	suite_add_tcase(s, c);

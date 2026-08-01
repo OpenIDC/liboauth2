@@ -28,6 +28,8 @@
 #define OAUTH2_CFG_PASS_TARGET_AUTHN_HEADER_DEFAULT NULL
 #define OAUTH2_CFG_PASS_TARGET_REMOTE_USER_CLAIM_DEFAULT "sub"
 #define OAUTH2_CFG_PASS_TARGET_JSON_PAYLOAD_CLAIM_DEFAULT NULL
+#define OAUTH2_CFG_PASS_TARGET_ENCODING_DEFAULT                                \
+	OAUTH2_CFG_TARGET_PASS_ENCODING_LATIN1
 
 typedef struct oauth2_cfg_target_pass_t {
 	oauth2_flag_t as_envvars;
@@ -36,6 +38,7 @@ typedef struct oauth2_cfg_target_pass_t {
 	char *prefix;
 	char *remote_user_claim;
 	char *json_payload_claim;
+	oauth2_uint_t encoding;
 } oauth2_cfg_target_pass_t;
 
 oauth2_cfg_target_pass_t *oauth2_cfg_target_pass_init(oauth2_log_t *log)
@@ -53,6 +56,7 @@ oauth2_cfg_target_pass_t *oauth2_cfg_target_pass_init(oauth2_log_t *log)
 	pass->prefix = NULL;
 	pass->remote_user_claim = NULL;
 	pass->json_payload_claim = NULL;
+	pass->encoding = OAUTH2_CFG_UINT_UNSET;
 
 end:
 
@@ -104,6 +108,8 @@ void oauth2_cfg_target_pass_merge(oauth2_log_t *log,
 	cfg->json_payload_claim = oauth2_strdup(add->json_payload_claim != NULL
 						    ? add->json_payload_claim
 						    : base->json_payload_claim);
+	cfg->encoding = add->encoding != OAUTH2_CFG_UINT_UNSET ? add->encoding
+							       : base->encoding;
 
 end:
 
@@ -179,6 +185,23 @@ char *oauth2_cfg_set_target_pass_options(oauth2_log_t *log,
 			goto end;
 	}
 
+	value = oauth2_nv_list_get(log, params, "encoding");
+	if (value) {
+		if (strcasecmp(value, "latin1") == 0)
+			cfg->encoding = OAUTH2_CFG_TARGET_PASS_ENCODING_LATIN1;
+		else if (strcasecmp(value, "base64url") == 0)
+			cfg->encoding =
+			    OAUTH2_CFG_TARGET_PASS_ENCODING_BASE64URL;
+		else if (strcasecmp(value, "none") == 0)
+			cfg->encoding = OAUTH2_CFG_TARGET_PASS_ENCODING_NONE;
+		else {
+			rv = oauth2_strdup(
+			    "unknown value for encoding: must be one of "
+			    "\"latin1\", \"base64url\" or \"none\"");
+			goto end;
+		}
+	}
+
 end:
 
 	if (params)
@@ -234,4 +257,40 @@ oauth2_cfg_target_get_json_payload_claim(oauth2_cfg_target_pass_t *cfg)
 	if (cfg->json_payload_claim == NULL)
 		return OAUTH2_CFG_PASS_TARGET_JSON_PAYLOAD_CLAIM_DEFAULT;
 	return cfg->json_payload_claim;
+}
+
+oauth2_cfg_target_pass_encoding_t
+oauth2_cfg_target_pass_get_encoding(oauth2_cfg_target_pass_t *cfg)
+{
+	if ((cfg == NULL) || (cfg->encoding == OAUTH2_CFG_UINT_UNSET))
+		return OAUTH2_CFG_PASS_TARGET_ENCODING_DEFAULT;
+	return (oauth2_cfg_target_pass_encoding_t)cfg->encoding;
+}
+
+char *oauth2_cfg_target_pass_encode(oauth2_log_t *log,
+				    oauth2_cfg_target_pass_t *cfg,
+				    const char *value)
+{
+	char *rv = NULL;
+
+	if (value == NULL)
+		goto end;
+
+	switch (oauth2_cfg_target_pass_get_encoding(cfg)) {
+	case OAUTH2_CFG_TARGET_PASS_ENCODING_LATIN1:
+		rv = oauth2_utf8_to_latin1(value);
+		break;
+	case OAUTH2_CFG_TARGET_PASS_ENCODING_BASE64URL:
+		oauth2_base64url_encode(log, (const uint8_t *)value,
+					strlen(value), &rv);
+		break;
+	case OAUTH2_CFG_TARGET_PASS_ENCODING_NONE:
+	default:
+		rv = oauth2_strdup(value);
+		break;
+	}
+
+end:
+
+	return rv;
 }

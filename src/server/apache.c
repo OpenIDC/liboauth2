@@ -629,7 +629,7 @@ static void oauth2_apache_set_target_info(oauth2_apache_request_ctx_t *ctx,
 					  const char *key, const char *value)
 {
 
-	char *norm = NULL, *name = NULL;
+	char *norm = NULL, *name = NULL, *encoded = NULL;
 
 	norm = oauth2_normalize_header_name(key);
 	if (norm == NULL)
@@ -640,11 +640,15 @@ static void oauth2_apache_set_target_info(oauth2_apache_request_ctx_t *ctx,
 	if (name == NULL)
 		goto end;
 
+	// a claim value is UTF-8, which is not valid in a header field value
+	encoded = oauth2_cfg_target_pass_encode(ctx->log, target_pass, value);
+
 	if (oauth2_cfg_target_pass_get_as_headers(target_pass))
-		oauth2_apache_request_header_set(ctx->log, ctx->r, name, value);
+		oauth2_apache_request_header_set(ctx->log, ctx->r, name,
+						 encoded);
 
 	if (oauth2_cfg_target_pass_get_as_envvars(target_pass))
-		oauth2_apache_set_envvar(ctx->log, ctx->r, name, value);
+		oauth2_apache_set_envvar(ctx->log, ctx->r, name, encoded);
 
 end:
 
@@ -652,6 +656,8 @@ end:
 		oauth2_mem_free(norm);
 	if (name)
 		oauth2_mem_free(name);
+	if (encoded)
+		oauth2_mem_free(encoded);
 }
 
 static void

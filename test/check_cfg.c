@@ -173,7 +173,7 @@ START_TEST(test_target_pass)
 {
 
 	oauth2_cfg_target_pass_t *cfg = NULL, *cfg2 = NULL, *cfg3 = NULL;
-	char *rv = NULL;
+	char *rv = NULL, *enc = NULL;
 
 	cfg = oauth2_cfg_target_pass_init(_log);
 	ck_assert_ptr_ne(cfg, NULL);
@@ -189,12 +189,17 @@ START_TEST(test_target_pass)
 			 "OAUTH2_CLAIM_");
 	ck_assert_str_eq(oauth2_cfg_target_get_remote_user_claim(cfg), "sub");
 	ck_assert_ptr_eq(oauth2_cfg_target_get_json_payload_claim(cfg), NULL);
+	ck_assert_uint_eq(oauth2_cfg_target_pass_get_encoding(cfg),
+			  OAUTH2_CFG_TARGET_PASS_ENCODING_LATIN1);
 
 	rv = oauth2_cfg_set_target_pass_options(
 	    _log, cfg,
 	    "envvars=false&headers=false&authn_header=auth&prefix=oidc&remote_"
-	    "user_claim=preferred_username&json_payload_claim=my_json");
+	    "user_claim=preferred_username&json_payload_claim=my_json&encoding="
+	    "base64url");
 	ck_assert_ptr_eq(rv, NULL);
+	ck_assert_uint_eq(oauth2_cfg_target_pass_get_encoding(cfg),
+			  OAUTH2_CFG_TARGET_PASS_ENCODING_BASE64URL);
 
 	ck_assert_uint_eq(oauth2_cfg_target_pass_get_as_envvars(cfg), false);
 	ck_assert_uint_eq(oauth2_cfg_target_pass_get_as_headers(cfg), false);
@@ -205,13 +210,47 @@ START_TEST(test_target_pass)
 	ck_assert_str_eq(oauth2_cfg_target_get_json_payload_claim(cfg),
 			 "my_json");
 
+	// the encoding is applied to the value passed on to the application
+	enc = oauth2_cfg_target_pass_encode(_log, cfg, "Cem \xc3\x96zdemir");
+	ck_assert_str_eq(enc, "Q2VtIMOWemRlbWly");
+	oauth2_mem_free(enc);
+
+	rv = oauth2_cfg_set_target_pass_options(_log, cfg, "encoding=none");
+	ck_assert_ptr_eq(rv, NULL);
+	ck_assert_uint_eq(oauth2_cfg_target_pass_get_encoding(cfg),
+			  OAUTH2_CFG_TARGET_PASS_ENCODING_NONE);
+	enc = oauth2_cfg_target_pass_encode(_log, cfg, "Cem \xc3\x96zdemir");
+	ck_assert_str_eq(enc, "Cem \xc3\x96zdemir");
+	oauth2_mem_free(enc);
+
+	rv = oauth2_cfg_set_target_pass_options(_log, cfg, "encoding=latin1");
+	ck_assert_ptr_eq(rv, NULL);
+	enc = oauth2_cfg_target_pass_encode(_log, cfg, "Cem \xc3\x96zdemir");
+	ck_assert_str_eq(enc, "Cem \xd6zdemir");
+	oauth2_mem_free(enc);
+
+	ck_assert_ptr_eq(oauth2_cfg_target_pass_encode(_log, cfg, NULL), NULL);
+
+	rv = oauth2_cfg_set_target_pass_options(_log, cfg, "encoding=bogus");
+	ck_assert_ptr_ne(rv, NULL);
+	oauth2_mem_free(rv);
+	// the rejected value leaves the previous setting in place
+	ck_assert_uint_eq(oauth2_cfg_target_pass_get_encoding(cfg),
+			  OAUTH2_CFG_TARGET_PASS_ENCODING_LATIN1);
+
 	oauth2_cfg_target_pass_merge(_log, NULL, NULL, NULL);
 
 	cfg2 = oauth2_cfg_target_pass_init(_log);
 	ck_assert_ptr_ne(cfg2, NULL);
 	cfg3 = oauth2_cfg_target_pass_init(_log);
 	ck_assert_ptr_ne(cfg3, NULL);
+	rv = oauth2_cfg_set_target_pass_options(_log, cfg3,
+						"encoding=base64url");
+	ck_assert_ptr_eq(rv, NULL);
 	oauth2_cfg_target_pass_merge(_log, cfg2, cfg, cfg3);
+	// what is set in "add" wins over "base"
+	ck_assert_uint_eq(oauth2_cfg_target_pass_get_encoding(cfg2),
+			  OAUTH2_CFG_TARGET_PASS_ENCODING_BASE64URL);
 
 	oauth2_cfg_target_pass_free(_log, cfg3);
 	oauth2_cfg_target_pass_free(_log, cfg2);

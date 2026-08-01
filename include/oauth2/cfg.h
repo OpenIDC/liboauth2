@@ -253,6 +253,16 @@ oauth2_flag_t oauth2_cfg_source_token_get_strip(oauth2_cfg_source_token_t *cfg);
 
 OAUTH2_CFG_TYPE_DECLARE(cfg, target_pass)
 
+/*
+ * the encoding applied to claim values passed on to the target application in
+ * headers and environment variables
+ */
+typedef enum oauth2_cfg_target_pass_encoding_t {
+	OAUTH2_CFG_TARGET_PASS_ENCODING_NONE,
+	OAUTH2_CFG_TARGET_PASS_ENCODING_LATIN1,
+	OAUTH2_CFG_TARGET_PASS_ENCODING_BASE64URL
+} oauth2_cfg_target_pass_encoding_t;
+
 char *oauth2_cfg_set_target_pass_options(oauth2_log_t *log,
 					 oauth2_cfg_target_pass_t *cfg,
 					 const char *options);
@@ -267,6 +277,15 @@ const char *
 oauth2_cfg_target_get_remote_user_claim(oauth2_cfg_target_pass_t *cfg);
 const char *
 oauth2_cfg_target_get_json_payload_claim(oauth2_cfg_target_pass_t *cfg);
+oauth2_cfg_target_pass_encoding_t
+oauth2_cfg_target_pass_get_encoding(oauth2_cfg_target_pass_t *cfg);
+/*
+ * apply the configured encoding to a claim value; returns a newly allocated
+ * string that the caller must free, or NULL when the value is NULL
+ */
+char *oauth2_cfg_target_pass_encode(oauth2_log_t *log,
+				    oauth2_cfg_target_pass_t *cfg,
+				    const char *value);
 
 /*
  * resource owner password credentials

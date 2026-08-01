@@ -1420,6 +1420,52 @@ char *oauth2_normalize_header_name(const char *str)
 	return ns;
 }
 
+char *oauth2_utf8_to_latin1(const char *str)
+{
+	/* HTTP header field values are US-ASCII (RFC 9110 section 5.5), with
+	 * ISO-8859-1 as the historical fallback for anything above that; a
+	 * claim value is UTF-8, so convert it down to a single byte per code
+	 * point and represent whatever does not fit as "?" */
+	char *ns = NULL;
+	unsigned int cp = 0;
+	unsigned char ch = 0;
+	size_t i = 0;
+
+	if (str == NULL)
+		goto end;
+
+	// the result is never longer than the input
+	ns = oauth2_mem_alloc(strlen(str) + 1);
+	if (ns == NULL)
+		goto end;
+
+	while (*str != '\0') {
+		ch = (unsigned char)(*str);
+		if (ch <= 0x7f)
+			cp = ch;
+		else if (ch <= 0xbf)
+			cp = (cp << 6) | (ch & 0x3f);
+		else if (ch <= 0xdf)
+			cp = ch & 0x1f;
+		else if (ch <= 0xef)
+			cp = ch & 0x0f;
+		else
+			cp = ch & 0x07;
+		str++;
+		// only emit once the last continuation byte has been consumed
+		if (((*str & 0xc0) != 0x80) && (cp <= 0x10ffff)) {
+			ns[i] = cp <= 0xff ? (char)cp : '?';
+			i++;
+		}
+	}
+
+	ns[i] = '\0';
+
+end:
+
+	return ns;
+}
+
 char *oauth_read_file(oauth2_log_t *log, const char *filename)
 {
 	char *rv = NULL;
