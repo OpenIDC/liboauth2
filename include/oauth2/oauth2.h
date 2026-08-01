@@ -76,6 +76,12 @@ bool oauth2_http_ctx_auth_add(oauth2_log_t *log, oauth2_http_call_ctx_t *ctx,
 			      const oauth2_cfg_endpoint_auth_t *auth,
 			      oauth2_nv_list_t *params);
 
+/*
+ * verify a token; on failure "status_code" - when provided - is set to the
+ * HTTP status code that the caller is to return, which is always an error
+ * code i.e. 4xx or 5xx, defaulting to 401 when the failure is not the result
+ * of a call to a remote endpoint that returned an error status code itself
+ */
 bool oauth2_token_verify(oauth2_log_t *log, oauth2_http_request_t *request,
 			 oauth2_cfg_token_verify_t *verify, const char *token,
 			 json_t **json_payload,

@@ -951,10 +951,20 @@ bool oauth2_token_verify(oauth2_log_t *log, oauth2_http_request_t *request,
 
 end:
 
+	// a rejected token must always come with an HTTP error status code:
+	// the local (JWT) verification callbacks don't set one at all, and an
+	// introspection endpoint returning "active": false leaves the 200 of
+	// that (successful) call behind; without this a caller relaying the
+	// value would turn a rejected token into a non-error response
+	if ((rc == false) && (status_code) &&
+	    ((*status_code < 400) || (*status_code >= 600)))
+		*status_code = 401;
+
 	if (s_payload)
 		oauth2_mem_free(s_payload);
 
-	oauth2_debug(log, "leave: %d", rc);
+	oauth2_debug(log, "leave: %d (status_code=%d)", rc,
+		     status_code ? (int)*status_code : 0);
 
 	return rc;
 }

@@ -1287,6 +1287,102 @@ START_TEST(test_oauth2_verify_token_introspection)
 }
 END_TEST
 
+START_TEST(test_oauth2_verify_token_status_code)
+{
+	bool rc = false;
+	oauth2_cfg_token_verify_t *verify = NULL;
+	json_t *json_payload = NULL;
+	const char *rv = NULL;
+	char *url = NULL;
+	oauth2_http_status_code_t status_code = 0;
+	// https://tools.ietf.org/html/rfc7515#appendix-A.1: "exp" is 1300819380
+	// i.e. long expired, and "verify.exp" defaults to "required"
+	char *expired_jwt =
+	    "eyJ0eXAiOiJKV1QiLA0KICJhbGciOiJIUzI1NiJ9."
+	    "eyJpc3MiOiJqb2UiLA0KICJleHAiOjEzMDA4MTkzODAsDQogImh0"
+	    "dHA6Ly9leGFtcGxlLmNvbS9pc19yb290Ijp0cnVlfQ."
+	    "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
+	char *secret = "AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T-"
+		       "1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow";
+	oauth2_check_http_response_t resp[3] = {
+	    {.status_code = 200,
+	     .content_type = "application/json",
+	     .body = "{ \"active\": false }"},
+	    {.status_code = 403,
+	     .content_type = "application/json",
+	     .body = "{ \"error\": \"invalid_client\" }"},
+	    {.status_code = 503,
+	     .content_type = "application/json",
+	     .body = "{ \"error\": \"unavailable\" }"}};
+	oauth2_check_http_server_t *srv = NULL;
+
+	// no verification configured at all
+	rc = oauth2_token_verify(_log, NULL, NULL, expired_jwt, &json_payload,
+				 &status_code);
+	ck_assert_int_eq(rc, false);
+	ck_assert_int_eq(status_code, 401);
+
+	rv = oauth2_cfg_token_verify_add_options(_log, &verify, "base64url",
+						 secret, NULL);
+	ck_assert_ptr_eq(rv, NULL);
+
+	// local (JWT) verification failure: expired token
+	status_code = 0;
+	rc = oauth2_token_verify(_log, NULL, verify, expired_jwt, &json_payload,
+				 &status_code);
+	ck_assert_int_eq(rc, false);
+	ck_assert_int_eq(status_code, 401);
+
+	// local (JWT) verification failure: signature does not match
+	status_code = 0;
+	rc = oauth2_token_verify(_log, NULL, verify,
+				 "eyJ0eXAiOiJKV1QiLA0KICJhbGciOiJIUzI1NiJ9."
+				 "eyJpc3MiOiJqb2UifQ.bogus-signature",
+				 &json_payload, &status_code);
+	ck_assert_int_eq(rc, false);
+	ck_assert_int_eq(status_code, 401);
+
+	oauth2_cfg_token_verify_free(_log, verify);
+	verify = NULL;
+
+	srv = oauth2_check_http_server_start_seq(resp, 3);
+	ck_assert_ptr_ne(srv, NULL);
+
+	url = oauth2_stradd(NULL, oauth2_check_http_server_url(srv),
+			    "/introspection", NULL);
+
+	rv = oauth2_cfg_token_verify_add_options(
+	    _log, &verify, "introspect", url, "introspect.ssl_verify=false");
+	ck_assert_ptr_eq(rv, NULL);
+
+	// an inactive token is a 200 on the introspection call itself, which
+	// must not leak into the status code returned to the caller
+	status_code = 0;
+	rc = oauth2_token_verify(_log, NULL, verify, "inactive", &json_payload,
+				 &status_code);
+	ck_assert_int_eq(rc, false);
+	ck_assert_int_eq(status_code, 401);
+
+	// an error status code returned by the introspection endpoint is
+	// passed on to the caller as-is
+	status_code = 0;
+	rc = oauth2_token_verify(_log, NULL, verify, "forbidden", &json_payload,
+				 &status_code);
+	ck_assert_int_eq(rc, false);
+	ck_assert_int_eq(status_code, 403);
+
+	status_code = 0;
+	rc = oauth2_token_verify(_log, NULL, verify, "unavailable",
+				 &json_payload, &status_code);
+	ck_assert_int_eq(rc, false);
+	ck_assert_int_eq(status_code, 503);
+
+	oauth2_check_http_server_stop(srv);
+	oauth2_cfg_token_verify_free(_log, verify);
+	oauth2_mem_free(url);
+}
+END_TEST
+
 START_TEST(test_oauth2_verify_token_plain)
 {
 	bool rc = false;
@@ -1676,6 +1772,7 @@ Suite *oauth2_check_oauth2_suite()
 	tcase_add_test(c, test_oauth2_verify_eckey_uri);
 	tcase_add_test(c, test_oauth2_verify_aws_alb);
 	tcase_add_test(c, test_oauth2_verify_token_introspection);
+	tcase_add_test(c, test_oauth2_verify_token_status_code);
 	tcase_add_test(c, test_oauth2_verify_token_plain);
 	tcase_add_test(c, test_oauth2_verify_token_base64);
 	tcase_add_test(c, test_oauth2_verify_token_base64url);

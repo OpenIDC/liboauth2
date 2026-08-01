@@ -1,3 +1,17 @@
+08/01/2026
+- oauth2: always return an HTTP error status code from oauth2_token_verify when
+  a token is rejected; the local (JWT) verification callback never set the
+  "status_code" out-parameter, so it kept the value the caller initialized it
+  with - 0 in the case of mod_oauth2, which relays it as an Apache return code
+  and thus signals OK without a user, upon which Apache logs "AH00027: No
+  authentication done but request not allowed without authentication" and
+  returns a 500 instead of a 401; this affected any locally detected failure,
+  i.e. expiry, signature mismatch, "iss"/"aud"/"nbf" validation. An
+  introspection endpoint returning "active": false similarly left the 200 of
+  that successful call behind. Both now yield 401; an error status code
+  returned by a remote endpoint is still passed on as-is
+  thanks @smanolache; closes OpenIDC/mod_oauth2#94
+
 06/04/2026
 - oauth2: require an "iss" claim in JWTs verified against the issuer discovered
   from the AS metadata document (the "metadata" verification type); it bound
