@@ -1333,11 +1333,16 @@ START_TEST(test_oauth2_verify_token_status_code)
 	ck_assert_int_eq(rc, false);
 	ck_assert_int_eq(status_code, 401);
 
-	// local (JWT) verification failure: signature does not match
+	// local (JWT) verification failure: signature does not match; NB: the
+	// signature has the length that HS256 dictates, so that this exercises
+	// a rejected signature and nothing else
 	status_code = 0;
 	rc = oauth2_token_verify(_log, NULL, verify,
 				 "eyJ0eXAiOiJKV1QiLA0KICJhbGciOiJIUzI1NiJ9."
-				 "eyJpc3MiOiJqb2UifQ.bogus-signature",
+				 "eyJpc3MiOiJqb2UiLA0KICJleHAiOjEzMDA4MTkzODAs"
+				 "DQogImh0dHA6Ly9leGFtcGxlLmNvbS9pc19yb290Ijp0"
+				 "cnVlfQ."
+				 "AAAAtJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
 				 &json_payload, &status_code);
 	ck_assert_int_eq(rc, false);
 	ck_assert_int_eq(status_code, 401);
