@@ -53,7 +53,6 @@
 #define OAUTH2_STATE "state"
 #define OAUTH2_RESPONSE_TYPE "response_type"
 #define OAUTH2_REDIRECT_URI "redirect_uri"
-#define OAUTH2_GRANT_TYPE "grant_type"
 #define OAUTH2_GRANT_TYPE_AUTHORIZATION_CODE "authorization_code"
 #define OAUTH2_CODE_CHALLENGE "code_challenge"
 #define OAUTH2_CODE_CHALLENGE_METHOD "code_challenge_method"
