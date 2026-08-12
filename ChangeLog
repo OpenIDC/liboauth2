@@ -13,6 +13,8 @@
 - doc: replace the pointer to the empty wiki in the README with the
   Discussions tracker and add a Documentation section describing the
   Doxygen API reference and the API stability status; see #11
+- build: add a Docs workflow that publishes the generated API reference
+  to GitHub Pages on pushes to master; see #11
 - session: remove the declaration of oauth2_cfg_session_release from
   session.h; the function was never implemented so no caller can have
   linked against it
