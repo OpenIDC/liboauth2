@@ -10,9 +10,10 @@
   openidc.h, cfg.h, http.h, cache.h and session.h; add a Doxyfile and a
   "make doxygen" target that generate the API reference into doc/html;
   see #11
-- doc: replace the pointer to the empty wiki in the README with the
-  Discussions tracker and add a Documentation section describing the
-  Doxygen API reference and the API stability status; see #11
+- doc: add a Documentation section to the README describing the Doxygen
+  API reference and the API stability status, point community support at
+  the Discussions tracker, and refresh the wiki FAQ with the project
+  status and links to the documentation; see #11
 - build: add a Docs workflow that publishes the generated API reference
   to GitHub Pages on pushes to master; see #11
 - session: remove the declaration of oauth2_cfg_session_release from

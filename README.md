@@ -52,6 +52,7 @@ Note that the library API is not (yet) stable: liboauth2 is primarily developed 
 ## Support
 
 ### Community Support
+See [Frequently Asked Questions](https://github.com/OpenIDC/liboauth2/wiki) on the Wiki.  
 Ask questions in the [Discussions](https://github.com/OpenIDC/liboauth2/discussions) tracker.
 
 ### Commercial Support
