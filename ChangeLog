@@ -9,6 +9,9 @@
 - doc: start documenting the public API with Doxygen, covering oauth2.h,
   openidc.h and cfg.h; add a Doxyfile and a "make doxygen" target that
   generate the API reference into doc/html; see #11
+- doc: replace the pointer to the empty wiki in the README with the
+  Discussions tracker and add a Documentation section describing the
+  Doxygen API reference and the API stability status; see #11
 
 08/01/2026
 - cfg: encode claim values passed on to the target application in headers and
