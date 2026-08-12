@@ -93,6 +93,7 @@ const char *oauth2_crypto_passphrase_get(oauth2_log_t *log);
 /**
  * @brief Create and register a named cache instance.
  *
+ * @param log     the log handle to use
  * @param dummy   ignored
  * @param type    cache backend: "shm" or "file", plus "memcache" and
  *                "redis" when compiled in
@@ -135,13 +136,14 @@ typedef struct oauth2_cfg_server_callback_funcs_t {
  * (token, introspection, etc.), applied to outgoing calls with
  * oauth2_http_ctx_auth_add() (oauth2.h). Configured as a type with
  * type-specific parameters:
- *
- *   client_secret_basic client_id=<string>&client_secret=<string>
- *   client_secret_post  client_id=<string>&client_secret=<string>
- *   client_secret_jwt   client_id=<string>&client_secret=<string>&aud=<string>
- *   private_key_jwt     jwk=<json>&aud=<string>
- *   client_cert         cert=<filename>&key=<filename>
- *   basic               username=<string>&password=<string>
+ * @verbatim
+ client_secret_basic client_id=<string>&client_secret=<string>
+ client_secret_post  client_id=<string>&client_secret=<string>
+ client_secret_jwt   client_id=<string>&client_secret=<string>&aud=<string>
+ private_key_jwt     jwk=<json>&aud=<string>
+ client_cert         cert=<filename>&key=<filename>
+ basic               username=<string>&password=<string>
+ @endverbatim
  * @{
  */
 
@@ -160,6 +162,8 @@ OAUTH2_CFG_TYPE_DECLARE(cfg, endpoint_auth)
 /**
  * @brief Configure an endpoint authentication method.
  *
+ * @param log    the log handle to use
+ * @param auth   the endpoint authentication configuration to populate
  * @param type   one of the method names listed above, or "none"
  * @param params the method-specific parameters listed above
  * @param prefix optional prefix prepended to the parameter names when
@@ -233,6 +237,9 @@ OAUTH2_CFG_TYPE_DECLARE(cfg, token_verify)
  *
  * Appends a method to *@p verify, creating the chain when it is NULL.
  *
+ * @param log the log handle to use
+ * @param verify pointer to the chain to add to; the chain is created
+ *   when *@p verify is NULL
  * @param type the verification type:
  *   - "plain", "base64", "base64url" or "hex": a symmetric key
  *     provided as a string in that encoding
@@ -323,6 +330,8 @@ typedef enum oauth2_cfg_token_in_type_t {
 /**
  * @brief Configure a token location.
  *
+ * @param log     the log handle to use
+ * @param cfg     the token location configuration to populate
  * @param method  one of the OAUTH2_CFG_TOKEN_IN_..._STR names
  * @param params  location-specific parameters, e.g. the header, cookie
  *                or query/post parameter name

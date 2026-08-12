@@ -241,6 +241,10 @@ endif
 clang-format:
 	clang-format -style=file -i `find . -name *.[ch]`
 
+doxygen:
+	cd $(top_srcdir) && \
+		(cat Doxyfile; echo "PROJECT_NUMBER = $(VERSION)") | doxygen -
+
 test: check
 
 # run the registered suites concurrently (one process per suite) instead of the

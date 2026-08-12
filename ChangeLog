@@ -6,6 +6,9 @@
   first verifier's unset settings, which for DPoP skips the proof "iat"
   freshness and "jti" replay checks and for mTLS ignores a configured
   "mtls.policy=required"; single-verifier setups were not affected
+- doc: start documenting the public API with Doxygen, covering oauth2.h,
+  openidc.h and cfg.h; add a Doxyfile and a "make doxygen" target that
+  generate the API reference into doc/html; see #11
 
 08/01/2026
 - cfg: encode claim values passed on to the target application in headers and

@@ -1,0 +1,27 @@
+# Doxygen configuration for the liboauth2 public API reference:
+# run "make doxygen" and browse doc/html/index.html
+
+PROJECT_NAME           = liboauth2
+PROJECT_BRIEF          = "OAuth 2.x and OpenID Connect C library"
+# PROJECT_NUMBER is appended by the "make doxygen" target
+
+OUTPUT_DIRECTORY       = doc
+GENERATE_LATEX         = NO
+QUIET                  = YES
+
+INPUT                  = README.md include/oauth2
+USE_MDFILE_AS_MAINPAGE = README.md
+STRIP_FROM_PATH        = include
+
+OPTIMIZE_OUTPUT_FOR_C  = YES
+
+# include the not-yet-documented headers in the reference
+EXTRACT_ALL            = YES
+WARN_IF_UNDOCUMENTED   = NO
+
+# expand the OAUTH2_TYPE_DECLARE family of macros (util.h, cfg.h) so
+# that the generated object init/clone/free functions and the member
+# _set/_get accessors show up in the documentation; INCLUDE_PATH lets
+# the preprocessor find the #include "oauth2/..." headers defining them
+MACRO_EXPANSION        = YES
+INCLUDE_PATH           = include

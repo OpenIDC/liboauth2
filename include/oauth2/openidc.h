@@ -154,6 +154,9 @@ oauth2_cfg_openidc_provider_resolver_get(oauth2_log_t *log,
 /**
  * @brief Configure the provider resolver from an option string.
  *
+ * @param log     the log handle to use
+ * @param cfg     the OpenID Connect configuration to set the resolver
+ *                on
  * @param type    resolver type: "string" (inline JSON provider
  *                document), "file" (path to a JSON file) or "url" (URL
  *                serving the JSON document, e.g. the Discovery endpoint)
@@ -196,6 +199,8 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, http_retry_interval,
 /**
  * @brief Configure the OpenID Connect client from an option string.
  *
+ * @param log     the log handle to use
+ * @param cfg     the OpenID Connect configuration holding the client
  * @param type    "string" (form-encoded parameters: client_id,
  *                client_secret, scope, authn_request_params,
  *                token_endpoint_auth_method plus the parameters of that
