@@ -12,6 +12,9 @@
 - doc: replace the pointer to the empty wiki in the README with the
   Discussions tracker and add a Documentation section describing the
   Doxygen API reference and the API stability status; see #11
+- session: remove the declaration of oauth2_cfg_session_release from
+  session.h; the function was never implemented so no caller can have
+  linked against it
 
 08/01/2026
 - cfg: encode claim values passed on to the target application in headers and

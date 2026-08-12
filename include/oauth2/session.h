@@ -26,8 +26,6 @@
 #include "oauth2/util.h"
 
 OAUTH2_CFG_TYPE_DECLARE(cfg, session)
-void oauth2_cfg_session_release(oauth2_log_t *log,
-				oauth2_cfg_session_t *session);
 OAUTH2_TYPE_DECLARE_MEMBER_GET(cfg, session, cookie_name, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_GET(cfg, session, cookie_path, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_GET(cfg, session, inactivity_timeout_s,
