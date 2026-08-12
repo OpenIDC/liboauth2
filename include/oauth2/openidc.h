@@ -41,8 +41,6 @@
 #define OAUTH2_OPENIDC_ID_TOKEN "id_token"
 #define OAUTH2_OPENIDC_ACCESS_TOKEN "access_token"
 
-#define OAUTH2_CLAIM_ISS "iss"
-
 OAUTH2_CFG_TYPE_DECLARE(cfg, session)
 OAUTH2_CFG_TYPE_DECLARE(cfg, openidc_provider_resolver)
 
@@ -107,13 +105,6 @@ char *oauth2_cfg_openidc_redirect_uri_get(oauth2_log_t *,
 
 OAUTH2_TYPE_DECLARE(openidc, proto_state)
 
-oauth2_openidc_proto_state_t *
-oauth2_openidc_proto_state_init(oauth2_log_t *log);
-oauth2_openidc_proto_state_t *
-oauth2_openidc_proto_state_clone(oauth2_log_t *log,
-				 const oauth2_openidc_proto_state_t *src);
-void oauth2_openidc_proto_state_free(oauth2_log_t *log,
-				     oauth2_openidc_proto_state_t *p);
 bool oauth2_openidc_proto_state_set(oauth2_log_t *log,
 				    oauth2_openidc_proto_state_t *p,
 				    const char *name, const char *value);
