@@ -7,8 +7,9 @@
   freshness and "jti" replay checks and for mTLS ignores a configured
   "mtls.policy=required"; single-verifier setups were not affected
 - doc: start documenting the public API with Doxygen, covering oauth2.h,
-  openidc.h and cfg.h; add a Doxyfile and a "make doxygen" target that
-  generate the API reference into doc/html; see #11
+  openidc.h, cfg.h, http.h, cache.h and session.h; add a Doxyfile and a
+  "make doxygen" target that generate the API reference into doc/html;
+  see #11
 - doc: replace the pointer to the empty wiki in the README with the
   Discussions tracker and add a Documentation section describing the
   Doxygen API reference and the API stability status; see #11
