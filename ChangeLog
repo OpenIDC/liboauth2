@@ -1,3 +1,12 @@
+08/12/2026
+- oauth2: apply the DPoP/mTLS proof-of-possession settings of the verifier that
+  actually verified the token in oauth2_token_verify, instead of those of the
+  first verifier in the chain; when a "type=dpop" or "type=mtls" verifier was
+  configured after another one, the proof-of-possession check ran against the
+  first verifier's unset settings, which for DPoP skips the proof "iat"
+  freshness and "jti" replay checks and for mTLS ignores a configured
+  "mtls.policy=required"; single-verifier setups were not affected
+
 08/01/2026
 - cfg: encode claim values passed on to the target application in headers and
   environment variables, using a new "encoding" option on the target pass

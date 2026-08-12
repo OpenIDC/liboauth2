@@ -644,6 +644,91 @@ START_TEST(test_oauth2_verify_jwk_dpop)
 }
 END_TEST
 
+START_TEST(test_oauth2_verify_jwk_dpop_chained)
+{
+	bool rc = false;
+	oauth2_cfg_token_verify_t *verify = NULL;
+	char *jwt =
+	    "eyJhbGciOiJSUzI1NiIsImtpZCI6ImsxIiwicGkuYXRtIjoiMSJ9."
+	    "eyJzY29wZSI6WyJvcGVuaWQiXSwiYXV0aG9yaXphdGlvbl9kZXRhaWxzIjpbXSwiY2"
+	    "xpZW50X2lkX25hbWUiOiJyb19jbGllbnQiLCJVc2VybmFtZSI6ImpvZSIsIk9yZ05h"
+	    "bWUiOiJQaW5nIElkZW50aXR5IENvcnBvcmF0aW9uIiwiY25mIjp7ImprdCI6InZBcG"
+	    "RWSVBLenNwMXpzSzVjQ25JTmRLOEdKU0Z3VlNSeV9IZ1VFNDBYUGsifSwiZXhwIjox"
+	    "Njk5NDUyNDYzfQ.DihED2HcrAkW9ItLYIAqeweOEyI_"
+	    "qqcCfMVmHNEnIpvz7GeaYFQ6E3edj1AWU09NsUa3W3mV5Ze6-"
+	    "zgeSwXQf9yEs2TVO88Ye6zpv3F1SPlO8Zhue4qGZJpdKtyz_sPCGRd2v_"
+	    "1N6ji9m1IyNzJwiMD32molHWpcIRytke2hG9AZvxzcmJ1lwd0ReVyV8payUmxtVcwN"
+	    "yKzTmX-XNV7kNP6DZsnJTOYFgJ98punDpdorpIMFwjOTcFk8zMFdHO9rdR_"
+	    "jUI4NGXlfmLXtTrS-FdSd3bRDQFuJA5qGdNie-5vS-kfeIUCaAQZFXR6MsD-Dz_"
+	    "xKPhuDQecbDiIj5s726Q";
+	char *jwk =
+	    "{\"kty\":\"RSA\",\"kid\":\"k1\",\"use\":\"sig\",\"n\":"
+	    "\"hKvkosOyK33gznaRCNgakMLE2GHS5_7K34oqZRsAWC-7aC420eJNL2z_"
+	    "8Z7ouWXpJNZ2YHQcqxPe4UZGtiDiFYLdDbQPrCDiTpuRYybe1UmZJ3Kk5fBx9yXKU0"
+	    "zbdSKYPEeq1w5Fi7rt46YkZ6qwv3Yixo7eTxbglezJOx_YcS5sfXxcwBU1nYbGU_"
+	    "MgrBXAfy1Hea5tcUSPot-BTMcuj_doHLT_sEm4AZwaZiLhMiqfI-"
+	    "J6Gv5Hg6aBTXpYv50DEdcoZzkabMHxjHICS9w2FGWAzMt_"
+	    "AvW4ISlbAxlBroXhTEXC6GIJwoDTskuPlCO4CVa3axh0s1D49JFJoBYasw\","
+	    "\"e\":\"AQAB\"}";
+	char *dpop =
+	    "eyJ0eXAiOiJkcG9wK2p3dCIsImFsZyI6IlJTMjU2IiwiandrIjp7Imt0eSI6IlJTQS"
+	    "IsImUiOiJBUUFCIiwibiI6InJiOXZ5ekFJaVFqQUVFdGFTZnJnU2NSVHotVnNEZ2hp"
+	    "b1Z2ajNJNnlZbHJ2TFdaNHFWdEtzUDNQU3Z4dTNVejdWTWRwVFEyODc5WlRGVWh0LV"
+	    "9Cc3M1NHNtOUdJTTZQVGRZY3VDN3dOMHR2N2JHMDNsVGdOUFdvcmZrMzRhSVk1NHh1"
+	    "Tmo5SHNBVnJKRG1NWklWTnBOUGZabXcwcDVheFBVQ19OTEw4YVhUeDJnWFZFV3V4dG"
+	    "NXSjFzbzFHVE5pbXZPMXM1eklTaDZvTXlDVFRhQ1N2el9DYWVwektTeXZfc00yWk9Y"
+	    "VkhUVzZ2SEM4Q0tMY2VwT1NFLWx0UXV3TUF6MWxEU0szQ0hURFRTMVNzdEpVMklKam"
+	    "hobnFwVVgzVHNxQ0E5em9PQlk4aXVRd3hCTDBicFl4T0dVZ21oNXU0Sm90bFlzZkU0"
+	    "T3FMdG1ueGJuSzdydyJ9fQ."
+	    "eyJqdGkiOiIrSmJDS3hrazFUNXQ4bys1IiwiaHRtIjoiR0VUIiwiaHR1IjoiaHR0cH"
+	    "M6Ly9sb2NhbGhvc3Quem1hcnR6b25lLmV1L2FwaS8iLCJpYXQiOjE2OTk0NDUyNjMs"
+	    "ImF0aCI6Ikd6TkR1S1poVHd5dHppN09rd3VXMjhwQ0xTb0paZ2xmN1pNRG94SGQ2dk"
+	    "kifQ.K-"
+	    "xn9siYFnhi3y5gejKwwIEzD2uKmmtfqV0XDbHh7JZ2RNQJfBNpyiEhSUT5dXc5AY8h"
+	    "RzUyWmi4cmE0yW97FKphZdbeumFBGuLiTyMQNVTUWdjMOS7-uWV27bZXj-KaI3C9c_"
+	    "mNHjsuW_Ax5LSK35u8Iw_A25EXrJhezzAP74chiKJN1pw3eq_2EZlUF-"
+	    "ihz7Y045sW56EBf-4SCJUfOhGnrb7rHg3KXMiOcSdEnzFiaTSYOozlMZxFvY-"
+	    "VnaqksBZ17-mGMSi7K_"
+	    "9QdBac7ick7OQ7VecYittd5nmnvrRaGytJdJYOSfB5HDPtoaXFNGj24yaJan3IOr2H"
+	    "bg2t8A";
+	json_t *json_payload = NULL;
+	oauth2_http_request_t *request = NULL;
+	const char *rv = NULL;
+
+	// a first verifier that will not verify the RS256-signed token
+	rv = oauth2_cfg_token_verify_add_options(_log, &verify, "plain",
+						 "mysecret", "verify.exp=skip");
+	ck_assert_ptr_eq(rv, NULL);
+
+	// a second verifier that does verify the token and requires a fresh
+	// DPoP proof
+	rv = oauth2_cfg_token_verify_add_options(
+	    _log, &verify, "jwk", jwk,
+	    "verify.exp=skip&type=dpop&dpop.iat.verify=required");
+	ck_assert_ptr_eq(rv, NULL);
+
+	request = oauth2_http_request_init(_log);
+	oauth2_http_request_scheme_set(_log, request, "https");
+	oauth2_http_request_hostname_set(_log, request,
+					 "localhost.zmartzone.eu");
+	oauth2_http_request_path_set(_log, request, "/api/");
+	oauth2_http_request_method_set(_log, request, OAUTH2_HTTP_METHOD_GET);
+
+	oauth2_http_request_header_set(_log, request, "DPoP", dpop);
+
+	// the stale proof must be rejected against the succeeding (second)
+	// verifier's dpop.iat.verify=required; the first (bearer) verifier's
+	// unset DPoP configuration would skip the iat and replay checks
+	rc = oauth2_token_verify(_log, request, verify, jwt, &json_payload,
+				 NULL);
+	ck_assert_int_eq(rc, false);
+
+	oauth2_http_request_free(_log, request);
+	oauth2_cfg_token_verify_free(_log, verify);
+	json_decref(json_payload);
+}
+END_TEST
+
 // build a DPoP proof signed with "jwk", embedding "jwk_hdr_json" (which may be
 // the public-only or the private serialization of the key) in the "jwk" header
 static char *_dpop_proof_create(cjose_jwk_t *jwk, const char *jwk_hdr_json,
@@ -1772,6 +1857,7 @@ Suite *oauth2_check_oauth2_suite()
 	tcase_add_test(c, test_oauth2_verify_jwks_uri);
 	tcase_add_test(c, test_oauth2_verify_jwk);
 	tcase_add_test(c, test_oauth2_verify_jwk_dpop);
+	tcase_add_test(c, test_oauth2_verify_jwk_dpop_chained);
 	tcase_add_test(c, test_oauth2_verify_dpop_private_key_rejected);
 	tcase_add_test(c, test_oauth2_dpop_branches);
 	tcase_add_test(c, test_oauth2_verify_eckey_uri);
