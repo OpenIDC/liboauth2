@@ -74,7 +74,6 @@ bool oauth2_session_save(oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
 			 const oauth2_http_request_t *request,
 			 oauth2_http_response_t *response,
 			 oauth2_session_rec_t *session);
-void oauth2_session_rec_free(oauth2_log_t *log, oauth2_session_rec_t *s);
 bool oauth2_session_handle(oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
 			   const oauth2_http_request_t *request,
 			   oauth2_http_response_t *response,
