@@ -127,7 +127,7 @@ oauth2_log_sink_t oauth2_log_sink_stdout = {OAUTH2_LOG_INFO, oauth2_log_std_out,
 
 #ifdef _MSC_VER
 
-int vasprintf(char **strp, const char *fmt, va_list ap)
+static int vasprintf(char **strp, const char *fmt, va_list ap)
 {
 	// _vscprintf tells you how big the buffer needs to be
 	int len = _vscprintf(fmt, ap);

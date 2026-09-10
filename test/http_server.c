@@ -24,18 +24,49 @@
 #include "oauth2/mem.h"
 #include "oauth2/util.h"
 
-#include <arpa/inet.h>
 #include <errno.h>
-#include <netinet/in.h>
-#include <pthread.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+/*
+ * The sockets and the server thread are the only platform-specific parts of
+ * this fixture: BSD sockets and pthreads everywhere, Winsock and a CRT thread
+ * on Windows, where a socket is not an int and errors do not come via errno.
+ */
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <process.h>
+#include <windows.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+typedef SOCKET srv_sock_t;
+typedef int srv_ssize_t;
+#define SRV_INVALID_SOCKET INVALID_SOCKET
+#define srv_sock_valid(s) ((s) != INVALID_SOCKET)
+#define srv_close_socket(s) closesocket(s)
+#define srv_last_error() WSAGetLastError()
+#define srv_error_is_retry(e)                                                  \
+	(((e) == WSAEINTR) || ((e) == WSAEWOULDBLOCK) || ((e) == WSAETIMEDOUT))
+#define strcasecmp _stricmp
+#else
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <pthread.h>
 #include <strings.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+typedef int srv_sock_t;
+typedef ssize_t srv_ssize_t;
+#define SRV_INVALID_SOCKET (-1)
+#define srv_sock_valid(s) ((s) >= 0)
+#define srv_close_socket(s) close(s)
+#define srv_last_error() errno
+#define srv_error_is_retry(e)                                                  \
+	(((e) == EINTR) || ((e) == EAGAIN) || ((e) == EWOULDBLOCK))
+#endif
 
 #define OAUTH2_CHECK_SRV_READ_BUF 8192
 #define OAUTH2_CHECK_SRV_BACKLOG 1
@@ -47,10 +78,14 @@
 
 struct oauth2_check_http_server_t {
 	oauth2_log_t *log;
-	int listen_fd;
+	srv_sock_t listen_fd;
 	int port;
 	char *url; /* "http://127.0.0.1:<port>" */
+#ifdef _WIN32
+	HANDLE thread;
+#else
 	pthread_t thread;
+#endif
 	int thread_started;
 	int joined;
 	volatile sig_atomic_t stopping;
@@ -62,13 +97,39 @@ struct oauth2_check_http_server_t {
 	int captured_count; /* number of requests actually handled */
 };
 
-static bool srv_write_all(int fd, const char *buf, size_t len)
+#ifdef _WIN32
+/* Winsock wants a one-time initialization per process */
+static void srv_net_init(void)
+{
+	static int initialized = 0;
+	WSADATA wsa;
+	if (initialized == 0) {
+		WSAStartup(MAKEWORD(2, 2), &wsa);
+		initialized = 1;
+	}
+}
+#else
+#define srv_net_init()
+#endif
+
+/* SO_RCVTIMEO takes a struct timeval on POSIX and milliseconds on Windows */
+static void srv_set_recv_timeout(srv_sock_t fd, int seconds)
+{
+#ifdef _WIN32
+	DWORD tv = (DWORD)seconds * 1000;
+#else
+	struct timeval tv = {.tv_sec = seconds, .tv_usec = 0};
+#endif
+	setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv));
+}
+
+static bool srv_write_all(srv_sock_t fd, const char *buf, size_t len)
 {
 	size_t off = 0;
 	while (off < len) {
-		ssize_t n = write(fd, buf + off, len - off);
+		srv_ssize_t n = send(fd, buf + off, (int)(len - off), 0);
 		if (n <= 0) {
-			if ((n < 0) && (errno == EINTR))
+			if ((n < 0) && (srv_last_error() == EINTR))
 				continue;
 			return false;
 		}
@@ -79,13 +140,13 @@ static bool srv_write_all(int fd, const char *buf, size_t len)
 
 /* read until \r\n\r\n; on success returns header length (incl. terminator),
  * -1 on failure */
-static ssize_t srv_read_headers(int fd, char *buf, size_t cap,
-				size_t *received_total)
+static srv_ssize_t srv_read_headers(srv_sock_t fd, char *buf, size_t cap,
+				    size_t *received_total)
 {
 	size_t total = 0;
 	while (total < cap) {
-		ssize_t n = recv(fd, buf + total, cap - total, 0);
-		if (n < 0 && errno == EINTR)
+		srv_ssize_t n = recv(fd, buf + total, (int)(cap - total), 0);
+		if (n < 0 && srv_last_error() == EINTR)
 			continue;
 		if (n <= 0)
 			return -1;
@@ -96,7 +157,7 @@ static ssize_t srv_read_headers(int fd, char *buf, size_t cap,
 				if (buf[i - 3] == '\r' && buf[i - 2] == '\n' &&
 				    buf[i - 1] == '\r' && buf[i] == '\n') {
 					*received_total = total;
-					return (ssize_t)(i + 1);
+					return (srv_ssize_t)(i + 1);
 				}
 			}
 		}
@@ -107,7 +168,7 @@ static ssize_t srv_read_headers(int fd, char *buf, size_t cap,
 static void srv_parse_request(oauth2_log_t *log,
 			      oauth2_check_http_captured_t *cap, char *headers,
 			      size_t headers_len, const char *trailing_body,
-			      size_t trailing_body_len, int fd)
+			      size_t trailing_body_len, srv_sock_t fd)
 {
 	cap->headers = oauth2_nv_list_init(log);
 
@@ -166,9 +227,9 @@ static void srv_parse_request(oauth2_log_t *log,
 			got = take;
 		}
 		while (got < content_length) {
-			ssize_t n =
-			    recv(fd, body + got, content_length - got, 0);
-			if (n < 0 && errno == EINTR)
+			srv_ssize_t n = recv(fd, body + got,
+					     (int)(content_length - got), 0);
+			if (n < 0 && srv_last_error() == EINTR)
 				continue;
 			if (n <= 0)
 				break;
@@ -219,7 +280,8 @@ static bool srv_append_hdr(oauth2_log_t *log, void *rec, const char *key,
 }
 
 static void srv_send_response(oauth2_check_http_server_t *s,
-			      const oauth2_check_http_response_t *r, int fd)
+			      const oauth2_check_http_response_t *r,
+			      srv_sock_t fd)
 {
 	size_t body_len = r->body ? strlen(r->body) : 0;
 	char numbuf[32];
@@ -253,19 +315,19 @@ static void srv_send_response(oauth2_check_http_server_t *s,
 	oauth2_mem_free(head);
 }
 
-static int srv_accept(oauth2_check_http_server_t *s)
+static srv_sock_t srv_accept(oauth2_check_http_server_t *s)
 {
 	while (s->stopping == 0) {
-		int conn = accept(s->listen_fd, NULL, NULL);
-		if (conn >= 0)
+		srv_sock_t conn = accept(s->listen_fd, NULL, NULL);
+		if (srv_sock_valid(conn))
 			return conn;
-		if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
+		if (srv_error_is_retry(srv_last_error()))
 			/* accept timed out (or was interrupted): re-check
 			 * ->stopping and keep waiting for this request */
 			continue;
 		break;
 	}
-	return -1;
+	return SRV_INVALID_SOCKET;
 }
 
 static void *srv_run(void *data)
@@ -275,25 +337,23 @@ static void *srv_run(void *data)
 	/* serve one connection per scripted response, in order; each outbound
 	 * call opens a fresh connection (responses say "Connection: close") */
 	for (int i = 0; i < s->n_responses; i++) {
-		int conn = srv_accept(s);
-		if (conn < 0)
+		srv_sock_t conn = srv_accept(s);
+		if (!srv_sock_valid(conn))
 			/* accept fails / interrupted by stop(); a well-formed
 			 * test drives exactly n_responses requests so this is
 			 * only reached at shutdown */
 			break;
 
 		/* short timeout so a misbehaving test doesn't hang the suite */
-		struct timeval tv = {.tv_sec = OAUTH2_CHECK_SRV_RECV_TIMEOUT,
-				     .tv_usec = 0};
-		setsockopt(conn, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+		srv_set_recv_timeout(conn, OAUTH2_CHECK_SRV_RECV_TIMEOUT);
 
 		char *buf = oauth2_mem_alloc(OAUTH2_CHECK_SRV_READ_BUF);
 		size_t received_total = 0;
-		ssize_t hdr_end = srv_read_headers(
+		srv_ssize_t hdr_end = srv_read_headers(
 		    conn, buf, OAUTH2_CHECK_SRV_READ_BUF, &received_total);
 		if (hdr_end < 0) {
 			oauth2_mem_free(buf);
-			close(conn);
+			srv_close_socket(conn);
 			break;
 		}
 		/* NUL-terminate inside the header block (replacing the final
@@ -325,10 +385,38 @@ static void *srv_run(void *data)
 		srv_send_response(s, &s->responses[i], conn);
 
 		oauth2_mem_free(buf);
-		close(conn);
+		srv_close_socket(conn);
 	}
 
 	return NULL;
+}
+
+#ifdef _WIN32
+static unsigned __stdcall srv_run_thread(void *data)
+{
+	srv_run(data);
+	return 0;
+}
+#endif
+
+static bool srv_thread_start(oauth2_check_http_server_t *s)
+{
+#ifdef _WIN32
+	s->thread = (HANDLE)_beginthreadex(NULL, 0, srv_run_thread, s, 0, NULL);
+	return (s->thread != NULL);
+#else
+	return (pthread_create(&s->thread, NULL, srv_run, s) == 0);
+#endif
+}
+
+static void srv_thread_join(oauth2_check_http_server_t *s)
+{
+#ifdef _WIN32
+	WaitForSingleObject(s->thread, INFINITE);
+	CloseHandle(s->thread);
+#else
+	pthread_join(s->thread, NULL);
+#endif
 }
 
 static void srv_free_captured(oauth2_check_http_server_t *s)
@@ -364,9 +452,11 @@ oauth2_check_http_server_t *oauth2_check_http_server_start_at(
 	if ((responses == NULL) || (n_responses < 1))
 		return NULL;
 
+	srv_net_init();
+
 	oauth2_check_http_server_t *s = oauth2_mem_alloc(sizeof(*s));
 	memset(s, 0, sizeof(*s));
-	s->listen_fd = -1;
+	s->listen_fd = SRV_INVALID_SOCKET;
 	s->log = oauth2_log_init(OAUTH2_LOG_WARN, NULL);
 	s->n_responses = n_responses;
 
@@ -393,16 +483,15 @@ oauth2_check_http_server_t *oauth2_check_http_server_start_at(
 	       sizeof(oauth2_check_http_captured_t) * n_responses);
 
 	s->listen_fd = socket(AF_INET, SOCK_STREAM, 0);
-	if (s->listen_fd < 0)
+	if (!srv_sock_valid(s->listen_fd))
 		goto error;
 
 	int on = 1;
-	setsockopt(s->listen_fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+	setsockopt(s->listen_fd, SOL_SOCKET, SO_REUSEADDR, (const char *)&on,
+		   sizeof(on));
 
 	/* bounded accept() so srv_run() can observe ->stopping at teardown */
-	struct timeval tv = {.tv_sec = OAUTH2_CHECK_SRV_ACCEPT_TIMEOUT,
-			     .tv_usec = 0};
-	setsockopt(s->listen_fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+	srv_set_recv_timeout(s->listen_fd, OAUTH2_CHECK_SRV_ACCEPT_TIMEOUT);
 
 	struct sockaddr_in addr;
 	memset(&addr, 0, sizeof(addr));
@@ -426,15 +515,15 @@ oauth2_check_http_server_t *oauth2_check_http_server_start_at(
 	snprintf(numbuf, sizeof(numbuf), "%d", s->port);
 	s->url = oauth2_stradd(NULL, "http://127.0.0.1:", numbuf, NULL);
 
-	if (pthread_create(&s->thread, NULL, srv_run, s) != 0)
+	if (srv_thread_start(s) == false)
 		goto error;
 	s->thread_started = 1;
 
 	return s;
 
 error:
-	if (s->listen_fd >= 0)
-		close(s->listen_fd);
+	if (srv_sock_valid(s->listen_fd))
+		srv_close_socket(s->listen_fd);
 	srv_free_responses(s);
 	srv_free_captured(s);
 	oauth2_mem_free(s->url);
@@ -468,7 +557,7 @@ const char *oauth2_check_http_server_url(const oauth2_check_http_server_t *s)
 static void srv_join(oauth2_check_http_server_t *s)
 {
 	if (s->thread_started && !s->joined) {
-		pthread_join(s->thread, NULL);
+		srv_thread_join(s);
 		s->joined = 1;
 	}
 }
@@ -506,9 +595,9 @@ void oauth2_check_http_server_stop(oauth2_check_http_server_t *s)
 	 * than were scripted, then join */
 	s->stopping = 1;
 	srv_join(s);
-	if (s->listen_fd >= 0) {
-		close(s->listen_fd);
-		s->listen_fd = -1;
+	if (srv_sock_valid(s->listen_fd)) {
+		srv_close_socket(s->listen_fd);
+		s->listen_fd = SRV_INVALID_SOCKET;
 	}
 	srv_free_captured(s);
 	srv_free_responses(s);
@@ -519,12 +608,14 @@ void oauth2_check_http_server_stop(oauth2_check_http_server_t *s)
 
 int oauth2_check_http_free_port(void)
 {
-	int fd = socket(AF_INET, SOCK_STREAM, 0);
-	if (fd < 0)
+	srv_net_init();
+
+	srv_sock_t fd = socket(AF_INET, SOCK_STREAM, 0);
+	if (!srv_sock_valid(fd))
 		return 0;
 
 	int on = 1;
-	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (const char *)&on, sizeof(on));
 
 	struct sockaddr_in addr;
 	memset(&addr, 0, sizeof(addr));
@@ -532,7 +623,7 @@ int oauth2_check_http_free_port(void)
 	addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 	addr.sin_port = htons(0);
 	if (bind(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-		close(fd);
+		srv_close_socket(fd);
 		return 0;
 	}
 
@@ -542,6 +633,6 @@ int oauth2_check_http_free_port(void)
 	if (getsockname(fd, (struct sockaddr *)&bound, &bound_len) == 0)
 		port = ntohs(bound.sin_port);
 
-	close(fd);
+	srv_close_socket(fd);
 	return port;
 }

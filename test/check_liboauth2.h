@@ -27,6 +27,22 @@
 // #pragma GCC diagnostic ignored "-Wpointer-sign"
 
 #include <check.h>
+#include <stdlib.h>
+
+/*
+ * the tests sleep() past 1-second cache/session timeouts and write file-cache
+ * entries into a scratch directory; both are spelled differently on Windows
+ */
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#define sleep(s) Sleep((DWORD)(s) * 1000)
+#define OAUTH2_CHECK_TMPDIR                                                    \
+	(getenv("TEMP") ? getenv("TEMP") : "C:\\Windows\\Temp")
+#else
+#include <unistd.h>
+#define OAUTH2_CHECK_TMPDIR "/tmp"
+#endif
 
 Suite *oauth2_check_version_suite();
 Suite *oauth2_check_mem_suite();

@@ -21,6 +21,8 @@
 #include "oauth2/cfg.h"
 #include "oauth2/mem.h"
 
+#include "util_int.h"
+
 #define OAUTH2_CFG_PASS_TARGET_AS_ENVVARS_DEFAULT true
 #define OAUTH2_CFG_PASS_TARGET_AS_HEADERS_DEFAULT true
 

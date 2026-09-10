@@ -44,14 +44,30 @@
 
 #include <mod_auth.h>
 
-extern oauth2_cfg_server_callback_funcs_t oauth2_apache_server_callback_funcs;
+/*
+ * see OAUTH2_EXTERN in log.h: the same for the data that liboauth2_apache
+ * exports, which is a library of its own (OAUTH2_APACHE_EXPORTS when building
+ * it, OAUTH2_APACHE_STATIC when its objects are linked in directly)
+ */
+#if defined(_WIN32) && !defined(OAUTH2_APACHE_STATIC)
+#ifdef OAUTH2_APACHE_EXPORTS
+#define OAUTH2_APACHE_EXTERN __declspec(dllexport) extern
+#else
+#define OAUTH2_APACHE_EXTERN __declspec(dllimport) extern
+#endif
+#else
+#define OAUTH2_APACHE_EXTERN extern
+#endif
+
+OAUTH2_APACHE_EXTERN oauth2_cfg_server_callback_funcs_t
+    oauth2_apache_server_callback_funcs;
 
 /*
  * logging
  */
 
-extern oauth2_uint_t log_level_log2apache[];
-extern oauth2_uint_t log_level_apache2oauth2[];
+OAUTH2_APACHE_EXTERN oauth2_uint_t log_level_log2apache[];
+OAUTH2_APACHE_EXTERN oauth2_uint_t log_level_apache2oauth2[];
 
 #ifndef APLOG_USE_MODULE
 #define APLOG_USE_MODULE(foo)                                                  \

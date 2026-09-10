@@ -21,7 +21,6 @@
  *
  **************************************************************************/
 
-#include <semaphore.h>
 #include <stdbool.h>
 
 #include "oauth2/util.h"

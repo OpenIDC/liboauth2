@@ -18,22 +18,30 @@
  *
  **************************************************************************/
 
-#include <sys/types.h>
-#ifndef _WIN32
-#include <sys/mman.h>
-#include <unistd.h>
+#ifdef _WIN32
+/*
+ * Windows has no fork(): Apache's mpm_winnt runs a single multi-threaded child
+ * process that reads the configuration itself, so the "inter-process"
+ * primitives in this file only ever coordinate threads within one process
+ * there. They are implemented on the corresponding Win32 kernel objects and on
+ * process heap memory rather than on the POSIX named semaphores and anonymous
+ * shared mappings that are inherited across fork() elsewhere.
+ */
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #else
-#include "mmap-windows.c"
-#ifdef _MSC_VER
-#define _unlink unlink
-#endif
-#endif
-#include <errno.h>
 #include <fcntl.h>
-#include <string.h>
-#include <sys/stat.h>
-
 #include <pthread.h>
+#include <semaphore.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+#endif
+
+#include <errno.h>
+#include <limits.h>
+#include <string.h>
 
 #include "oauth2/ipc.h"
 #include "oauth2/mem.h"
@@ -60,7 +68,11 @@ static char *_oauth2_ipc_get_name(oauth2_log_t *log, const char *type,
 
 typedef struct oauth2_ipc_sema_t {
 	char *name;
+#ifdef _WIN32
+	HANDLE sema;
+#else
 	sem_t *sema;
+#endif
 } oauth2_ipc_sema_t;
 
 oauth2_ipc_sema_t *oauth2_ipc_sema_init(oauth2_log_t *log)
@@ -78,9 +90,15 @@ void oauth2_ipc_sema_free(oauth2_log_t *log, oauth2_ipc_sema_t *s)
 		goto end;
 
 	if (s->sema != NULL) {
+#ifdef _WIN32
+		if (CloseHandle(s->sema) == 0)
+			oauth2_error(log, "CloseHandle() failed: %lu",
+				     GetLastError());
+#else
 		if (sem_close(s->sema) != 0)
 			oauth2_error(log, "sem_close() failed: %s ",
 				     strerror(errno));
+#endif
 		s->sema = NULL;
 	}
 
@@ -110,6 +128,17 @@ bool oauth2_ipc_sema_post_config(oauth2_log_t *log, oauth2_ipc_sema_t *sema)
 	if (sema->name == NULL)
 		goto end;
 
+#ifdef _WIN32
+	// unnamed: nothing forks, see the note at the top of this file
+	sema->sema = CreateSemaphoreA(NULL, 0, LONG_MAX, NULL);
+	if (sema->sema == NULL) {
+		oauth2_error(log,
+			     "CreateSemaphore() failed to create semaphore "
+			     "%s: %lu",
+			     sema->name, GetLastError());
+		goto end;
+	}
+#else
 	sema->sema = sem_open(sema->name, O_CREAT, 0644, 0);
 	if (sema->sema == SEM_FAILED) {
 		oauth2_error(
@@ -122,6 +151,7 @@ bool oauth2_ipc_sema_post_config(oauth2_log_t *log, oauth2_ipc_sema_t *sema)
 
 	if (sem_unlink(sema->name) != 0)
 		oauth2_error(log, "sem_unlink() failed: %s ", strerror(errno));
+#endif
 
 	rc = true;
 
@@ -133,17 +163,23 @@ end:
 bool oauth2_ipc_sema_post(oauth2_log_t *log, oauth2_ipc_sema_t *sema)
 {
 	bool rc = false;
-	int rv = 0;
 
 	if ((sema == NULL) || (sema->sema == NULL))
 		goto end;
 
-	rv = sem_post(sema->sema);
-	if (rv != 0) {
+#ifdef _WIN32
+	if (ReleaseSemaphore(sema->sema, 1, NULL) == 0) {
+		oauth2_error(log, "ReleaseSemaphore() failed: %lu",
+			     GetLastError());
+		goto end;
+	}
+#else
+	if (sem_post(sema->sema) != 0) {
 		oauth2_error(log, "sem_post() failed: %s (%d)", strerror(errno),
 			     errno);
 		goto end;
 	}
+#endif
 
 	rc = true;
 
@@ -155,17 +191,23 @@ end:
 bool oauth2_ipc_sema_wait(oauth2_log_t *log, oauth2_ipc_sema_t *sema)
 {
 	bool rc = true;
-	int rv = 0;
 
 	if ((sema == NULL) || (sema->sema == NULL))
 		goto end;
 
-	rv = sem_wait(sema->sema);
-	if (rv != 0) {
+#ifdef _WIN32
+	if (WaitForSingleObject(sema->sema, INFINITE) != WAIT_OBJECT_0) {
+		oauth2_error(log, "WaitForSingleObject() failed: %lu",
+			     GetLastError());
+		goto end;
+	}
+#else
+	if (sem_wait(sema->sema) != 0) {
 		oauth2_error(log, "sem_wait() failed: %s (%d)", strerror(errno),
 			     errno);
 		goto end;
 	}
+#endif
 
 	rc = true;
 
@@ -177,20 +219,31 @@ end:
 bool oauth2_ipc_sema_trywait(oauth2_log_t *log, oauth2_ipc_sema_t *sema)
 {
 	bool rc = true;
-	int rv = 0;
 
 	if ((sema == NULL) || (sema->sema == NULL))
 		goto end;
 
-	rv = sem_trywait(sema->sema);
-
-	if (rv != 0) {
+#ifdef _WIN32
+	switch (WaitForSingleObject(sema->sema, 0)) {
+	case WAIT_OBJECT_0:
+		break;
+	case WAIT_TIMEOUT:
+		rc = false;
+		break;
+	default:
+		oauth2_error(log, "WaitForSingleObject() failed: %lu",
+			     GetLastError());
+		break;
+	}
+#else
+	if (sem_trywait(sema->sema) != 0) {
 		if (errno == EAGAIN)
 			rc = false;
 		else
 			oauth2_error(log, "sem_trywait() failed: %s (%d)",
 				     strerror(errno), errno);
 	}
+#endif
 
 end:
 
@@ -279,7 +332,11 @@ end:
  */
 
 typedef struct oauth2_ipc_thread_mutex_t {
+#ifdef _WIN32
+	CRITICAL_SECTION mutex;
+#else
 	pthread_mutex_t mutex;
+#endif
 } oauth2_ipc_thread_mutex_t;
 
 oauth2_ipc_thread_mutex_t *oauth2_ipc_thread_mutex_init(oauth2_log_t *log)
@@ -287,7 +344,11 @@ oauth2_ipc_thread_mutex_t *oauth2_ipc_thread_mutex_init(oauth2_log_t *log)
 	oauth2_ipc_thread_mutex_t *m =
 	    oauth2_mem_alloc(sizeof(oauth2_ipc_thread_mutex_t));
 	if (m) {
+#ifdef _WIN32
+		InitializeCriticalSection(&m->mutex);
+#else
 		pthread_mutex_init(&m->mutex, NULL);
+#endif
 	}
 	return m;
 }
@@ -297,7 +358,11 @@ void oauth2_ipc_thread_mutex_free(oauth2_log_t *log,
 {
 	if (m == NULL)
 		goto end;
+#ifdef _WIN32
+	DeleteCriticalSection(&m->mutex);
+#else
 	pthread_mutex_destroy(&m->mutex);
+#endif
 	oauth2_mem_free(m);
 
 end:
@@ -313,7 +378,12 @@ bool oauth2_ipc_thread_mutex_lock(oauth2_log_t *log,
 	if (m == NULL)
 		goto end;
 
+#ifdef _WIN32
+	EnterCriticalSection(&m->mutex);
+	rc = true;
+#else
 	rc = (pthread_mutex_lock(&m->mutex) == 0);
+#endif
 
 end:
 
@@ -328,7 +398,12 @@ bool oauth2_ipc_thread_mutex_unlock(oauth2_log_t *log,
 	if (m == NULL)
 		goto end;
 
+#ifdef _WIN32
+	LeaveCriticalSection(&m->mutex);
+	rc = true;
+#else
 	rc = (pthread_mutex_unlock(&m->mutex) == 0);
+#endif
 
 end:
 
@@ -366,9 +441,15 @@ void oauth2_ipc_shm_free(oauth2_log_t *log, oauth2_ipc_shm_t *shm)
 	shm->mutex = NULL;
 
 	if (shm->ptr) {
+#ifdef _WIN32
+		if (HeapFree(GetProcessHeap(), 0, shm->ptr) == 0)
+			oauth2_error(log, "HeapFree() failed: %lu",
+				     GetLastError());
+#else
 		if (munmap(shm->ptr, shm->size) < 0)
 			oauth2_error(log, "munmap() failed: %s",
 				     strerror(errno));
+#endif
 		shm->ptr = NULL;
 	}
 
@@ -399,6 +480,18 @@ bool oauth2_ipc_shm_post_config(oauth2_log_t *log, oauth2_ipc_shm_t *shm)
 	if (rc == false)
 		goto end;
 
+#ifdef _WIN32
+	// process-local and zeroed, like the anonymous mapping below; taken
+	// from the process heap rather than through oauth2_mem_alloc so that it
+	// does not follow an allocator that was redirected onto a pool
+	oauth2_debug(log, "allocating shm block from the process heap");
+
+	shm->ptr = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, shm->size);
+	if (shm->ptr == NULL) {
+		oauth2_error(log, "HeapAlloc() failed: %lu", GetLastError());
+		goto end;
+	}
+#else
 	oauth2_debug(log, "creating anonymous shm");
 
 	shm->ptr = mmap(0, shm->size, PROT_READ | PROT_WRITE,
@@ -407,6 +500,7 @@ bool oauth2_ipc_shm_post_config(oauth2_log_t *log, oauth2_ipc_shm_t *shm)
 		oauth2_error(log, "mmap() failed: %s", strerror(errno));
 		goto end;
 	}
+#endif
 
 	rc = oauth2_ipc_sema_post(log, shm->num);
 

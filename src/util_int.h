@@ -24,9 +24,17 @@
 #ifdef _MSC_VER
 // not #if defined(_WIN32) || defined(_WIN64) because we have strncasecmp in
 // mingw
+#include <io.h>
+#include <process.h>
 #define strncasecmp _strnicmp
 #define strcasecmp _stricmp
+#define strtok_r strtok_s
 #define close _close
+#define getpid _getpid
+#define access _access
+#ifndef F_OK
+#define F_OK 0
+#endif
 #endif
 
 // need this for vasprintf with stdio.h

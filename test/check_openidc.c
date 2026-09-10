@@ -32,7 +32,6 @@
 #include <check.h>
 #include <stdlib.h>
 #include <time.h>
-#include <unistd.h>
 
 static oauth2_log_t *_log = 0;
 

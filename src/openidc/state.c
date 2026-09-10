@@ -23,6 +23,7 @@
 
 #include "cfg_int.h"
 #include "openidc_int.h"
+#include "util_int.h"
 
 typedef struct oauth2_openidc_proto_state_t {
 	json_t *state;

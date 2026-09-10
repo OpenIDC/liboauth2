@@ -18,11 +18,16 @@
  *
  **************************************************************************/
 
-#include <dirent.h>
 #include <errno.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#ifndef _WIN32
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <io.h>
+#include <windows.h>
+#else
+#include <dirent.h>
 #include <unistd.h>
 #define _unlink unlink
 #endif
@@ -33,6 +38,7 @@
 #include <oauth2/util.h>
 
 #include "cache_int.h"
+#include "util_int.h"
 
 typedef struct oauth2_cache_impl_file_t {
 	oauth2_ipc_mutex_t *mutex;
@@ -48,6 +54,77 @@ typedef struct {
 #define OAUTH2_CACHE_FILE_PREFIX "oauth2-cache-"
 
 oauth2_cache_type_t oauth2_cache_file;
+
+#ifdef _WIN32
+
+/*
+ * just enough of opendir/readdir/closedir over FindFirstFile for the cleanup
+ * loop below; Windows has no dirent.h
+ */
+
+struct dirent {
+	char d_name[MAX_PATH];
+};
+
+typedef struct {
+	HANDLE handle;
+	WIN32_FIND_DATAA data;
+	// data holds an entry that readdir has not returned yet
+	bool pending;
+	struct dirent entry;
+} DIR;
+
+static DIR *opendir(const char *path)
+{
+	DIR *d = NULL;
+	char *pattern = NULL;
+
+	pattern = oauth2_stradd(NULL, path, "/*", NULL);
+	if (pattern == NULL)
+		goto end;
+
+	d = oauth2_mem_alloc(sizeof(DIR));
+	if (d == NULL)
+		goto end;
+
+	d->handle = FindFirstFileA(pattern, &d->data);
+	if (d->handle == INVALID_HANDLE_VALUE) {
+		errno =
+		    (GetLastError() == ERROR_ACCESS_DENIED) ? EACCES : ENOENT;
+		oauth2_mem_free(d);
+		d = NULL;
+		goto end;
+	}
+	d->pending = true;
+
+end:
+
+	if (pattern)
+		oauth2_mem_free(pattern);
+
+	return d;
+}
+
+static struct dirent *readdir(DIR *d)
+{
+	if (d->pending == false) {
+		if (FindNextFileA(d->handle, &d->data) == 0)
+			return NULL;
+	}
+	d->pending = false;
+	oauth2_snprintf(d->entry.d_name, sizeof(d->entry.d_name), "%s",
+			d->data.cFileName);
+	return &d->entry;
+}
+
+static int closedir(DIR *d)
+{
+	FindClose(d->handle);
+	oauth2_mem_free(d);
+	return 0;
+}
+
+#endif
 
 static bool oauth2_cache_file_init(oauth2_log_t *log, oauth2_cache_t *cache,
 				   const oauth2_nv_list_t *options)
@@ -71,8 +148,10 @@ static bool oauth2_cache_file_init(oauth2_log_t *log, oauth2_cache_t *cache,
 
 	v = oauth2_nv_list_get(log, options, "dir");
 	if (v == NULL) {
-#ifdef WIN32
-		v = "C:\\TEMP";
+#ifdef _WIN32
+		v = getenv("TEMP");
+		if (v == NULL)
+			v = "C:\\Windows\\Temp";
 #else
 		v = "/tmp";
 #endif

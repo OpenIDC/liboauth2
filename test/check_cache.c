@@ -25,7 +25,6 @@
 #include <check.h>
 #include <stdlib.h>
 #include <time.h>
-#include <unistd.h>
 
 static oauth2_log_t *_log = 0;
 
@@ -383,11 +382,13 @@ START_TEST(test_cache_file_dir)
 	char *value = NULL;
 	oauth2_cache_t *c = NULL;
 	char *rv = NULL;
+	char *opts = NULL;
 
 	// explicit "dir" option
-	rv = oauth2_cfg_set_cache(
-	    _log, NULL, "file",
-	    "name=file_dir&key_hash_algo=none&dir=/tmp&clean_interval=60");
+	opts = oauth2_stradd(NULL, "name=file_dir&key_hash_algo=none&dir=",
+			     OAUTH2_CHECK_TMPDIR, "&clean_interval=60");
+	rv = oauth2_cfg_set_cache(_log, NULL, "file", opts);
+	oauth2_mem_free(opts);
 	ck_assert_ptr_eq(rv, NULL);
 	c = oauth2_cache_obtain(_log, "file_dir");
 	ck_assert_ptr_ne(c, NULL);

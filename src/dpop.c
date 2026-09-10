@@ -26,6 +26,7 @@
 
 #include "cfg_int.h"
 #include "jose_int.h"
+#include "util_int.h"
 
 #define OAUTH2_HTTP_HDR_DPOP "DPoP"
 

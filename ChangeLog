@@ -1,3 +1,17 @@
+09/10/2026
+- portability: make the library and its test suite compile with MSVC on Windows
+  behind _WIN32/_MSC_VER guards, inert everywhere else: the semaphore, mutex
+  and shared-memory layer in ipc.c gets a Win32 implementation (unnamed kernel
+  semaphores, critical sections, process-heap memory; nothing forks there),
+  the file cache lists its directory through FindFirstFile and defaults to
+  %TEMP%, the shm cache alignment attribute, strtok_r/getpid/access/usleep
+  and the 64-bit oauth2_time_t format get their MSVC spellings, the CA-bundle
+  lookup in http.c uses the ANSI API, and the loopback HTTP fixture the tests
+  drive runs on Winsock and a CRT thread; the data symbols the public headers
+  export (log sinks, Apache callback table and log level maps) carry an
+  OAUTH2_EXTERN/OAUTH2_APACHE_EXTERN storage class so they resolve across a DLL
+  boundary, and the unused <semaphore.h> include is dropped from ipc.h
+
 08/12/2026
 - oauth2: apply the DPoP/mTLS proof-of-possession settings of the verifier that
   actually verified the token in oauth2_token_verify, instead of those of the

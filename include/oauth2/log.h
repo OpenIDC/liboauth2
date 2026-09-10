@@ -21,6 +21,24 @@
  *
  **************************************************************************/
 
+/*
+ * Storage class for the data symbols that cross the library boundary. A
+ * Windows DLL exports data only when its declaration says so, and a consumer
+ * resolves that data only through __declspec(dllimport); functions need
+ * neither, the linker binds them through the import library. OAUTH2_EXPORTS is
+ * defined when compiling liboauth2 itself, OAUTH2_STATIC when its objects are
+ * linked in directly. Everywhere else this is a plain extern.
+ */
+#if defined(_WIN32) && !defined(OAUTH2_STATIC)
+#ifdef OAUTH2_EXPORTS
+#define OAUTH2_EXTERN __declspec(dllexport) extern
+#else
+#define OAUTH2_EXTERN __declspec(dllimport) extern
+#endif
+#else
+#define OAUTH2_EXTERN extern
+#endif
+
 // don't change this without checking consequences in log.c...
 typedef enum oauth2_log_level_t {
 	OAUTH2_LOG_ERROR,
@@ -94,8 +112,8 @@ typedef void (*oauth2_log_function_t)(oauth2_log_sink_t *sink,
  * API
  */
 
-extern oauth2_log_sink_t oauth2_log_sink_stderr;
-extern oauth2_log_sink_t oauth2_log_sink_stdout;
+OAUTH2_EXTERN oauth2_log_sink_t oauth2_log_sink_stderr;
+OAUTH2_EXTERN oauth2_log_sink_t oauth2_log_sink_stdout;
 
 void oauth2_log(oauth2_log_t *log, const char *filename, unsigned long line,
 		const char *function, oauth2_log_level_t level, const char *fmt,

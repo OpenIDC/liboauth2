@@ -21,7 +21,12 @@
 #include <curl/curl.h>
 #include <stdio.h>
 #include <string.h>
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#else
 #include <unistd.h>
+#endif
 
 #include "oauth2/http.h"
 #include "oauth2/mem.h"
@@ -1064,13 +1069,13 @@ bool oauth2_http_call(oauth2_log_t *log, const char *url, const char *data,
 	if (ctx && (ctx->ca_info)) {
 		curl_easy_setopt(curl, CURLOPT_CAINFO, ctx->ca_info);
 	} else {
-#ifdef WIN32
+#ifdef _WIN32
 		DWORD buflen;
 		char *ptr = NULL;
-		char *retval = oauth2_mem_alloc(sizeof(TCHAR) * (MAX_PATH + 1));
+		char *retval = oauth2_mem_alloc(MAX_PATH + 1);
 		retval[0] = '\0';
-		buflen = SearchPath(NULL, "curl-ca-bundle.crt", NULL,
-				    MAX_PATH + 1, retval, &ptr);
+		buflen = SearchPathA(NULL, "curl-ca-bundle.crt", NULL,
+				     MAX_PATH + 1, retval, &ptr);
 		if (buflen > 0)
 			curl_easy_setopt(curl, CURLOPT_CAINFO, retval);
 		else
@@ -1160,8 +1165,13 @@ bool oauth2_http_call(oauth2_log_t *log, const char *url, const char *data,
 		    err[0] ? err : "");
 		/* in case of a connectivity/network glitch we'll back off
 		 * before retrying */
-		if (i < retries)
+		if (i < retries) {
+#ifdef _WIN32
+			Sleep((DWORD)(ctx ? ctx->retry_interval : 300));
+#else
 			usleep((ctx ? ctx->retry_interval : 300) * 1000);
+#endif
+		}
 	}
 
 	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);

@@ -26,6 +26,7 @@
 #include "cfg_int.h"
 #include "jose_int.h"
 #include "oauth2_int.h"
+#include "util_int.h"
 
 #define OAUTH2_JOSE_VERIFY_JWK_PLAIN_STR "plain"
 #define OAUTH2_JOSE_VERIFY_JWK_BASE64_STR "base64"

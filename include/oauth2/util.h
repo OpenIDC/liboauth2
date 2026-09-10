@@ -36,7 +36,12 @@ typedef unsigned int oauth2_uint_t;
 typedef uint64_t oauth2_time_t;
 
 #define OAUTH2_UINT_FORMAT "%u"
+#ifdef _WIN32
+// LLP64: long is 32 bits there, so a 64-bit oauth2_time_t needs long long
+#define OAUTH2_TIME_T_FORMAT "%llu"
+#else
 #define OAUTH2_TIME_T_FORMAT "%lu"
+#endif
 
 #define OAUTH2_MSEC_PER_SEC 1000
 #define OAUTH2_USEC_PER_MSEC 1000

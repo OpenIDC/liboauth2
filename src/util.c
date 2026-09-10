@@ -1324,16 +1324,15 @@ end:
 #ifdef _MSC_VER
 
 #define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
+// struct timeval lives in winsock2.h on Windows, which WIN32_LEAN_AND_MEAN
+// keeps windows.h from pulling in
 #include <stdint.h> // portable: uint64_t   MSVC: __int64
+#include <windows.h>
+#include <winsock2.h>
 
-// MSVC defines this in winsock2.h!?
-// typedef struct timeval {
-//	long tv_sec;
-//	long tv_usec;
-//} timeval;
-
-int gettimeofday(struct timeval *tp, struct timezone *tzp)
+// MSVC has neither gettimeofday() nor struct timezone; file-local so that it
+// is not exported from the DLL
+static int gettimeofday(struct timeval *tp, void *tzp)
 {
 	// Note: some broken versions only have 8 trailing zero's, the correct
 	// epoch has 9 trailing zero's This magic number is the number of 100
