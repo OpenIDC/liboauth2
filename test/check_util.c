@@ -393,6 +393,40 @@ START_TEST(test_utf8_to_latin1)
 }
 END_TEST
 
+START_TEST(test_json_number_get)
+{
+	bool rc = false;
+	json_t *json = NULL;
+	json_int_t n = 0;
+
+	rc = oauth2_json_decode_object(_log, "{\"a\":1,\"b\":null}", &json);
+	ck_assert_int_eq(rc, true);
+
+	rc = oauth2_json_number_get(_log, json, "a", &n, 9);
+	ck_assert_int_eq(rc, true);
+	ck_assert_int_eq(n, 1);
+
+	rc = oauth2_json_number_get(_log, json, "b", &n, 9);
+	ck_assert_int_eq(rc, true);
+	ck_assert_int_eq(n, 9);
+
+	rc = oauth2_json_number_get(_log, json, "c", &n, 9);
+	ck_assert_int_eq(rc, true);
+	ck_assert_int_eq(n, 9);
+
+	n = 0;
+	rc = oauth2_json_number_get(_log, NULL, "a", &n, 9);
+	ck_assert_int_eq(rc, false);
+	ck_assert_int_eq(n, 9);
+
+	// a NULL result pointer is rejected rather than dereferenced
+	rc = oauth2_json_number_get(_log, json, "a", NULL, 9);
+	ck_assert_int_eq(rc, false);
+
+	json_decref(json);
+}
+END_TEST
+
 START_TEST(test_random)
 {
 	char *rv = NULL;
@@ -433,6 +467,7 @@ Suite *oauth2_check_util_suite()
 	tcase_add_test(c, test_url_decode);
 	tcase_add_test(c, test_html_encode);
 	tcase_add_test(c, test_utf8_to_latin1);
+	tcase_add_test(c, test_json_number_get);
 	tcase_add_test(c, test_random);
 
 	suite_add_tcase(s, c);

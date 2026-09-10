@@ -1103,7 +1103,10 @@ bool oauth2_json_number_get(oauth2_log_t *log, const json_t *json,
 	bool rc = false;
 	json_t *v = NULL;
 
-	if ((json == NULL) || (name == NULL) || (number == NULL)) {
+	if (number == NULL)
+		goto end;
+
+	if ((json == NULL) || (name == NULL)) {
 		*number = default_value;
 		goto end;
 	}
