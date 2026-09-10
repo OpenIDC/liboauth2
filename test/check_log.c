@@ -61,6 +61,32 @@ check_log_test_sink_callback(oauth2_log_sink_t *sink, const char *filename,
 	check_log_test_sink_callback_dummy = 1;
 }
 
+static void check_log_test_sink_callback_count(
+    oauth2_log_sink_t *sink, const char *filename, unsigned long line,
+    const char *function, oauth2_log_level_t level, const char *msg)
+{
+	(*(int *)oauth2_log_sink_ctx_get(sink))++;
+}
+
+START_TEST(test_sink_add_multiple)
+{
+	int count[3] = {0, 0, 0};
+	int i = 0;
+
+	// adding more than two sinks used to drop the middle one
+	for (i = 0; i < 3; i++)
+		oauth2_log_sink_add(
+		    _log, oauth2_log_sink_create(
+			      OAUTH2_LOG_TRACE1,
+			      check_log_test_sink_callback_count, &count[i]));
+
+	oauth2_info(_log, "");
+
+	for (i = 0; i < 3; i++)
+		ck_assert_int_eq(count[i], 1);
+}
+END_TEST
+
 START_TEST(test_sink)
 {
 	char *dummy = "dummy";
@@ -88,6 +114,7 @@ Suite *oauth2_check_log_suite()
 
 	tcase_add_test(c, test_log);
 	tcase_add_test(c, test_sink);
+	tcase_add_test(c, test_sink_add_multiple);
 
 	suite_add_tcase(s, c);
 

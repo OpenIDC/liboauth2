@@ -84,6 +84,7 @@ void oauth2_log_sink_add(oauth2_log_t *log, oauth2_log_sink_t *add)
 		log->sinks.last = ptr;
 	} else {
 		log->sinks.last->next = ptr;
+		log->sinks.last = ptr;
 	}
 }
 
