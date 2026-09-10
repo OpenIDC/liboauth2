@@ -1,4 +1,6 @@
 09/10/2026
+- doc: document the individual members of oauth2.h, session.h and cache.h,
+  the last headers still covered at section level only; see #11
 - openidc: default the client's scope to "openid", its HTTP timeout to 20
   seconds and TLS verification to on when unset, instead of sending no scope
   and passing the unset sentinel to libcurl as "no timeout"; release a

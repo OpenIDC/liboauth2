@@ -38,37 +38,130 @@
 #include "oauth2/log.h"
 #include "oauth2/util.h"
 
+/**
+ * @brief An opaque cache instance: a backend plus the per-instance
+ *        key hashing and value encryption settings, created and
+ *        registered by oauth2_cfg_set_cache() and retrieved with
+ *        oauth2_cache_obtain().
+ */
 typedef struct oauth2_cache_t oauth2_cache_t;
 
 /**
  * @name Cache backend interface
- * The function table a cache backend implements (see src/cache/);
- * encrypt_by_default determines whether values in this backend are
- * encrypted unless overridden by the instance's "encrypt" option.
+ * The function table a cache backend implements (see src/cache/). The
+ * core calls a backend only through this table and does the generic
+ * work around it: keys are hashed before the backend sees them (per
+ * the instance's "key_hash_algo" option, SHA-256 hex by default,
+ * "none" passes them through) and values are encrypted into a compact
+ * JWE under a key derived from the crypto passphrase, and decrypted
+ * again after a lookup, when the instance's "encrypt" option, or the
+ * backend's default, says so. The built-in backends are registered on
+ * first use; the table is public but there is no API to register
+ * another one.
  * @{
  */
 
+/**
+ * @brief Backend init function: create the backend state of a new
+ *        cache instance.
+ *
+ * Called with the new instance and the complete option list of the
+ * cache directive from oauth2_cfg_set_cache() (cfg.h), or with an
+ * empty list from oauth2_cache_obtain() for the default cache. The
+ * backend reads its own options from the list and ignores the generic
+ * "name", "encrypt", "key_hash_algo" and "passphrase_hash_algo" ones
+ * that the core consumes afterwards; it must store its state in the
+ * instance's impl member and point the instance's type member at its
+ * own oauth2_cache_type_t, which the core relies on from then on.
+ * Returns true on success, false on error.
+ */
 typedef bool (*oauth2_cache_init_function)(oauth2_log_t *log, oauth2_cache_t *,
 					   const oauth2_nv_list_t *options);
+
+/**
+ * @brief Backend post-config function: complete the setup in the
+ *        parent process.
+ *
+ * Called once, right after init and before the server forks its
+ * workers, so this is where process-shared resources are created: the
+ * "shm" backend creates its mutex and shared memory segment and clears
+ * the slots, "file" creates its mutex, "memcache" and "redis" have
+ * nothing to do. Returns true on success, false on error, which fails
+ * the cache directive.
+ */
 typedef bool (*oauth2_cache_post_config_function)(oauth2_log_t *log,
 						  oauth2_cache_t *);
+
+/**
+ * @brief Backend child-init function: attach a forked worker process.
+ *
+ * Meant to be called in each worker process after the fork; only the
+ * "shm" backend uses it, to attach to its shared memory segment, the
+ * others return true without doing anything. Returns true on success,
+ * false on error.
+ */
 typedef bool (*oauth2_cache_child_init_function)(oauth2_log_t *log,
 						 oauth2_cache_t *);
+
+/**
+ * @brief Backend get function: look up a hashed key.
+ *
+ * Called with the key already hashed by the core. The backend sets the
+ * value pointer to the stored value as a newly allocated string, which
+ * the core decrypts when the instance encrypts and releases with
+ * oauth2_mem_free(), or to NULL on a miss, which includes an entry
+ * that has expired. Returns true when the lookup was performed, hit or
+ * miss, false on error.
+ */
 typedef bool (*oauth2_cache_get_function)(oauth2_log_t *log, oauth2_cache_t *,
 					  const char *key, char **value);
+
+/**
+ * @brief Backend set function: store a value under a hashed key.
+ *
+ * Called with the key already hashed and the value already encrypted
+ * by the core when the instance encrypts; the expiry is the
+ * time-to-live in seconds. A NULL value removes the entry. Returns
+ * true when stored or removed, false on error.
+ */
 typedef bool (*oauth2_cache_set_function)(oauth2_log_t *log, oauth2_cache_t *,
 					  const char *key, const char *value,
 					  oauth2_time_t expiry);
+
+/**
+ * @brief Backend free function: release the backend state.
+ *
+ * Called when the registered cache instances are released at
+ * oauth2_shutdown() (util.h), after the core released its own
+ * members; must free the impl member and whatever it holds. The
+ * return value is ignored.
+ */
 typedef bool (*oauth2_cache_free_function)(oauth2_log_t *log, oauth2_cache_t *);
 
+/**
+ * @brief The descriptor of a cache backend: one static instance per
+ *        backend (oauth2_cache_shm, oauth2_cache_file, ...), pointed
+ *        at by every cache instance of that type.
+ */
 typedef struct oauth2_cache_type_t {
+	/** the type name that the type argument of oauth2_cfg_set_cache()
+	 *  selects: "shm", "file", "memcache" or "redis" */
 	const char *name;
+	/** whether values are encrypted unless the instance's "encrypt"
+	 *  option says otherwise: false for "shm", whose memory does not
+	 *  leave the process tree, true for the other backends */
 	bool encrypt_by_default;
+	/** see oauth2_cache_init_function */
 	oauth2_cache_init_function init;
+	/** see oauth2_cache_post_config_function */
 	oauth2_cache_post_config_function post_config;
+	/** see oauth2_cache_child_init_function */
 	oauth2_cache_child_init_function child_init;
+	/** see oauth2_cache_get_function */
 	oauth2_cache_get_function get;
+	/** see oauth2_cache_set_function */
 	oauth2_cache_set_function set;
+	/** see oauth2_cache_free_function */
 	oauth2_cache_free_function free;
 } oauth2_cache_type_t;
 /** @} */
