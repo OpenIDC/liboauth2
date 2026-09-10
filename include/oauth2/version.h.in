@@ -23,10 +23,28 @@
  *
  **************************************************************************/
 
+/**
+ * @file version.h
+ * @brief Library name and version.
+ *
+ * Generated from version.h.in at configure time from the version in
+ * configure.ac; the functions return the same values as the macros,
+ * but for the library that is actually loaded rather than the headers
+ * that a consumer was compiled against.
+ */
+
+/** @brief The package name, "liboauth2". */
 #define OAUTH2_PACKAGE_NAME          "@PACKAGE_NAME@"
+/** @brief The package version, e.g. "2.1.0". */
 #define OAUTH2_PACKAGE_VERSION       "@PACKAGE_VERSION@"
 
+/** @brief The version of the library, as OAUTH2_PACKAGE_VERSION. */
 const char *oauth2_version();
+
+/**
+ * @brief The library name and version joined with a dash, e.g.
+ *        "liboauth2-2.1.0".
+ */
 const char *oauth2_package_string();
 
 #endif  // _OAUTH2_VERSION_H_
