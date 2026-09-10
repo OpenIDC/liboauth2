@@ -1140,10 +1140,10 @@ end:
 
 char *oauth2_json_encode(oauth2_log_t *log, json_t *json, size_t flags)
 {
-	char *s = json_dumps(json, flags);
-	char *s_value = oauth2_strdup(s);
-	free(s);
-	return s_value;
+	// jansson allocates through the oauth2 allocator once
+	// oauth2_mem_set_alloc_funcs redirected cjose, and through malloc
+	// otherwise, which is what the default deallocator releases
+	return json_dumps(json, flags);
 }
 
 static bool oauth2_json_string_print(oauth2_log_t *log, json_t *result,

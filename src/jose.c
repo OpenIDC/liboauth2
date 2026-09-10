@@ -585,7 +585,7 @@ end:
 	if (assertion)
 		json_decref(assertion);
 	if (payload)
-		free(payload);
+		oauth2_mem_free(payload);
 	if (hdr)
 		cjose_header_release(hdr);
 	if (jws)

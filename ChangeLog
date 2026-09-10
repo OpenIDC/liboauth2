@@ -1,4 +1,7 @@
 09/10/2026
+- jose/util: release the output of json_dumps through the oauth2 allocator,
+  which is where jansson allocates once oauth2_mem_set_alloc_funcs redirected
+  cjose, instead of with free()
 - log: fix oauth2_log_sink_add not advancing the tail of the sink list, so
   that adding a third sink dropped the second one from message delivery
 - ipc: make oauth2_ipc_sema_wait and oauth2_ipc_sema_trywait, and thereby
