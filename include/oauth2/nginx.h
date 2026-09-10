@@ -229,7 +229,7 @@
 					(size_t)value[3].len)                  \
 		       : NULL;                                                 \
 	char *v4 = cf->args->nelts > 4                                         \
-		       ? oauth2_strndup((const char *)value[3].data,           \
+		       ? oauth2_strndup((const char *)value[4].data,           \
 					(size_t)value[4].len)                  \
 		       : NULL;                                                 \
 	rv = func(cfg->log, member, v1, v2, v3, v4);                           \
