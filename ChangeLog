@@ -16,6 +16,9 @@
 - jq: release the intermediate results of a filter producing more than one
   output instead of leaking all but the last one
 - util: do not dereference a NULL number pointer in oauth2_json_number_get
+- doc: document the individual members of cfg.h, http.h and openidc.h - the
+  options with their defaults, ownership and NULL semantics - which the first
+  Doxygen round had covered at section level only; see #11
 - doc: add Doxygen documentation to the remaining public headers: proto.h,
   jose.h, util.h, log.h, mem.h, ipc.h, jq.h and version.h, and the Apache and
   NGINX binding headers apache.h and nginx.h, so that every public header is
