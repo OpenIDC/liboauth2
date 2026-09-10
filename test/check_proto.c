@@ -307,6 +307,22 @@ START_TEST(test_proto_get_source_token_post)
 	oauth2_cfg_source_token_free(_log, cfg);
 
 	oauth2_http_request_free(_log, request);
+
+	// a POST without a Content-Type header is not a form post
+
+	request = oauth2_http_request_init(_log);
+	oauth2_http_request_method_set(_log, request, OAUTH2_HTTP_METHOD_POST);
+
+	cfg = oauth2_cfg_source_token_init(_log);
+	ck_assert_ptr_ne(cfg, NULL);
+	rv = oauth2_cfg_source_token_set_accept_in(_log, cfg, "post", NULL);
+	ck_assert_ptr_eq(rv, NULL);
+	token = oauth2_get_source_token(_log, cfg, request,
+					&_oauth2_check_proto_callbacks, NULL);
+	ck_assert_ptr_eq(token, NULL);
+	oauth2_cfg_source_token_free(_log, cfg);
+
+	oauth2_http_request_free(_log, request);
 }
 END_TEST
 

@@ -7,6 +7,8 @@
 - jose: check the JWE rather than the JWS after cjose_jwe_encrypt in
   oauth2_jose_encrypt, so that an encryption failure is reported instead of
   exporting a NULL JWE; reject NULL arguments in oauth2_jose_hash2s
+- proto: do not dereference a missing Content-Type header when looking for
+  the source token in a form POST
 - doc: add Doxygen documentation to the remaining public headers: proto.h,
   jose.h, util.h, log.h, mem.h, ipc.h, jq.h and version.h, and the Apache and
   NGINX binding headers apache.h and nginx.h, so that every public header is
