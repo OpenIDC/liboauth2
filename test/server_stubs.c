@@ -120,8 +120,8 @@ ap_log_error_(const char *file, int line, int module_index, int level,
 {
 }
 
-// enterprise: the license check in oauth2_apache_post_config resolves the
-// license file against ServerRoot; there is none here, so the path stays as is
+// oauth2_apache_post_config may resolve a file against ServerRoot; there is
+// none here, so the path stays as is
 AP_DECLARE(char *) ap_server_root_relative(apr_pool_t *p, const char *fname)
 {
 	return apr_pstrdup(p, fname);
