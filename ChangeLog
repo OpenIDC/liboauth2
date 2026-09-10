@@ -11,6 +11,8 @@
   the source token in a form POST
 - nginx: fix OAUTH2_NGINX_CFG_FUNC_ARGS4 copying the fourth directive
   argument from the third one's data
+- apache: pass the log callback rather than the server_rec as the callback
+  when merging server configurations in oauth2_apache_cfg_srv_merge
 - doc: add Doxygen documentation to the remaining public headers: proto.h,
   jose.h, util.h, log.h, mem.h, ipc.h, jq.h and version.h, and the Apache and
   NGINX binding headers apache.h and nginx.h, so that every public header is

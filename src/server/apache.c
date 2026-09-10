@@ -146,7 +146,7 @@ void *oauth2_apache_cfg_srv_merge(apr_pool_t *pool, void *b, void *a)
 	oauth2_apache_cfg_srv_t *add = (oauth2_apache_cfg_srv_t *)a;
 	oauth2_apache_cfg_srv_t *cfg = oauth2_apache_cfg_srv_create(
 	    pool, (server_rec *)oauth2_log_sink_ctx_get(add->sink),
-	    oauth2_log_sink_ctx_get(add->sink));
+	    oauth2_log_sink_callback_get(add->sink));
 
 	//	ap_log_error(APLOG_MARK, APLOG_WARNING, 0,
 	//		     (const server_rec
@@ -855,8 +855,7 @@ static bool oauth2_apache_authz_match_value(oauth2_apache_request_ctx_t *ctx,
 
 	oauth2_debug(ctx->log, "matching: spec_c=%s, key=%s", spec_c, key);
 
-	/* see if it is a string and it (case-insensitively) matches the
-	 * Require'd value */
+	/* see if it is a string and it matches the Require'd value */
 	if (json_is_string(val)) {
 
 		if (apr_strnatcmp(json_string_value(val), spec_c) == 0)
@@ -868,8 +867,8 @@ static bool oauth2_apache_authz_match_value(oauth2_apache_request_ctx_t *ctx,
 		if (json_integer_value(val) == atoi(spec_c))
 			return true;
 
-		/* see if it is a boolean and it (case-insensitively) matches
-		 * the Require'd value */
+		/* see if it is a boolean and its "true"/"false" spelling
+		 * matches the Require'd value */
 	} else if (json_is_boolean(val)) {
 
 		if (apr_strnatcmp(json_is_true(val) ? "true" : "false",

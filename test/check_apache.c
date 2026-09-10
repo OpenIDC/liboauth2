@@ -137,6 +137,27 @@ static void teardown(void)
 	oauth2_shutdown(_log);
 }
 
+START_TEST(test_apache_cfg_srv_merge)
+{
+	oauth2_apache_cfg_srv_t *base = NULL, *add = NULL, *merged = NULL;
+
+	base = oauth2_apache_cfg_srv_create(pool, request->server,
+					    check_apache_log_request);
+	add = oauth2_apache_cfg_srv_create(pool, request->server,
+					   check_apache_log_request);
+	merged = oauth2_apache_cfg_srv_merge(pool, base, add);
+	ck_assert_ptr_ne(merged, NULL);
+
+	// the merged config used to get the server_rec as its log callback
+	ck_assert_ptr_eq(oauth2_log_sink_callback_get(merged->sink),
+			 check_apache_log_request);
+	ck_assert_ptr_eq(oauth2_log_sink_ctx_get(merged->sink),
+			 request->server);
+
+	oauth2_error(merged->log, "logging through the merged config");
+}
+END_TEST
+
 START_TEST(test_apache_request_state)
 {
 	json_error_t err;
@@ -331,6 +352,7 @@ Suite *oauth2_check_apache_suite()
 
 	tcase_add_checked_fixture(c, setup, teardown);
 
+	tcase_add_test(c, test_apache_cfg_srv_merge);
 	tcase_add_test(c, test_apache_request_state);
 	tcase_add_test(c, test_apache_authz_match_claim);
 	tcase_add_test(c, test_apache_authz_match_claim_expr);
