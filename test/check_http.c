@@ -332,6 +332,44 @@ START_TEST(test_request_port)
 }
 END_TEST
 
+START_TEST(test_request_fixes)
+{
+	bool rc = false;
+	oauth2_http_request_t *r = NULL;
+	oauth2_http_call_ctx_t *ctx = NULL;
+
+	// port 0 means "no port" and is accepted; a NULL request is not
+	r = oauth2_http_request_init(_log);
+	rc = oauth2_http_request_port_set(_log, r, 0);
+	ck_assert_int_eq(rc, true);
+	rc = oauth2_http_request_port_set(_log, NULL, 8080);
+	ck_assert_int_eq(rc, false);
+
+	// a NULL request is not secure rather than a crash
+	rc = oauth2_http_request_is_secure(_log, NULL);
+	ck_assert_int_eq(rc, false);
+
+	rc = oauth2_http_request_header_content_length_set(_log, r, 1234);
+	ck_assert_int_eq(rc, true);
+	ck_assert_str_eq(oauth2_http_request_header_content_length_get(_log, r),
+			 "1234");
+	oauth2_http_request_free(_log, r);
+
+	// setting basic auth credentials twice replaces the first pair
+	ctx = oauth2_http_call_ctx_init(_log);
+	rc = oauth2_http_call_ctx_basic_auth_set(_log, ctx, "user1", "pass1",
+						 false);
+	ck_assert_int_eq(rc, true);
+	rc = oauth2_http_call_ctx_basic_auth_set(_log, ctx, "user2", "pass2",
+						 true);
+	ck_assert_int_eq(rc, true);
+	rc = oauth2_http_call_ctx_basic_auth_set(_log, NULL, "user", "pass",
+						 false);
+	ck_assert_int_eq(rc, false);
+	oauth2_http_call_ctx_free(_log, ctx);
+}
+END_TEST
+
 START_TEST(test_request_header)
 {
 	const char *value = NULL;
@@ -813,6 +851,7 @@ Suite *oauth2_check_http_suite()
 	tcase_add_test(c, test_cookies);
 	tcase_add_test(c, test_auth);
 	tcase_add_test(c, test_xml_http_request);
+	tcase_add_test(c, test_request_fixes);
 
 	suite_add_tcase(s, c);
 

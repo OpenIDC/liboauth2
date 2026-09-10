@@ -319,7 +319,7 @@ bool oauth2_http_request_header_content_length_set(
     oauth2_log_t *log, oauth2_http_request_t *request, size_t len)
 {
 	char str[OAUTH2_HTTP_HDR_CONTENT_LENGTH_MAX];
-	oauth2_snprintf(str, OAUTH2_HTTP_HDR_CONTENT_LENGTH_MAX, "%lu", len);
+	oauth2_snprintf(str, OAUTH2_HTTP_HDR_CONTENT_LENGTH_MAX, "%zu", len);
 	return oauth2_http_request_header_set(
 	    log, request, OAUTH2_HTTP_HDR_CONTENT_LENGTH, str);
 }
@@ -419,8 +419,10 @@ bool oauth2_http_request_port_set(oauth2_log_t *log,
 				  oauth2_http_request_t *request,
 				  unsigned long port)
 {
+	if (request == NULL)
+		return false;
 	request->port = port;
-	return (request->port > 0);
+	return true;
 }
 
 #define OAUTH2_PORT_STR_MAX 16
@@ -751,6 +753,12 @@ bool oauth2_http_call_ctx_basic_auth_set(oauth2_log_t *log,
 					 const char *username,
 					 const char *password, bool url_encode)
 {
+	if (ctx == NULL)
+		return false;
+	if (ctx->basic_auth_username)
+		oauth2_mem_free(ctx->basic_auth_username);
+	if (ctx->basic_auth_password)
+		oauth2_mem_free(ctx->basic_auth_password);
 	if (url_encode) {
 		ctx->basic_auth_username = oauth2_url_encode(log, username);
 		ctx->basic_auth_password = oauth2_url_encode(log, password);
@@ -1156,6 +1164,17 @@ bool oauth2_http_call(oauth2_log_t *log, const char *url, const char *data,
 			// 504 Gateway Timeout
 			if (status_code)
 				*status_code = 504;
+			break;
+		}
+		if (errornum == CURLE_WRITE_ERROR) {
+			/* the response exceeded the buffer maximum (see
+			 * oauth2_http_curl_buf_write); retrying would only
+			 * overflow it again */
+			oauth2_error(log,
+				     "curl_easy_perform failed with a write "
+				     "error for %s: [%s; %s]; won't retry",
+				     url, curl_easy_strerror(errornum),
+				     err[0] ? err : "");
 			break;
 		}
 		oauth2_error(
@@ -1616,6 +1635,8 @@ bool oauth2_http_request_is_secure(oauth2_log_t *log,
 {
 	bool rc = false;
 	char *scheme = oauth2_http_request_scheme_get(log, request);
+	if (scheme == NULL)
+		return false;
 	rc = (strcasecmp(scheme, "https") == 0);
 	oauth2_mem_free(scheme);
 	return rc;

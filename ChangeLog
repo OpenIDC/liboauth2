@@ -1,4 +1,9 @@
 09/10/2026
+- http: release basic auth credentials that are set again, accept port 0
+  as "no port" in oauth2_http_request_port_set, make
+  oauth2_http_request_is_secure return false for a NULL request, format the
+  Content-Length header with %zu, and do not retry a call whose response
+  exceeded the 1 MB buffer
 - cfg: release the previous value when a string option or an endpoint's
   auth is configured again, return an allocated error string from
   oauth2_cfg_set_cache on a parse failure like its other error paths, and

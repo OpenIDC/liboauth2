@@ -327,9 +327,9 @@ void oauth2_http_response_headers_loop(oauth2_log_t *log,
  * @{
  */
 /**
- * @brief Set the native port the request was received on.
- * @return true when the port is non-zero, false otherwise; the port is
- *         stored either way
+ * @brief Set the native port the request was received on; 0 means
+ *        that there is none, e.g. for a Unix domain socket.
+ * @return true, false when the request is NULL
  */
 bool oauth2_http_request_port_set(oauth2_log_t *log, oauth2_http_request_t *r,
 				  unsigned long port);
@@ -444,7 +444,8 @@ bool oauth2_http_request_is_xml_http_request(
 /**
  * @brief Check whether the request was received over https, taking the
  *        X-Forwarded-Proto header into account like
- *        oauth2_http_request_scheme_get() does.
+ *        oauth2_http_request_scheme_get() does; false for a NULL
+ *        request.
  */
 bool oauth2_http_request_is_secure(oauth2_log_t *log,
 				   const oauth2_http_request_t *request);
@@ -571,15 +572,16 @@ OAUTH2_MEMBER_LIST_DECLARE_SET_UNSET_ADD_GET(http, call_ctx, hdr)
 /**
  * @brief Authenticate the call with HTTP Basic credentials.
  *
+ * Credentials set earlier on the context are released and replaced.
+ *
  * @param log        the log handle to use
- * @param ctx        the call context to set the credentials on; must
- *                   not be NULL
+ * @param ctx        the call context to set the credentials on
  * @param username   the username
  * @param password   the password
  * @param url_encode when true, both are URL-encoded before use, as
  *                   RFC 6749 section 2.3.1 prescribes for a client_id
  *                   and client_secret
- * @return always true
+ * @return true, false when ctx is NULL
  */
 bool oauth2_http_call_ctx_basic_auth_set(oauth2_log_t *log,
 					 oauth2_http_call_ctx_t *ctx,
@@ -590,7 +592,8 @@ bool oauth2_http_call_ctx_basic_auth_set(oauth2_log_t *log,
 /**
  * @name Outgoing calls
  * Execute an outgoing HTTP call with libcurl, following up to 5
- * redirects and accepting a response body of up to 1 MB. On success
+ * redirects and accepting a response body of up to 1 MB (a larger one
+ * fails the call, without a retry). On success
  * the response body is returned in @p response as a newly allocated
  * NUL-terminated string, to be released with oauth2_mem_free(), and
  * the HTTP status code in @p status_code; @p response must not be
