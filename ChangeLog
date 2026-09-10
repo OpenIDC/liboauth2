@@ -1,6 +1,9 @@
 09/10/2026
 - log: fix oauth2_log_sink_add not advancing the tail of the sink list, so
   that adding a third sink dropped the second one from message delivery
+- ipc: make oauth2_ipc_sema_wait and oauth2_ipc_sema_trywait, and thereby
+  oauth2_ipc_mutex_lock, return false when the semaphore was never created or
+  the wait failed instead of reporting success
 - doc: add Doxygen documentation to the remaining public headers: proto.h,
   jose.h, util.h, log.h, mem.h, ipc.h, jq.h and version.h, and the Apache and
   NGINX binding headers apache.h and nginx.h, so that every public header is

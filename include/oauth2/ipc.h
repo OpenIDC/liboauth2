@@ -200,7 +200,7 @@ bool oauth2_ipc_sema_wait(oauth2_log_t *log, oauth2_ipc_sema_t *sema);
  * @param log  the log handle to use
  * @param sema the semaphore to decrement
  * @return true when the semaphore was decremented, false when its
- *         count was zero
+ *         count was zero or on error
  */
 bool oauth2_ipc_sema_trywait(oauth2_log_t *log, oauth2_ipc_sema_t *sema);
 /** @} */

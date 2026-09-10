@@ -190,7 +190,7 @@ end:
 
 bool oauth2_ipc_sema_wait(oauth2_log_t *log, oauth2_ipc_sema_t *sema)
 {
-	bool rc = true;
+	bool rc = false;
 
 	if ((sema == NULL) || (sema->sema == NULL))
 		goto end;
@@ -218,7 +218,7 @@ end:
 
 bool oauth2_ipc_sema_trywait(oauth2_log_t *log, oauth2_ipc_sema_t *sema)
 {
-	bool rc = true;
+	bool rc = false;
 
 	if ((sema == NULL) || (sema->sema == NULL))
 		goto end;
@@ -226,9 +226,9 @@ bool oauth2_ipc_sema_trywait(oauth2_log_t *log, oauth2_ipc_sema_t *sema)
 #ifdef _WIN32
 	switch (WaitForSingleObject(sema->sema, 0)) {
 	case WAIT_OBJECT_0:
+		rc = true;
 		break;
 	case WAIT_TIMEOUT:
-		rc = false;
 		break;
 	default:
 		oauth2_error(log, "WaitForSingleObject() failed: %lu",
@@ -236,13 +236,11 @@ bool oauth2_ipc_sema_trywait(oauth2_log_t *log, oauth2_ipc_sema_t *sema)
 		break;
 	}
 #else
-	if (sem_trywait(sema->sema) != 0) {
-		if (errno == EAGAIN)
-			rc = false;
-		else
-			oauth2_error(log, "sem_trywait() failed: %s (%d)",
-				     strerror(errno), errno);
-	}
+	if (sem_trywait(sema->sema) == 0)
+		rc = true;
+	else if (errno != EAGAIN)
+		oauth2_error(log, "sem_trywait() failed: %s (%d)",
+			     strerror(errno), errno);
 #endif
 
 end:

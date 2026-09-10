@@ -133,6 +133,7 @@ END_TEST
 START_TEST(test_sema_null_guards)
 {
 	bool rc = false;
+	oauth2_ipc_sema_t *s = NULL;
 
 	// NULL guards must not crash
 	oauth2_ipc_sema_free(_log, NULL);
@@ -143,9 +144,20 @@ START_TEST(test_sema_null_guards)
 	rc = oauth2_ipc_sema_post(_log, NULL);
 	ck_assert_int_eq(rc, false);
 
-	// wait/trywait short-circuit to a no-op on NULL
-	(void)oauth2_ipc_sema_wait(_log, NULL);
-	(void)oauth2_ipc_sema_trywait(_log, NULL);
+	// wait/trywait fail on NULL and on a semaphore without post_config
+	rc = oauth2_ipc_sema_wait(_log, NULL);
+	ck_assert_int_eq(rc, false);
+	rc = oauth2_ipc_sema_trywait(_log, NULL);
+	ck_assert_int_eq(rc, false);
+
+	s = oauth2_ipc_sema_init(_log);
+	ck_assert_ptr_ne(s, NULL);
+	rc = oauth2_ipc_sema_wait(_log, s);
+	ck_assert_int_eq(rc, false);
+	rc = oauth2_ipc_sema_trywait(_log, s);
+	ck_assert_int_eq(rc, false);
+	oauth2_ipc_sema_free(_log, s);
+	s = NULL;
 }
 END_TEST
 
