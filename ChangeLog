@@ -11,6 +11,9 @@
   export (log sinks, Apache callback table and log level maps) carry an
   OAUTH2_EXTERN/OAUTH2_APACHE_EXTERN storage class so they resolve across a DLL
   boundary, and the unused <semaphore.h> include is dropped from ipc.h
+- apache: drop the duplicate declaration of the ssl_var_lookup optional
+  function type, mod_ssl.h provides it (MSVC rejects the redefinition)
+- dpop: fix a stray backslash in the thumbprint mismatch log message
 
 08/12/2026
 - oauth2: apply the DPoP/mTLS proof-of-possession settings of the verifier that

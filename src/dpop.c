@@ -685,7 +685,7 @@ bool oauth2_dpop_token_verify(oauth2_log_t *log,
 	    (memcmp(hash_bytes, dst, hash_bytes_len)) != 0) {
 		oauth2_error(log,
 			     "public key thumbprint in DPOP \"%s\" does not "
-			     "match \"%s\" claim \%s\" for the access token",
+			     "match \"%s\" claim \"%s\" for the access token",
 			     calc_thumb, OAUTH_DPOP_CLAIM_CNF_JKT, prov_thumb);
 		goto end;
 	}

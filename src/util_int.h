@@ -26,8 +26,12 @@
 // mingw
 #include <io.h>
 #include <process.h>
+#ifndef strncasecmp
 #define strncasecmp _strnicmp
+#endif
+#ifndef strcasecmp
 #define strcasecmp _stricmp
+#endif
 #define strtok_r strtok_s
 #define close _close
 #define getpid _getpid

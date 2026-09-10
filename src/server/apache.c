@@ -180,9 +180,7 @@ apr_status_t oauth2_apache_parent_cleanup(void *data, module *m,
 	return APR_SUCCESS;
 }
 
-APR_DECLARE_OPTIONAL_FN(char *, ssl_var_lookup,
-			(apr_pool_t *, server_rec *, conn_rec *, request_rec *,
-			 char *));
+// the optional function type comes from mod_ssl.h, included above
 static APR_OPTIONAL_FN_TYPE(ssl_var_lookup) *_oauth2_ssl_var_lookup = NULL;
 
 static const char *oauth2_apache_ssl_var_lookup(apr_pool_t *p, server_rec *s,
