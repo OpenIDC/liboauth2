@@ -1,4 +1,8 @@
 09/10/2026
+- cfg: release the previous value when a string option or an endpoint's
+  auth is configured again, return an allocated error string from
+  oauth2_cfg_set_cache on a parse failure like its other error paths, and
+  list only the allowed locations in the error of an invalid token location
 - jose/util: release the output of json_dumps through the oauth2 allocator,
   which is where jansson allocates once oauth2_mem_set_alloc_funcs redirected
   cjose, instead of with free()

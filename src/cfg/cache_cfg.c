@@ -31,7 +31,7 @@ char *oauth2_cfg_set_cache(oauth2_log_t *log, void *dummy, const char *type,
 	oauth2_cache_t *cache = NULL;
 
 	if (oauth2_parse_form_encoded_params(log, options, &params) == false) {
-		rv = "parsing cache parameters failed";
+		rv = oauth2_strdup("parsing cache parameters failed");
 		goto end;
 	}
 

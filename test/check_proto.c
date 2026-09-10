@@ -83,6 +83,7 @@ START_TEST(test_proto_get_source_token_environment)
 	char *rv = NULL;
 	oauth2_cfg_source_token_t *cfg = NULL, *cfg2 = NULL;
 	oauth2_http_request_t *request = NULL;
+	oauth2_cfg_token_in_t token_in = {0};
 
 	request = oauth2_http_request_init(_log);
 
@@ -104,6 +105,14 @@ START_TEST(test_proto_get_source_token_environment)
 	rv = oauth2_cfg_token_in_set(_log, NULL, NULL, NULL,
 				     OAUTH2_CFG_TOKEN_IN_ENVVAR);
 	ck_assert_ptr_ne(rv, NULL);
+	oauth2_mem_free(rv);
+
+	// the error message lists the allowed methods only
+	rv = oauth2_cfg_token_in_set(_log, &token_in, "bogus", NULL,
+				     OAUTH2_CFG_TOKEN_IN_HEADER |
+					 OAUTH2_CFG_TOKEN_IN_QUERY);
+	ck_assert_ptr_ne(rv, NULL);
+	ck_assert_str_eq(rv, "Invalid value, must be one of: header, query.");
 	oauth2_mem_free(rv);
 
 	rv = oauth2_cfg_source_token_set_accept_in(_log, cfg2, "bogus", NULL);
@@ -477,6 +486,15 @@ START_TEST(test_proto_cfg_endpoint)
 	ck_assert_ptr_ne(clone, NULL);
 	ck_assert_str_eq(oauth2_cfg_endpoint_get_outgoing_proxy(clone),
 			 "http://proxy:3128");
+
+	// configuring the same endpoint again replaces the url and the auth
+	// and resets the options that are not given to their defaults
+	rv = oauth2_cfg_set_endpoint(_log, cfg, "http://example.com/token2",
+				     NULL, NULL);
+	ck_assert_ptr_eq(rv, NULL);
+	ck_assert_str_eq(oauth2_cfg_endpoint_get_url(cfg),
+			 "http://example.com/token2");
+	ck_assert_uint_eq(oauth2_cfg_endpoint_get_ssl_verify(cfg), true);
 
 	oauth2_nv_list_free(_log, params);
 	oauth2_cfg_endpoint_free(_log, clone);

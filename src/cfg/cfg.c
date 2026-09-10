@@ -188,6 +188,8 @@ const char *oauth2_cfg_set_str_slot(void *cfg, size_t offset, const char *value)
 	}
 
 	fp = (char **)((char *)cfg + offset);
+	if (*fp)
+		oauth2_mem_free(*fp);
 	*fp = oauth2_strdup(value);
 	if (*fp == NULL)
 		rv = "oauth2_strdup() in oauth2_cfg_set_str_slot failed";

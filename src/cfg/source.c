@@ -96,7 +96,7 @@ oauth2_cfg_accept_in_cookie_options_set(oauth2_log_t *log,
 }
 
 typedef char *(
-    oauth2_cfg_accept_token_in_set_options_cb_t)(oauth2_log_t *log,
+    oauth2_cfg_accept_token_in_set_options_cb_t)(oauth2_log_t * log,
 						 oauth2_cfg_token_in_t
 						     *accept_in,
 						 const oauth2_nv_list_t
@@ -126,7 +126,7 @@ char *oauth2_cfg_token_in_set(oauth2_log_t *log, oauth2_cfg_token_in_t *cfg,
 			      oauth2_uint_t allowed)
 {
 	char *rv = NULL;
-	int i = 0;
+	int i = 0, n = 0;
 
 	if (method == NULL) {
 		rv = oauth2_strdup("Invalid value, method must be set");
@@ -149,16 +149,13 @@ char *oauth2_cfg_token_in_set(oauth2_log_t *log, oauth2_cfg_token_in_t *cfg,
 	}
 
 	rv = oauth2_strdup("Invalid value, must be one of: ");
-	i = 0;
-	while (_oauth2_cfg_accept_in_options_set[i].method != NULL) {
-		rv = oauth2_stradd(
-		    rv,
-		    _oauth2_cfg_accept_in_options_set[i + 1].method == NULL
-			? " or "
-		    : i > 0 ? ", "
-			    : "",
-		    _oauth2_cfg_accept_in_options_set[i].method, NULL);
-		i++;
+	for (i = 0; _oauth2_cfg_accept_in_options_set[i].method != NULL; i++) {
+		if ((allowed & _oauth2_cfg_accept_in_options_set[i].type) == 0)
+			continue;
+		rv = oauth2_stradd(rv, n > 0 ? ", " : "",
+				   _oauth2_cfg_accept_in_options_set[i].method,
+				   NULL);
+		n++;
 	}
 	rv = oauth2_stradd(rv, ".", NULL, NULL);
 

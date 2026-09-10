@@ -120,12 +120,16 @@ char *oauth2_cfg_set_endpoint(oauth2_log_t *log, oauth2_cfg_endpoint_t *cfg,
 		}
 		oauth2_mem_free(key);
 	} else {
+		if (cfg->url)
+			oauth2_mem_free(cfg->url);
 		cfg->url = oauth2_strdup(url);
 	}
 
 	key = oauth2_stradd(NULL, prefix ? prefix : NULL, prefix ? "." : NULL,
 			    "auth");
 	value = oauth2_nv_list_get(log, params, key);
+	if (cfg->auth)
+		oauth2_cfg_endpoint_auth_free(log, cfg->auth);
 	cfg->auth = oauth2_cfg_endpoint_auth_init(log);
 	rv = oauth2_cfg_set_endpoint_auth(log, cfg->auth, value, params, key);
 	if (rv != NULL)

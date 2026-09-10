@@ -114,7 +114,7 @@ const char *oauth2_cfg_set_time_slot(void *cfg, size_t offset,
  * @brief Store a copy of @p value in the char * member at @p offset
  *        of @p cfg.
  *
- * A string previously stored in the member is not released.
+ * A string previously stored in the member is released.
  *
  * @param cfg    the configuration struct
  * @param offset the byte offset of the member, e.g. from offsetof()
