@@ -24,6 +24,16 @@
 #include "oauth2/version.h"
 #include <check.h>
 
+// PACKAGE_NAME and PACKAGE_VERSION come from autoconf on the compiler command
+// line; the Windows build has no configure, so there they are what version.h
+// was generated with
+#ifndef PACKAGE_VERSION
+#define PACKAGE_VERSION OAUTH2_PACKAGE_VERSION
+#endif
+#ifndef PACKAGE_NAME
+#define PACKAGE_NAME OAUTH2_PACKAGE_NAME
+#endif
+
 START_TEST(test_version_defines)
 {
 	ck_assert_str_eq(OAUTH2_PACKAGE_VERSION, PACKAGE_VERSION);

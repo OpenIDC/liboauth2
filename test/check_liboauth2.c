@@ -22,6 +22,17 @@
 
 #include <stdlib.h>
 
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
+// the sleep() the suites call, see check_liboauth2.h
+void oauth2_check_sleep(unsigned int seconds)
+{
+	Sleep(seconds * 1000);
+}
+#endif
+
 /*
  * Each suite that needs to drive the HTTP client spins up its own loopback
  * server per test (see test/http_server.h), so there is no shared, suite-wide

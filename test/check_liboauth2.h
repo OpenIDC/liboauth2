@@ -30,13 +30,26 @@
 #include <stdlib.h>
 
 /*
- * the tests sleep() past 1-second cache/session timeouts and write file-cache
- * entries into a scratch directory; both are spelled differently on Windows
+ * the tests sleep() past 1-second cache/session timeouts, compare header
+ * names with strncasecmp and write file-cache entries into a scratch
+ * directory; all three are spelled differently on Windows. No <windows.h>
+ * here: the Apache headers (check_apache.c) include it themselves and skip
+ * their winsock part when it was already included before them, so the
+ * sleeping happens in a wrapper (check_liboauth2.c) instead. The httpd
+ * headers define sleep/strcasecmp/strncasecmp too, in the same form, hence
+ * the guards.
  */
 #ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#define sleep(s) Sleep((DWORD)(s) * 1000)
+void oauth2_check_sleep(unsigned int seconds);
+#ifndef sleep
+#define sleep(s) oauth2_check_sleep(s)
+#endif
+#ifndef strcasecmp
+#define strcasecmp(s1, s2) _stricmp(s1, s2)
+#endif
+#ifndef strncasecmp
+#define strncasecmp(s1, s2, n) _strnicmp(s1, s2, n)
+#endif
 #define OAUTH2_CHECK_TMPDIR                                                    \
 	(getenv("TEMP") ? getenv("TEMP") : "C:\\Windows\\Temp")
 #else

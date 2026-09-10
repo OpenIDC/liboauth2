@@ -18,10 +18,12 @@
  *
  **************************************************************************/
 
-#include "check_liboauth2.h"
-
+// the Apache headers first: on Windows, check.h (through check_liboauth2.h)
+// defines pid_t as a macro, which would break the typedef of it in apr.h
 #include "oauth2/apache.h"
 #include "oauth2/mem.h"
+
+#include "check_liboauth2.h"
 
 #include <check.h>
 
