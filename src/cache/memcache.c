@@ -18,6 +18,7 @@
  *
  **************************************************************************/
 
+#include <stdlib.h>
 #include <string.h>
 
 #include <oauth2/cache.h>
@@ -171,8 +172,10 @@ static bool oauth2_cache_memcache_get(oauth2_log_t *log, oauth2_cache_t *cache,
 
 	// the core releases the value with oauth2_mem_free, libmemcached's
 	// buffer comes from malloc
-	if (val != NULL)
+	if (val != NULL) {
 		*value = oauth2_strndup(val, len);
+		free(val);
+	}
 
 	rc = true;
 
