@@ -315,7 +315,7 @@ bool oauth2_jose_encrypt(oauth2_log_t *log, const char *secret,
 	jwe =
 	    cjose_jwe_encrypt(jwk->jwk, enc_hdr, (const uint8_t *)s_enc_payload,
 			      strlen(s_enc_payload), &err);
-	if (jwt == NULL) {
+	if (jwe == NULL) {
 		_OAUTH2_UTIL_JOSE_ERR_LOG(log, "cjose_jwe_encrypt", err);
 		goto end;
 	}
@@ -602,6 +602,9 @@ bool oauth2_jose_hash2s(oauth2_log_t *log, const char *digest, const char *src,
 	bool rc = false;
 	unsigned char *hash_bytes = NULL;
 	unsigned int hash_bytes_len = 0;
+
+	if ((src == NULL) || (dst == NULL))
+		goto end;
 
 	if (oauth2_jose_hash_bytes(log, digest, (const unsigned char *)src,
 				   strlen(src), &hash_bytes,
