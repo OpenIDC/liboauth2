@@ -124,8 +124,15 @@ oauth2_cache_t *_oauth2_cache_init(oauth2_log_t *log, const char *type,
 	if (cache == NULL)
 		goto end;
 
-	if (cache_type->init(log, cache, params) == false)
+	if (cache_type->init(log, cache, params) == false) {
+		// do not register (and thereby leak) a half-built instance
+		if (cache->type != NULL)
+			_oauth2_cache_free(log, cache);
+		else
+			oauth2_mem_free(cache);
+		cache = NULL;
 		goto end;
+	}
 
 	cache->key_hash_algo =
 	    oauth2_strdup(oauth2_nv_list_get(log, params, "key_hash_algo"));

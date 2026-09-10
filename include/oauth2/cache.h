@@ -181,6 +181,20 @@ typedef struct oauth2_cache_type_t {
 oauth2_cache_t *oauth2_cache_obtain(oauth2_log_t *log, const char *name);
 
 /**
+ * @brief Attach a forked worker process to a cache.
+ *
+ * Calls the backend's child-init function (see
+ * oauth2_cache_child_init_function); to be called in each worker
+ * process after the fork for every cache obtained there.
+ *
+ * @param log   the log handle to use
+ * @param cache the cache to attach to
+ * @return true on success or when the backend has nothing to do, false
+ *         on error or for a NULL cache
+ */
+bool oauth2_cache_child_init(oauth2_log_t *log, oauth2_cache_t *cache);
+
+/**
  * @brief Look up a key in a cache.
  *
  * @param log   the log handle to use

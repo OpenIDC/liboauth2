@@ -1,4 +1,9 @@
 09/10/2026
+- cache: do not register a cache whose backend failed to initialize, which
+  leaked it and shadowed the name; declare oauth2_cache_child_init in cache.h
+  (it was only declared by the test suite); make the memcache backend delete
+  the entry on a NULL value like the other backends do and hand the core a
+  value allocated through the oauth2 allocator rather than libmemcached's
 - doc: document the individual members of oauth2.h, session.h and cache.h,
   the last headers still covered at section level only; see #11
 - openidc: default the client's scope to "openid", its HTTP timeout to 20

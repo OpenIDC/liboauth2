@@ -29,7 +29,6 @@
 static oauth2_log_t *_log = 0;
 
 // defined in src/cache.c, linked via liboauth2.la, not (yet) in a public header
-bool oauth2_cache_child_init(oauth2_log_t *log, oauth2_cache_t *cache);
 
 static void setup(void)
 {

@@ -150,6 +150,7 @@ static bool oauth2_cache_memcache_get(oauth2_log_t *log, oauth2_cache_t *cache,
 	memcached_return mrc;
 	size_t len;
 	uint32_t flags;
+	char *val = NULL;
 	oauth2_cache_impl_memcache_t *impl =
 	    (oauth2_cache_impl_memcache_t *)cache->impl;
 
@@ -160,14 +161,18 @@ static bool oauth2_cache_memcache_get(oauth2_log_t *log, oauth2_cache_t *cache,
 
 	*value = NULL;
 
-	*value =
-	    memcached_get(impl->memc, key, strlen(key), &len, &flags, &mrc);
+	val = memcached_get(impl->memc, key, strlen(key), &len, &flags, &mrc);
 
 	if ((mrc != MEMCACHED_SUCCESS) && (mrc != MEMCACHED_NOTFOUND)) {
 		oauth2_error(log, "memcached_get failed: %s\n",
 			     memcached_strerror(impl->memc, mrc));
 		goto end;
 	}
+
+	// the core releases the value with oauth2_mem_free, libmemcached's
+	// buffer comes from malloc
+	if (val != NULL)
+		*value = oauth2_strndup(val, len);
 
 	rc = true;
 
@@ -193,8 +198,20 @@ static bool oauth2_cache_memcache_set(oauth2_log_t *log, oauth2_cache_t *cache,
 	if ((impl == NULL) || (impl->memc == NULL))
 		goto end;
 
-	mrc = memcached_set(impl->memc, key, strlen(key), value,
-			    value ? strlen(value) : 0, (time_t)ttl_s, flags);
+	// a NULL value removes the entry, as the other backends do
+	if (value == NULL) {
+		mrc = memcached_delete(impl->memc, key, strlen(key), 0);
+		if ((mrc != MEMCACHED_SUCCESS) && (mrc != MEMCACHED_NOTFOUND)) {
+			oauth2_error(log, "memcached_delete failed: %s\n",
+				     memcached_strerror(impl->memc, mrc));
+			goto end;
+		}
+		rc = true;
+		goto end;
+	}
+
+	mrc = memcached_set(impl->memc, key, strlen(key), value, strlen(value),
+			    (time_t)ttl_s, flags);
 
 	if (mrc != MEMCACHED_SUCCESS) {
 		oauth2_error(log, "memcached_set failed: %s\n",
