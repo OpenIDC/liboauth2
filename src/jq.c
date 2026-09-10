@@ -35,6 +35,8 @@ static char *oauth2_jq_exec(oauth2_log_t *log, jq_state *jq,
 		jq_start(jq, value, 0);
 		while (jv_is_valid(elem = jq_next(jq))) {
 			str = jv_dump_string(elem, 0);
+			if (rv)
+				oauth2_mem_free(rv);
 			rv = oauth2_strdup(jv_string_value(str));
 			oauth2_debug(log, "jv_dump_string: %s", rv);
 			jv_free(str);

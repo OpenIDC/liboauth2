@@ -74,6 +74,12 @@ START_TEST(test_jq_filter)
 	ck_assert_int_eq(rc, true);
 	ck_assert_str_eq(result, "3");
 	oauth2_mem_free(result);
+
+	// a filter producing several outputs yields the last one
+	rc = oauth2_jq_filter(_log, NULL, "[1,2,3]", ".[]", &result);
+	ck_assert_int_eq(rc, true);
+	ck_assert_str_eq(result, "3");
+	oauth2_mem_free(result);
 }
 END_TEST
 
