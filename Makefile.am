@@ -239,8 +239,10 @@ endif
 #@CODE_COVERAGE_RULES@
 
 
+# only the project's own sources: a bare "find ." would descend into any
+# other source trees checked out alongside and reformat those too
 clang-format:
-	clang-format -style=file -i `find . -name *.[ch]`
+	clang-format -style=file -i `find include src test -name '*.[ch]'`
 
 doxygen:
 	cd $(top_srcdir) && \
