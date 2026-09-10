@@ -1,4 +1,13 @@
 09/10/2026
+- session: make the inactivity timeout slide, i.e. move the expiry forward
+  when a request refreshes the session (the assignment had been commented
+  out since the original implementation, so a session ended at first-save
+  time plus the timeout regardless of activity); start a new session, as for
+  an expired one, when the stored one exceeded the maximum duration instead
+  of failing the request; release claims and cookie settings that are
+  replaced; register a configuration only once when it is configured again;
+  guard NULL in oauth2_session_rec_free and oauth2_cfg_session_cache_get; add
+  a "session" test suite covering this
 - oauth2: release the token payload when the DPoP or mTLS proof-of-possession
   check fails after a verifier accepted the token, instead of returning false
   with it still allocated; check the introspection context before using it

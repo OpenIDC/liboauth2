@@ -77,10 +77,11 @@ OAUTH2_TYPE_DECLARE_MEMBER_GET(cfg, session, cookie_name, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_GET(cfg, session, cookie_path, char *)
 /**
  * @brief The inactivity timeout in seconds, default 300; set by the
- *        "inactivity_timeout" option. It determines the expiry
- *        timestamp a session gets when it is first saved, after which
- *        it is discarded on load; for the "cache" type it is also the
- *        time-to-live of the cache entry.
+ *        "inactivity_timeout" option. A session expires when no
+ *        request refreshed it for that long: oauth2_session_save()
+ *        sets the expiry that far ahead and oauth2_session_handle()
+ *        moves it forward on activity; for the "cache" type it is also
+ *        the time-to-live of the cache entry.
  */
 OAUTH2_TYPE_DECLARE_MEMBER_GET(cfg, session, inactivity_timeout_s,
 			       oauth2_time_t)
@@ -238,8 +239,9 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(session, rec, start, oauth2_time_t)
 /**
  * @brief The time the session expires, in seconds since the epoch: 0
  *        in a new record, set to the current time plus the inactivity
- *        timeout by the first oauth2_session_save() and restored from
- *        storage on load, where a passed expiry discards the session.
+ *        timeout by the first oauth2_session_save(), moved forward by
+ *        oauth2_session_handle() on activity and restored from storage
+ *        on load, where a passed expiry discards the session.
  */
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(session, rec, expiry, oauth2_time_t)
 
@@ -284,10 +286,10 @@ bool oauth2_session_rec_userinfo_claims_set(oauth2_log_t *log,
  *
  * Retrieves the stored record through the configuration's load
  * callback and validates it: a session that started longer ago than
- * the maximum duration fails to load, a session whose expiry has
- * passed is dropped and replaced by a new empty record, as is returned
- * when the request carries no session at all. A new record gets a
- * fresh session identifier.
+ * the maximum duration or whose expiry has passed is dropped and
+ * replaced by a new empty record, as is returned when the request
+ * carries no session at all. A new record gets a fresh session
+ * identifier.
  *
  * @param log     the log handle to use
  * @param c       the session configuration
@@ -295,8 +297,7 @@ bool oauth2_session_rec_userinfo_claims_set(oauth2_log_t *log,
  * @param session set to the newly allocated session record, to be
  *                released by the caller with oauth2_session_rec_free()
  * @return true when a session was loaded or a new one created, false
- *         on error or when the stored session exceeded the maximum
- *         duration
+ *         on error
  */
 bool oauth2_session_load(oauth2_log_t *log, const oauth2_cfg_session_t *c,
 			 oauth2_http_request_t *r,
@@ -325,12 +326,11 @@ bool oauth2_session_save(oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
 /**
  * @brief Refresh the stored session on an authenticated request.
  *
- * Saves the session again when less than the inactivity timeout minus
- * a slack of 10% of it (at most 60 seconds) remains until its expiry,
- * so that a freshly saved session is not written back on every
- * request. The expiry itself is not moved by this: the "cache" type
- * record gets a fresh time-to-live, but the session still ends at the
- * expiry set when it was first saved.
+ * Moves the expiry forward to the current time plus the inactivity
+ * timeout and saves the session again, but only when less than the
+ * inactivity timeout minus a slack of 10% of it (at most 60 seconds)
+ * remains until the expiry, so that a freshly saved session is not
+ * written back on every request.
  *
  * @param log      the log handle to use
  * @param cfg      the session configuration

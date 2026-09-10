@@ -215,6 +215,7 @@ check_liboauth2_SOURCES = \
 	test/check_proto.c \
 	test/check_oauth2.c \
 	test/check_openidc.c \
+	test/check_session.c \
 	test/server_stubs.c \
 	test/provider.json \
 	test/client.json
@@ -251,7 +252,7 @@ test: check
 # single serial check_liboauth2 run that "make check" performs; optional suites
 # that were not built simply run no tests. fails if any suite fails.
 CHECK_SUITES = version mem log cfg util ipc cache cache_file cache_memcache \
-	cache_redis jose http proto oauth2 openidc jq apache nginx
+	cache_redis jose http proto oauth2 openidc session jq apache nginx
 
 check-parallel: check_liboauth2$(EXEEXT)
 	@echo "running $(words $(CHECK_SUITES)) suites in parallel ..."; \

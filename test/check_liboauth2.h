@@ -81,6 +81,7 @@ Suite *oauth2_check_oauth2_suite();
 void oauth2_check_oauth2_cleanup();
 Suite *oauth2_check_openidc_suite();
 void oauth2_check_openidc_cleanup();
+Suite *oauth2_check_session_suite();
 #ifdef HAVE_LIBJQ
 Suite *oauth2_check_jq_suite();
 #endif

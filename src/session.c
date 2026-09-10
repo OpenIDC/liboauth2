@@ -52,6 +52,8 @@ oauth2_session_rec_t *oauth2_session_rec_init(oauth2_log_t *log)
 
 void oauth2_session_rec_free(oauth2_log_t *log, oauth2_session_rec_t *s)
 {
+	if (s == NULL)
+		return;
 	if (s->user)
 		oauth2_mem_free(s->user);
 	if (s->id_token)
@@ -89,6 +91,8 @@ static bool _oauth2_session_rec_json_object_set(oauth2_log_t *log,
 
 	s_json = oauth2_json_encode(log, json, 0);
 	oauth2_debug(log, "%s=%s", name, s_json);
+	if (*session_ptr)
+		json_decref(*session_ptr);
 	*session_ptr = json_incref(json);
 
 	rc = true;
@@ -317,12 +321,16 @@ bool oauth2_session_load(oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
 		oauth2_warn(log,
 			    "session has exceeded maximum duration; "
 			    "start=" OAUTH2_TIME_T_FORMAT
-			    " expiry=" OAUTH2_TIME_T_FORMAT
+			    " max_duration=" OAUTH2_TIME_T_FORMAT
 			    " now=" OAUTH2_TIME_T_FORMAT "",
 			    start,
 			    oauth2_cfg_session_max_duration_s_get(log, cfg),
 			    now);
-		rc = false;
+		// start over with a new session, as for an expired one
+		oauth2_session_rec_free(log, *session);
+		*session = oauth2_session_rec_init(log);
+		(*session)->id = oauth2_session_id_generate(log);
+		rc = true;
 		goto end;
 	}
 	(*session)->start = start;
@@ -408,7 +416,7 @@ bool oauth2_session_handle(oauth2_log_t *log, const oauth2_cfg_session_t *cfg,
 	if (slack > 60)
 		slack = 60;
 	if (session->expiry - now < interval - slack) {
-		// session->expiry = now + interval;
+		session->expiry = now + interval;
 		needs_save = true;
 	}
 

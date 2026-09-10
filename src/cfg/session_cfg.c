@@ -27,6 +27,28 @@
 
 _OAUTH2_CFG_GLOBAL_LIST(session, oauth2_cfg_session_t)
 
+/*
+ * whether the configuration is already in the global list, so that configuring
+ * it again does not register (and at shutdown release) it twice
+ */
+static bool _oauth2_cfg_session_registered(oauth2_log_t *log,
+					   oauth2_cfg_session_t *cfg)
+{
+	bool rc = false;
+	oauth2_session_list_t *ptr = NULL;
+
+	_M_session_list_lock(log);
+	for (ptr = _oauth2_session_list; ptr != NULL; ptr = ptr->next) {
+		if (ptr->mtype == cfg) {
+			rc = true;
+			break;
+		}
+	}
+	_M_session_list_unlock(log);
+
+	return rc;
+}
+
 #define OAUTH2_SESSION_TYPE_COOKIE_STR "cookie"
 #define OAUTH2_SESSION_TYPE_CACHE_STR "cache"
 
@@ -187,7 +209,7 @@ oauth2_cfg_session_save_callback_get(oauth2_log_t *log,
 oauth2_cache_t *oauth2_cfg_session_cache_get(oauth2_log_t *log,
 					     const oauth2_cfg_session_t *cfg)
 {
-	return cfg->cache;
+	return cfg ? cfg->cache : NULL;
 }
 
 _OAUTH_CFG_CTX_CALLBACK(oauth2_cfg_session_set_options_cookie)
@@ -256,12 +278,18 @@ char *oauth2_cfg_session_set_options(oauth2_log_t *log,
 		goto end;
 
 	value = oauth2_nv_list_get(log, params, "cookie.name");
-	if (value)
+	if (value) {
+		if (cfg->cookie_name)
+			oauth2_mem_free(cfg->cookie_name);
 		cfg->cookie_name = oauth2_strdup(value);
+	}
 
 	value = oauth2_nv_list_get(log, params, "cookie.path");
-	if (value)
+	if (value) {
+		if (cfg->cookie_path)
+			oauth2_mem_free(cfg->cookie_path);
 		cfg->cookie_path = oauth2_strdup(value);
+	}
 
 	value = oauth2_nv_list_get(log, params, "max_duration");
 	if (value)
@@ -273,8 +301,10 @@ char *oauth2_cfg_session_set_options(oauth2_log_t *log,
 		cfg->inactivity_timeout_s =
 		    oauth2_parse_time_sec(log, value, OAUTH2_CFG_TIME_UNSET);
 
-	_M_session_list_register(log, oauth2_nv_list_get(log, params, "name"),
-				 cfg, oauth2_cfg_session_free);
+	if (_oauth2_cfg_session_registered(log, cfg) == false)
+		_M_session_list_register(
+		    log, oauth2_nv_list_get(log, params, "name"), cfg,
+		    oauth2_cfg_session_free);
 
 end:
 
