@@ -279,6 +279,29 @@ end:
 	return rc;
 }
 
+/*
+ * compare two URLs the way RFC 9449 section 4.3 asks for the "htu" claim:
+ * after the normalization of RFC 3986 section 6.2, i.e. scheme and host
+ * case-insensitively and an empty path as "/", the rest as-is
+ */
+static bool _oauth2_dpop_url_equal(const char *a, const char *b)
+{
+	const char *pa = strstr(a, "://"), *pb = strstr(b, "://");
+	size_t la = 0, lb = 0;
+
+	if ((pa == NULL) || (pb == NULL))
+		return (strcmp(a, b) == 0);
+
+	pa = strchr(pa + 3, '/');
+	pb = strchr(pb + 3, '/');
+	la = pa ? (size_t)(pa - a) : strlen(a);
+	lb = pb ? (size_t)(pb - b) : strlen(b);
+	if ((la != lb) || (strncasecmp(a, b, la) != 0))
+		return false;
+
+	return (strcmp(pa ? pa : "/", pb ? pb : "/") == 0);
+}
+
 static bool _oauth2_dpop_htu_validate(oauth2_log_t *log,
 				      oauth2_http_request_t *request,
 				      const char *clm_htu)
@@ -290,7 +313,7 @@ static bool _oauth2_dpop_htu_validate(oauth2_log_t *log,
 	if (url == NULL)
 		goto end;
 
-	if (strcasecmp(url, clm_htu) != 0) {
+	if (_oauth2_dpop_url_equal(url, clm_htu) == false) {
 		oauth2_error(
 		    log,
 		    "requested URL (%s) does not match DPOP \"%s\" value (%s)",
@@ -683,6 +706,8 @@ bool oauth2_dpop_token_verify(oauth2_log_t *log,
 
 	if ((hash_bytes_len != dst_len) ||
 	    (memcmp(hash_bytes, dst, hash_bytes_len)) != 0) {
+		oauth2_base64url_encode(log, hash_bytes, hash_bytes_len,
+					&calc_thumb);
 		oauth2_error(log,
 			     "public key thumbprint in DPOP \"%s\" does not "
 			     "match \"%s\" claim \"%s\" for the access token",

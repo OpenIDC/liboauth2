@@ -260,8 +260,8 @@ bool oauth2_http_ctx_auth_add(oauth2_log_t *log, oauth2_http_call_ctx_t *ctx,
  *                claims or the introspection response, as a new object
  *                to be released by the caller with json_decref(); must
  *                not be NULL. It is set when a method accepted the
- *                token, also when the proof-of-possession check failed
- *                afterwards, so release it whenever it is non-NULL
+ *                token and released again, and set to NULL, when the
+ *                proof-of-possession check failed afterwards
  * @param status_code optional (may be NULL); on failure set to the HTTP
  *                status code that the caller is to return, which is
  *                always an error code i.e. 4xx or 5xx, defaulting to 401

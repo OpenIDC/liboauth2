@@ -425,11 +425,11 @@ static bool _oauth2_introspect_verify_callback(
 	bool rc = false;
 	oauth2_introspect_ctx_t *ctx = NULL;
 
-	ctx = (oauth2_introspect_ctx_t *)verify->ctx->ptr;
-
 	if ((verify == NULL) || (verify->ctx == NULL) ||
 	    (verify->ctx->ptr == NULL))
 		goto end;
+
+	ctx = (oauth2_introspect_ctx_t *)verify->ctx->ptr;
 
 	rc = _oauth2_introspect_verify(log, ctx, token, json_payload, s_payload,
 				       status_code);
@@ -946,6 +946,10 @@ bool oauth2_token_verify(oauth2_log_t *log, oauth2_http_request_t *request,
 		} else if (ptr->type == OAUTH2_TOKEN_VERIFY_MTLS) {
 			rc = oauth2_mtls_token_verify(log, &ptr->mtls, request,
 						      *json_payload);
+		}
+		if (rc == false) {
+			json_decref(*json_payload);
+			*json_payload = NULL;
 		}
 	}
 

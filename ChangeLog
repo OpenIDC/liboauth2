@@ -1,4 +1,11 @@
 09/10/2026
+- oauth2: release the token payload when the DPoP or mTLS proof-of-possession
+  check fails after a verifier accepted the token, instead of returning false
+  with it still allocated; check the introspection context before using it
+- dpop: compare the "htu" claim to the request URL the way RFC 9449 section
+  4.3 asks: scheme and host case-insensitively, the path as-is (it was
+  compared case-insensitively as a whole); log the computed thumbprint on a
+  "jkt" mismatch, which printed "(null)"
 - cache: do not register a cache whose backend failed to initialize, which
   leaked it and shadowed the name; declare oauth2_cache_child_init in cache.h
   (it was only declared by the test suite); make the memcache backend delete

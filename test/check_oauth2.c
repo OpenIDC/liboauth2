@@ -1156,6 +1156,20 @@ START_TEST(test_oauth2_dpop_branches)
 	oauth2_mem_free(proof);
 	json_decref(claims);
 
+	// "htu" is compared after RFC 3986 normalization: a differently
+	// cased path does not match, a differently cased host does
+	DPOP_REJECT("dpop+jwt", jwk_pub,
+		    _dpop_claims("j19", "GET",
+				 "https://localhost.zmartzone.eu/API/", iat,
+				 ath));
+	claims = _dpop_claims("j20", "GET",
+			      "HTTPS://LOCALHOST.zmartzone.eu/api/", iat, ath);
+	proof = _dpop_proof_build(jwk, "ES256", "dpop+jwt", jwk_pub, claims);
+	rc = _dpop_verify_proof(dpop, proof, access_token, at_payload);
+	ck_assert_int_eq(rc, true);
+	oauth2_mem_free(proof);
+	json_decref(claims);
+
 #undef DPOP_REJECT
 
 	oauth2_cfg_token_verify_free(_log, verify);
