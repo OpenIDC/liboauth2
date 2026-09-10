@@ -291,13 +291,13 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, jwks_uri, char *)
  * @brief Install a provider resolver on a configuration.
  *
  * The configuration takes ownership of the resolver and releases it
- * with oauth2_cfg_openidc_free(); a resolver already installed is
- * overwritten without being released.
+ * with oauth2_cfg_openidc_free(); a different resolver already
+ * installed is released first.
  *
  * @param log      the log handle to use
  * @param cfg      the location-based configuration
  * @param resolver the resolver to install
- * @return true
+ * @return true, false when cfg is NULL
  */
 bool oauth2_cfg_openidc_provider_resolver_set(
     oauth2_log_t *log, oauth2_cfg_openidc_t *cfg,
@@ -367,9 +367,9 @@ OAUTH2_TYPE_DECLARE(openidc, client)
 
 /**
  * @brief The "scope" parameter of the authentication request, e.g.
- *        "openid profile email". No scope parameter is sent when
- *        unset, so set it to at least "openid". Set by the "scope"
- *        parameter or member of oauth2_openidc_client_set_options().
+ *        "openid profile email"; the getter returns "openid" when
+ *        unset. Set by the "scope" parameter or member of
+ *        oauth2_openidc_client_set_options().
  */
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, scope, char *)
 /**
@@ -414,8 +414,8 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, token_endpoint_auth,
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, ssl_verify, oauth2_flag_t)
 /**
  * @brief The timeout in seconds of the calls to the token and userinfo
- *        endpoints. Unset by default, in which case the getter returns
- *        OAUTH2_CFG_UINT_UNSET; there is no option string for it.
+ *        endpoints; the getter returns 20 when unset. There is no
+ *        option string for it.
  */
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, http_timeout, oauth2_uint_t)
 /**

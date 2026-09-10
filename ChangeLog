@@ -1,4 +1,8 @@
 09/10/2026
+- openidc: default the client's scope to "openid", its HTTP timeout to 20
+  seconds and TLS verification to on when unset, instead of sending no scope
+  and passing the unset sentinel to libcurl as "no timeout"; release a
+  provider resolver that is replaced
 - http: release basic auth credentials that are set again, accept port 0
   as "no port" in oauth2_http_request_port_set, make
   oauth2_http_request_is_secure return false for a NULL request, format the

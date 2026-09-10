@@ -207,6 +207,12 @@ bool oauth2_cfg_openidc_provider_resolver_set(
     oauth2_log_t *log, oauth2_cfg_openidc_t *cfg,
     oauth2_cfg_openidc_provider_resolver_t *resolver)
 {
+	if (cfg == NULL)
+		return false;
+	if ((cfg->provider_resolver != NULL) &&
+	    (cfg->provider_resolver != resolver))
+		oauth2_cfg_openidc_provider_resolver_free(
+		    log, cfg->provider_resolver);
 	cfg->provider_resolver = resolver;
 	return true;
 }

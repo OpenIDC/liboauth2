@@ -649,6 +649,36 @@ START_TEST(test_openidc_resolver)
 }
 END_TEST
 
+START_TEST(test_openidc_client_defaults)
+{
+	oauth2_openidc_client_t *client = NULL;
+
+	client = oauth2_openidc_client_init(_log);
+	ck_assert_ptr_ne(client, NULL);
+
+	ck_assert_str_eq(oauth2_openidc_client_scope_get(_log, client),
+			 "openid");
+	ck_assert_uint_eq(oauth2_openidc_client_ssl_verify_get(_log, client),
+			  true);
+	ck_assert_uint_eq(oauth2_openidc_client_http_timeout_get(_log, client),
+			  20);
+	ck_assert_uint_eq(oauth2_openidc_client_http_retries_get(_log, client),
+			  1);
+
+	oauth2_openidc_client_scope_set(_log, client, "openid profile");
+	ck_assert_str_eq(oauth2_openidc_client_scope_get(_log, client),
+			 "openid profile");
+	oauth2_openidc_client_ssl_verify_set(_log, client, false);
+	ck_assert_uint_eq(oauth2_openidc_client_ssl_verify_get(_log, client),
+			  false);
+	oauth2_openidc_client_http_timeout_set(_log, client, 5);
+	ck_assert_uint_eq(oauth2_openidc_client_http_timeout_get(_log, client),
+			  5);
+
+	oauth2_openidc_client_free(_log, client);
+}
+END_TEST
+
 START_TEST(test_openidc_client)
 {
 	char *rv = NULL;
@@ -1264,6 +1294,7 @@ Suite *oauth2_check_openidc_suite()
 	tcase_add_test(c, test_openidc_proto_state);
 	tcase_add_test(c, test_openidc_resolver);
 	tcase_add_test(c, test_openidc_client);
+	tcase_add_test(c, test_openidc_client_defaults);
 	tcase_add_test(c, test_openidc_handle_cookie);
 	tcase_add_test(c, test_openidc_handle_cache);
 	tcase_add_test(c, test_openidc_handle_nonce_mismatch);

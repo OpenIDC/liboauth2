@@ -310,7 +310,18 @@ end:
 	return rv;
 }
 
-_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, client, scope, char *, str)
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(openidc, client, scope, char *, str)
+
+#define OAUTH2_OPENIDC_CLIENT_SCOPE_DEFAULT "openid"
+
+char *oauth2_openidc_client_scope_get(oauth2_log_t *log,
+				      const oauth2_openidc_client_t *client)
+{
+	if ((client == NULL) || (client->scope == NULL))
+		return OAUTH2_OPENIDC_CLIENT_SCOPE_DEFAULT;
+	return client->scope;
+}
+
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, client, authn_request_params,
 				      char *, str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, client, client_id, char *, str)
@@ -318,14 +329,34 @@ _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, client, client_secret, char *,
 				      str)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, client, token_endpoint_auth,
 				      oauth2_cfg_endpoint_auth_t *, ptr)
-_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, client, ssl_verify,
-				      oauth2_flag_t, bln)
-_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET_GET(openidc, client, http_timeout,
-				      oauth2_uint_t, uint)
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(openidc, client, ssl_verify, oauth2_flag_t,
+				  bln)
+_OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(openidc, client, http_timeout, oauth2_uint_t,
+				  uint)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(openidc, client, http_retries, oauth2_uint_t,
 				  uint)
 _OAUTH2_TYPE_IMPLEMENT_MEMBER_SET(openidc, client, http_retry_interval,
 				  oauth2_uint_t, uint)
+
+oauth2_flag_t
+oauth2_openidc_client_ssl_verify_get(oauth2_log_t *log,
+				     const oauth2_openidc_client_t *client)
+{
+	if ((client == NULL) || (client->ssl_verify == OAUTH2_CFG_FLAG_UNSET))
+		return true;
+	return client->ssl_verify;
+}
+
+#define OAUTH2_OPENIDC_CLIENT_HTTP_TIMEOUT_DEFAULT 20
+
+oauth2_uint_t
+oauth2_openidc_client_http_timeout_get(oauth2_log_t *log,
+				       const oauth2_openidc_client_t *client)
+{
+	if ((client == NULL) || (client->http_timeout == OAUTH2_CFG_UINT_UNSET))
+		return OAUTH2_OPENIDC_CLIENT_HTTP_TIMEOUT_DEFAULT;
+	return client->http_timeout;
+}
 
 #define OAUTH2_OPENIDC_CLIENT_HTTP_RETRIES_DEFAULT 1
 
