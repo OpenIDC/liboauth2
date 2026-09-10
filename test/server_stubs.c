@@ -1,5 +1,6 @@
 #ifdef HAVE_APACHE
 #include <apr_lib.h>
+#include <apr_strings.h>
 #include <oauth2/apache.h>
 
 static char *substring_conf(apr_pool_t *p, const char *start, int len,
@@ -117,6 +118,13 @@ AP_DECLARE(void)
 ap_log_error_(const char *file, int line, int module_index, int level,
 	      apr_status_t status, const server_rec *s, const char *fmt, ...)
 {
+}
+
+// enterprise: the license check in oauth2_apache_post_config resolves the
+// license file against ServerRoot; there is none here, so the path stays as is
+AP_DECLARE(char *) ap_server_root_relative(apr_pool_t *p, const char *fname)
+{
+	return apr_pstrdup(p, fname);
 }
 #endif
 
