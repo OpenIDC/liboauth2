@@ -70,6 +70,21 @@
  *        declaration macro names is not implemented.
  */
 OAUTH2_TYPE_DECLARE(ipc, mutex)
+/**
+ * @fn oauth2_ipc_mutex_init(oauth2_log_t *)
+ * @brief Allocate a new oauth2_ipc_mutex_t with its defaults applied; NULL on
+ *        allocation failure.
+ */
+/**
+ * @fn oauth2_ipc_mutex_clone(oauth2_log_t *, const oauth2_ipc_mutex_t *)
+ * @brief Declared by the object macro but not implemented; an
+ *        oauth2_ipc_mutex_t cannot be copied.
+ */
+/**
+ * @fn oauth2_ipc_mutex_free(oauth2_log_t *, oauth2_ipc_mutex_t *)
+ * @brief Release an oauth2_ipc_mutex_t and everything it owns; NULL is
+ *        ignored.
+ */
 
 /**
  * @brief Create the underlying semaphore, in the unlocked state.
@@ -119,6 +134,22 @@ bool oauth2_ipc_mutex_unlock(oauth2_log_t *log, oauth2_ipc_mutex_t *m);
  *        macro names is not implemented.
  */
 OAUTH2_TYPE_DECLARE(ipc, thread_mutex)
+/**
+ * @fn oauth2_ipc_thread_mutex_init(oauth2_log_t *)
+ * @brief Allocate a new oauth2_ipc_thread_mutex_t with its defaults applied;
+ *        NULL on allocation failure.
+ */
+/**
+ * @fn oauth2_ipc_thread_mutex_clone(oauth2_log_t *,
+ *     const oauth2_ipc_thread_mutex_t *)
+ * @brief Declared by the object macro but not implemented; an
+ *        oauth2_ipc_thread_mutex_t cannot be copied.
+ */
+/**
+ * @fn oauth2_ipc_thread_mutex_free(oauth2_log_t *, oauth2_ipc_thread_mutex_t *)
+ * @brief Release an oauth2_ipc_thread_mutex_t and everything it owns; NULL is
+ *        ignored.
+ */
 
 /**
  * @brief Acquire the mutex, blocking until it is available.
@@ -157,6 +188,20 @@ bool oauth2_ipc_thread_mutex_unlock(oauth2_log_t *log,
  *        declaration macro names is not implemented.
  */
 OAUTH2_TYPE_DECLARE(ipc, sema)
+/**
+ * @fn oauth2_ipc_sema_init(oauth2_log_t *)
+ * @brief Allocate a new oauth2_ipc_sema_t with its defaults applied; NULL on
+ *        allocation failure.
+ */
+/**
+ * @fn oauth2_ipc_sema_clone(oauth2_log_t *, const oauth2_ipc_sema_t *)
+ * @brief Declared by the object macro but not implemented; an
+ *        oauth2_ipc_sema_t cannot be copied.
+ */
+/**
+ * @fn oauth2_ipc_sema_free(oauth2_log_t *, oauth2_ipc_sema_t *)
+ * @brief Release an oauth2_ipc_sema_t and everything it owns; NULL is ignored.
+ */
 
 /**
  * @brief Create the underlying semaphore, with a count of zero.

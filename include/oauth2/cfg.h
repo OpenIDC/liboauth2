@@ -309,6 +309,29 @@ typedef enum oauth2_cfg_endpoint_auth_type_t {
  * declaration macro names is not implemented.
  */
 OAUTH2_CFG_TYPE_DECLARE(cfg, endpoint_auth)
+/**
+ * @fn oauth2_cfg_endpoint_auth_init(oauth2_log_t *)
+ * @brief Allocate a new oauth2_cfg_endpoint_auth_t with its defaults applied;
+ *        NULL on allocation failure.
+ */
+/**
+ * @fn oauth2_cfg_endpoint_auth_clone(oauth2_log_t *,
+ *     const oauth2_cfg_endpoint_auth_t *)
+ * @brief Deep-copy an oauth2_cfg_endpoint_auth_t; release the copy with
+ *        oauth2_cfg_endpoint_auth_free().
+ */
+/**
+ * @fn oauth2_cfg_endpoint_auth_free(oauth2_log_t *,
+ *     oauth2_cfg_endpoint_auth_t *)
+ * @brief Release an oauth2_cfg_endpoint_auth_t and everything it owns; NULL is
+ *        ignored.
+ */
+/**
+ * @fn oauth2_cfg_endpoint_auth_merge(oauth2_log_t *,
+ *     oauth2_cfg_endpoint_auth_t *, oauth2_cfg_endpoint_auth_t *,
+ *     oauth2_cfg_endpoint_auth_t *)
+ * @brief Declared by the object macro but not implemented.
+ */
 
 /**
  * @brief Configure an endpoint authentication method.
@@ -356,6 +379,26 @@ oauth2_cfg_endpoint_auth_type(const oauth2_cfg_endpoint_auth_t *auth);
  * declaration macro names is not implemented.
  */
 OAUTH2_CFG_TYPE_DECLARE(cfg, endpoint)
+/**
+ * @fn oauth2_cfg_endpoint_init(oauth2_log_t *)
+ * @brief Allocate a new oauth2_cfg_endpoint_t with its defaults applied; NULL
+ *        on allocation failure.
+ */
+/**
+ * @fn oauth2_cfg_endpoint_clone(oauth2_log_t *, const oauth2_cfg_endpoint_t *)
+ * @brief Deep-copy an oauth2_cfg_endpoint_t; release the copy with
+ *        oauth2_cfg_endpoint_free().
+ */
+/**
+ * @fn oauth2_cfg_endpoint_free(oauth2_log_t *, oauth2_cfg_endpoint_t *)
+ * @brief Release an oauth2_cfg_endpoint_t and everything it owns; NULL is
+ *        ignored.
+ */
+/**
+ * @fn oauth2_cfg_endpoint_merge(oauth2_log_t *, oauth2_cfg_endpoint_t *,
+ *     oauth2_cfg_endpoint_t *, oauth2_cfg_endpoint_t *)
+ * @brief Declared by the object macro but not implemented.
+ */
 
 /**
  * @brief Configure an endpoint from a URL and a set of parameters.
@@ -445,6 +488,28 @@ typedef enum oauth2_cfg_token_verify_type_t {
  * implemented.
  */
 OAUTH2_CFG_TYPE_DECLARE(cfg, token_verify)
+/**
+ * @fn oauth2_cfg_token_verify_init(oauth2_log_t *)
+ * @brief Allocate a new oauth2_cfg_token_verify_t with its defaults applied;
+ *        NULL on allocation failure.
+ */
+/**
+ * @fn oauth2_cfg_token_verify_clone(oauth2_log_t *,
+ *     const oauth2_cfg_token_verify_t *)
+ * @brief Deep-copy an oauth2_cfg_token_verify_t; release the copy with
+ *        oauth2_cfg_token_verify_free().
+ */
+/**
+ * @fn oauth2_cfg_token_verify_free(oauth2_log_t *, oauth2_cfg_token_verify_t *)
+ * @brief Release an oauth2_cfg_token_verify_t and everything it owns; NULL is
+ *        ignored.
+ */
+/**
+ * @fn oauth2_cfg_token_verify_merge(oauth2_log_t *,
+ *     oauth2_cfg_token_verify_t *, oauth2_cfg_token_verify_t *,
+ *     oauth2_cfg_token_verify_t *)
+ * @brief Declared by the object macro but not implemented.
+ */
 
 /**
  * @brief Add a verification method to a token verification chain.
@@ -629,6 +694,29 @@ char *oauth2_cfg_token_in_set(oauth2_log_t *log, oauth2_cfg_token_in_t *cfg,
  * location enabled and the "base" one otherwise.
  */
 OAUTH2_CFG_TYPE_DECLARE(cfg, source_token)
+/**
+ * @fn oauth2_cfg_source_token_init(oauth2_log_t *)
+ * @brief Allocate a new oauth2_cfg_source_token_t with its defaults applied;
+ *        NULL on allocation failure.
+ */
+/**
+ * @fn oauth2_cfg_source_token_clone(oauth2_log_t *,
+ *     const oauth2_cfg_source_token_t *)
+ * @brief Deep-copy an oauth2_cfg_source_token_t; release the copy with
+ *        oauth2_cfg_source_token_free().
+ */
+/**
+ * @fn oauth2_cfg_source_token_free(oauth2_log_t *, oauth2_cfg_source_token_t *)
+ * @brief Release an oauth2_cfg_source_token_t and everything it owns; NULL is
+ *        ignored.
+ */
+/**
+ * @fn oauth2_cfg_source_token_merge(oauth2_log_t *,
+ *     oauth2_cfg_source_token_t *, oauth2_cfg_source_token_t *,
+ *     oauth2_cfg_source_token_t *)
+ * @brief Merge two oauth2_cfg_source_token_t objects into a third: a value set
+ *        in add takes precedence over base.
+ */
 
 /**
  * @brief Enable a location the token is accepted in.
@@ -681,6 +769,28 @@ oauth2_flag_t oauth2_cfg_source_token_get_strip(oauth2_cfg_source_token_t *cfg);
  * implemented.
  */
 OAUTH2_CFG_TYPE_DECLARE(cfg, target_pass)
+/**
+ * @fn oauth2_cfg_target_pass_init(oauth2_log_t *)
+ * @brief Allocate a new oauth2_cfg_target_pass_t with its defaults applied;
+ *        NULL on allocation failure.
+ */
+/**
+ * @fn oauth2_cfg_target_pass_clone(oauth2_log_t *,
+ *     const oauth2_cfg_target_pass_t *)
+ * @brief Declared by the object macro but not implemented; an
+ *        oauth2_cfg_target_pass_t cannot be copied.
+ */
+/**
+ * @fn oauth2_cfg_target_pass_free(oauth2_log_t *, oauth2_cfg_target_pass_t *)
+ * @brief Release an oauth2_cfg_target_pass_t and everything it owns; NULL is
+ *        ignored.
+ */
+/**
+ * @fn oauth2_cfg_target_pass_merge(oauth2_log_t *, oauth2_cfg_target_pass_t *,
+ *     oauth2_cfg_target_pass_t *, oauth2_cfg_target_pass_t *)
+ * @brief Merge two oauth2_cfg_target_pass_t objects into a third: a value set
+ *        in add takes precedence over base.
+ */
 
 /**
  * @brief The encoding applied to claim values passed on to the target
@@ -775,6 +885,26 @@ char *oauth2_cfg_target_pass_encode(oauth2_log_t *log,
  * endpoint and the "base" one otherwise.
  */
 OAUTH2_CFG_TYPE_DECLARE(cfg, ropc)
+/**
+ * @fn oauth2_cfg_ropc_init(oauth2_log_t *)
+ * @brief Allocate a new oauth2_cfg_ropc_t with its defaults applied; NULL on
+ *        allocation failure.
+ */
+/**
+ * @fn oauth2_cfg_ropc_clone(oauth2_log_t *, const oauth2_cfg_ropc_t *)
+ * @brief Deep-copy an oauth2_cfg_ropc_t; release the copy with
+ *        oauth2_cfg_ropc_free().
+ */
+/**
+ * @fn oauth2_cfg_ropc_free(oauth2_log_t *, oauth2_cfg_ropc_t *)
+ * @brief Release an oauth2_cfg_ropc_t and everything it owns; NULL is ignored.
+ */
+/**
+ * @fn oauth2_cfg_ropc_merge(oauth2_log_t *, oauth2_cfg_ropc_t *,
+ *     oauth2_cfg_ropc_t *, oauth2_cfg_ropc_t *)
+ * @brief Merge two oauth2_cfg_ropc_t objects into a third: a value set in add
+ *        takes precedence over base.
+ */
 
 /**
  * @brief Configure the ROPC grant from a token endpoint URL and an
@@ -844,6 +974,26 @@ oauth2_cfg_ropc_get_request_parameters(oauth2_cfg_ropc_t *cfg);
  * endpoint and the "base" one otherwise.
  */
 OAUTH2_CFG_TYPE_DECLARE(cfg, cc)
+/**
+ * @fn oauth2_cfg_cc_init(oauth2_log_t *)
+ * @brief Allocate a new oauth2_cfg_cc_t with its defaults applied; NULL on
+ *        allocation failure.
+ */
+/**
+ * @fn oauth2_cfg_cc_clone(oauth2_log_t *, const oauth2_cfg_cc_t *)
+ * @brief Deep-copy an oauth2_cfg_cc_t; release the copy with
+ *        oauth2_cfg_cc_free().
+ */
+/**
+ * @fn oauth2_cfg_cc_free(oauth2_log_t *, oauth2_cfg_cc_t *)
+ * @brief Release an oauth2_cfg_cc_t and everything it owns; NULL is ignored.
+ */
+/**
+ * @fn oauth2_cfg_cc_merge(oauth2_log_t *, oauth2_cfg_cc_t *, oauth2_cfg_cc_t *,
+ *     oauth2_cfg_cc_t *)
+ * @brief Merge two oauth2_cfg_cc_t objects into a third: a value set in add
+ *        takes precedence over base.
+ */
 
 /**
  * @brief Configure the Client Credentials grant from a token endpoint

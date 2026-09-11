@@ -281,9 +281,52 @@ typedef uint64_t oauth2_time_t;
  * All of them return false, or NULL, when the list or name is NULL.
  * @{
  */
+/** @brief Opaque ordered list of name/value pairs. */
 OAUTH2_TYPE_DECLARE(nv, list)
+/**
+ * @fn oauth2_nv_list_init(oauth2_log_t *)
+ * @brief Allocate a new oauth2_nv_list_t with its defaults applied; NULL on
+ *        allocation failure.
+ */
+/**
+ * @fn oauth2_nv_list_clone(oauth2_log_t *, const oauth2_nv_list_t *)
+ * @brief Deep-copy an oauth2_nv_list_t; release the copy with
+ *        oauth2_nv_list_free().
+ */
+/**
+ * @fn oauth2_nv_list_free(oauth2_log_t *, oauth2_nv_list_t *)
+ * @brief Release an oauth2_nv_list_t and everything it owns; NULL is ignored.
+ */
+/**
+ * @brief Whether names are matched case-sensitively, true unless set
+ *        otherwise.
+ */
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(nv, list, case_sensitive, bool)
+/**
+ * @fn oauth2_nv_list_case_sensitive_get(oauth2_log_t *,
+ *     const oauth2_nv_list_t *)
+ * @brief Get the case_sensitive of an oauth2_nv_list_t; see the setter above
+ *        for its meaning.
+ */
+/**
+ * @brief Set the value of the first pair named name, replacing its value,
+ *        or append the pair when there is none.
+ */
 OAUTH2_LIST_DECLARE_SET_UNSET_ADD_GET(nv, list)
+/**
+ * @fn oauth2_nv_list_unset(oauth2_log_t *, oauth2_nv_list_t *, const char *)
+ * @brief Remove the first pair named name from the list.
+ */
+/**
+ * @fn oauth2_nv_list_add(oauth2_log_t *, oauth2_nv_list_t *, const char *,
+ *     const char *)
+ * @brief Append a name/value pair, allowing duplicate names.
+ */
+/**
+ * @fn oauth2_nv_list_get(oauth2_log_t *, const oauth2_nv_list_t *,
+ *     const char *)
+ * @brief Get the value of the first pair named name, borrowed, or NULL.
+ */
 
 /**
  * @brief Callback invoked by oauth2_nv_list_loop() for each entry.

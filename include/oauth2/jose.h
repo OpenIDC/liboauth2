@@ -55,7 +55,9 @@
  * library uses itself.
  * @{
  */
+/** @brief The OpenSSL name of SHA-1. */
 #define OAUTH2_JOSE_OPENSSL_ALG_SHA1 "sha1"
+/** @brief The OpenSSL name of SHA-256. */
 #define OAUTH2_JOSE_OPENSSL_ALG_SHA256 "sha256"
 /** @} */
 
@@ -65,14 +67,22 @@
  * names of RFC 7519 section 4.1 as used in JWT verification.
  * @{
  */
+/** @brief The JOSE "typ" header (RFC 7515 section 4.1.9). */
 #define OAUTH2_JOSE_HDR_TYP "typ"
+/** @brief The "typ" header value of a JWT (RFC 7519 section 5.1). */
 #define OAUTH2_JOSE_HDR_TYP_JWT "JWT"
 
+/** @brief The "iss" (issuer) claim (RFC 7519 section 4.1.1). */
 #define OAUTH2_JOSE_JWT_ISS "iss"
+/** @brief The "iat" (issued at) claim (RFC 7519 section 4.1.6). */
 #define OAUTH2_JOSE_JWT_IAT "iat"
+/** @brief The "exp" (expiration time) claim (RFC 7519 section 4.1.4). */
 #define OAUTH2_JOSE_JWT_EXP "exp"
+/** @brief The "nbf" (not before) claim (RFC 7519 section 4.1.5). */
 #define OAUTH2_JOSE_JWT_NBF "nbf"
+/** @brief The "sub" (subject) claim (RFC 7519 section 4.1.2). */
 #define OAUTH2_JOSE_JWT_SUB "sub"
+/** @brief The "aud" (audience) claim (RFC 7519 section 4.1.3). */
 #define OAUTH2_JOSE_JWT_AUD "aud"
 /** @} */
 
@@ -85,6 +95,7 @@
  * @{
  */
 
+/** @brief Opaque key: a cjose_jwk_t together with its "kid". */
 typedef struct oauth2_jose_jwk_t oauth2_jose_jwk_t;
 
 /**
@@ -95,6 +106,7 @@ typedef struct oauth2_jose_jwk_t oauth2_jose_jwk_t;
  */
 void oauth2_jose_jwk_release(oauth2_jose_jwk_t *jwk);
 
+/** @brief Opaque linked list of keys, as resolved from a JWKS. */
 typedef struct oauth2_jose_jwk_list_t oauth2_jose_jwk_list_t;
 
 /**

@@ -479,6 +479,7 @@ int oauth2_apache_post_config(apr_pool_t *pool, apr_pool_t *p1, apr_pool_t *p2,
  * @{
  */
 
+/** @brief The per-server configuration this binding keeps for a module. */
 typedef struct oauth2_apache_cfg_srv_t {
 	/** @brief The server log sink: foo_log_server() with the server_rec
 	 *         as context. */
@@ -619,6 +620,10 @@ void *oauth2_apache_cfg_srv_merge(apr_pool_t *pool, void *b, void *a);
 	    r, foo##_log_request,                                              \
 	    "oauth2_" OAUTH2_TOSTRING(foo) "_module_user_data_key");
 
+/**
+ * @brief The per-request context: the log handle, the request translated
+ *        into the library's type and the request record itself.
+ */
 typedef struct oauth2_apache_request_ctx_t {
 	/** @brief The request-scoped log handle. */
 	oauth2_log_t *log;

@@ -164,6 +164,21 @@ typedef oauth2_uint_t oauth2_http_status_code_t;
  */
 OAUTH2_TYPE_DECLARE(http, request)
 /**
+ * @fn oauth2_http_request_init(oauth2_log_t *)
+ * @brief Allocate a new oauth2_http_request_t with its defaults applied; NULL
+ *        on allocation failure.
+ */
+/**
+ * @fn oauth2_http_request_clone(oauth2_log_t *, const oauth2_http_request_t *)
+ * @brief Declared by the object macro but not implemented; an
+ *        oauth2_http_request_t cannot be copied.
+ */
+/**
+ * @fn oauth2_http_request_free(oauth2_log_t *, oauth2_http_request_t *)
+ * @brief Release an oauth2_http_request_t and everything it owns; NULL is
+ *        ignored.
+ */
+/**
  * @brief The native URL scheme, "http" or "https", the request was
  *        received on.
  *
@@ -175,6 +190,12 @@ OAUTH2_TYPE_DECLARE(http, request)
  */
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(http, request, scheme, char *)
 /**
+ * @fn oauth2_http_request_scheme_get(oauth2_log_t *,
+ *     const oauth2_http_request_t *)
+ * @brief Get the scheme of an oauth2_http_request_t; see the setter above for
+ *        its meaning.
+ */
+/**
  * @brief The configured hostname of the server.
  *
  * The getter is hand-written: it prefers the left-most value of the
@@ -184,15 +205,39 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(http, request, scheme, char *)
  * none of them is set.
  */
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(http, request, hostname, char *)
+/**
+ * @fn oauth2_http_request_hostname_get(oauth2_log_t *,
+ *     const oauth2_http_request_t *)
+ * @brief Get the hostname of an oauth2_http_request_t; see the setter above
+ *        for its meaning.
+ */
 /** @brief The path of the request URL, without the query string. */
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(http, request, path, char *)
+/**
+ * @fn oauth2_http_request_path_get(oauth2_log_t *,
+ *     const oauth2_http_request_t *)
+ * @brief Get the path of an oauth2_http_request_t; see the setter above for
+ *        its meaning.
+ */
 /** @brief The HTTP method; OAUTH2_HTTP_METHOD_UNKNOWN until set. */
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(http, request, method, oauth2_http_method_t)
+/**
+ * @fn oauth2_http_request_method_get(oauth2_log_t *,
+ *     const oauth2_http_request_t *)
+ * @brief Get the method of an oauth2_http_request_t; see the setter above for
+ *        its meaning.
+ */
 /**
  * @brief The raw query string, without the leading "?"; the
  *        ..._query_param_...() functions parse and rewrite it.
  */
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(http, request, query, char *)
+/**
+ * @fn oauth2_http_request_query_get(oauth2_log_t *,
+ *     const oauth2_http_request_t *)
+ * @brief Get the query of an oauth2_http_request_t; see the setter above for
+ *        its meaning.
+ */
 /**
  * @brief Get the request method as its uppercase name, e.g. "GET".
  * @return a static string, or NULL for OAUTH2_HTTP_METHOD_UNKNOWN
@@ -239,15 +284,43 @@ const char *oauth2_http_request_context_get(
  */
 OAUTH2_TYPE_DECLARE(http, response)
 /**
+ * @fn oauth2_http_response_init(oauth2_log_t *)
+ * @brief Allocate a new oauth2_http_response_t with its defaults applied; NULL
+ *        on allocation failure.
+ */
+/**
+ * @fn oauth2_http_response_clone(oauth2_log_t *,
+ *     const oauth2_http_response_t *)
+ * @brief Deep-copy an oauth2_http_response_t; release the copy with
+ *        oauth2_http_response_free().
+ */
+/**
+ * @fn oauth2_http_response_free(oauth2_log_t *, oauth2_http_response_t *)
+ * @brief Release an oauth2_http_response_t and everything it owns; NULL is
+ *        ignored.
+ */
+/**
  * @brief The response headers as a name/value list owned by the
  *        response. The setter is not implemented and returns false:
  *        use oauth2_http_response_header_set() and
  *        oauth2_http_response_cookie_set() instead.
  */
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(http, response, headers, oauth2_nv_list_t *)
+/**
+ * @fn oauth2_http_response_headers_get(oauth2_log_t *,
+ *     const oauth2_http_response_t *)
+ * @brief Get the headers of an oauth2_http_response_t; see the setter above
+ *        for its meaning.
+ */
 /** @brief The HTTP status code to respond with; 0 until set. */
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(http, response, status_code,
 				   oauth2_http_status_code_t)
+/**
+ * @fn oauth2_http_response_status_code_get(oauth2_log_t *,
+ *     const oauth2_http_response_t *)
+ * @brief Get the status_code of an oauth2_http_response_t; see the setter
+ *        above for its meaning.
+ */
 
 /**
  * @brief Set a response header, replacing an existing header of that
@@ -384,6 +457,24 @@ char *oauth2_http_request_url_get(oauth2_log_t *log,
  *        NULL.
  */
 OAUTH2_MEMBER_LIST_DECLARE_SET_UNSET_ADD_GET(http, request, header)
+/**
+ * @fn oauth2_http_request_header_unset(oauth2_log_t *, oauth2_http_request_t *,
+ *     const char *)
+ * @brief Remove the first header entry named name from an
+ *        oauth2_http_request_t.
+ */
+/**
+ * @fn oauth2_http_request_header_add(oauth2_log_t *, oauth2_http_request_t *,
+ *     const char *, const char *)
+ * @brief Append a name/value pair to the header list of an
+ *        oauth2_http_request_t, allowing duplicates.
+ */
+/**
+ * @fn oauth2_http_request_header_get(oauth2_log_t *,
+ *     const oauth2_http_request_t *, const char *)
+ * @brief Get the value of the first header entry named name, borrowed, or
+ *        NULL.
+ */
 
 /**
  * @brief Iterate over the request headers in the order they were set.
@@ -529,6 +620,22 @@ bool oauth2_http_request_query_param_unset(oauth2_log_t *log,
  */
 OAUTH2_TYPE_DECLARE(http, call_ctx)
 /**
+ * @fn oauth2_http_call_ctx_init(oauth2_log_t *)
+ * @brief Allocate a new oauth2_http_call_ctx_t with its defaults applied; NULL
+ *        on allocation failure.
+ */
+/**
+ * @fn oauth2_http_call_ctx_clone(oauth2_log_t *,
+ *     const oauth2_http_call_ctx_t *)
+ * @brief Declared by the object macro but not implemented; an
+ *        oauth2_http_call_ctx_t cannot be copied.
+ */
+/**
+ * @fn oauth2_http_call_ctx_free(oauth2_log_t *, oauth2_http_call_ctx_t *)
+ * @brief Release an oauth2_http_call_ctx_t and everything it owns; NULL is
+ *        ignored.
+ */
+/**
  * @brief Send the token in an "Authorization: Bearer" header; NULL is
  *        rejected.
  */
@@ -564,11 +671,45 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET(http, call_ctx, ssl_verify, bool)
  */
 OAUTH2_MEMBER_LIST_DECLARE_SET_UNSET_ADD_GET(http, call_ctx, cookie)
 /**
+ * @fn oauth2_http_call_ctx_cookie_unset(oauth2_log_t *,
+ *     oauth2_http_call_ctx_t *, const char *)
+ * @brief Remove the first cookie entry named name from an
+ *        oauth2_http_call_ctx_t.
+ */
+/**
+ * @fn oauth2_http_call_ctx_cookie_add(oauth2_log_t *, oauth2_http_call_ctx_t *,
+ *     const char *, const char *)
+ * @brief Append a name/value pair to the cookie list of an
+ *        oauth2_http_call_ctx_t, allowing duplicates.
+ */
+/**
+ * @fn oauth2_http_call_ctx_cookie_get(oauth2_log_t *,
+ *     const oauth2_http_call_ctx_t *, const char *)
+ * @brief Get the value of the first cookie entry named name, borrowed, or
+ *        NULL.
+ */
+/**
  * @brief Headers to send with the call, names matched
  *        case-insensitively; the bearer token and content type are
  *        stored here as well.
  */
 OAUTH2_MEMBER_LIST_DECLARE_SET_UNSET_ADD_GET(http, call_ctx, hdr)
+/**
+ * @fn oauth2_http_call_ctx_hdr_unset(oauth2_log_t *, oauth2_http_call_ctx_t *,
+ *     const char *)
+ * @brief Remove the first hdr entry named name from an oauth2_http_call_ctx_t.
+ */
+/**
+ * @fn oauth2_http_call_ctx_hdr_add(oauth2_log_t *, oauth2_http_call_ctx_t *,
+ *     const char *, const char *)
+ * @brief Append a name/value pair to the hdr list of an
+ *        oauth2_http_call_ctx_t, allowing duplicates.
+ */
+/**
+ * @fn oauth2_http_call_ctx_hdr_get(oauth2_log_t *,
+ *     const oauth2_http_call_ctx_t *, const char *)
+ * @brief Get the value of the first hdr entry named name, borrowed, or NULL.
+ */
 /**
  * @brief Authenticate the call with HTTP Basic credentials.
  *

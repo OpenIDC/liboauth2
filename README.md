@@ -45,7 +45,7 @@ liboauth2 depends on the following libraries:
 
 ## Documentation
 
-The Doxygen API reference for the public headers can be generated with `make doxygen` (requires [`doxygen`](https://www.doxygen.nl/)) and browsed from `doc/html/index.html`. Documenting the headers is a work in progress, see [#11](https://github.com/OpenIDC/liboauth2/issues/11).
+The Doxygen API reference for the public headers can be generated with `make doxygen` (requires [`doxygen`](https://www.doxygen.nl/)) and browsed from `doc/html/index.html`; every public header is documented, see [#11](https://github.com/OpenIDC/liboauth2/issues/11) for the history.
 
 Note that the library API is not (yet) stable: liboauth2 is primarily developed as the common engine underneath [`mod_oauth2`](https://github.com/OpenIDC/mod_oauth2), [`mod_sts`](https://github.com/OpenIDC/mod_sts), [`ngx_oauth2_module`](https://github.com/OpenIDC/ngx_oauth2_module), [`ngx_sts_module`](https://github.com/OpenIDC/ngx_sts_module) and [`ngx_openidc_module`](https://github.com/OpenIDC/ngx_openidc_module), which double as its reference consumers, and interfaces may change between releases.
 

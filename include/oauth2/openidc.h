@@ -50,14 +50,14 @@
 #define OAUTH2_OPENIDC_ACCESS_TOKEN "access_token"
 /** @} */
 
-/**
- * @brief The session configuration type of session.h, declared here
- *        for the session member of oauth2_cfg_openidc_t.
- *
- * Only the `_init` and `_free` functions of the declaration are
- * implemented; `_clone` and `_merge` are not.
+/*
+ * the session configuration type of session.h, declared here for the
+ * session member of oauth2_cfg_openidc_t and documented there; hidden from
+ * Doxygen here so that the type and its functions have a single entry
  */
+/** @cond INTERNAL */
 OAUTH2_CFG_TYPE_DECLARE(cfg, session)
+/** @endcond */
 /**
  * @brief The provider resolver: the callback that produces the JSON
  *        provider document for an incoming request, its type-specific
@@ -67,6 +67,30 @@ OAUTH2_CFG_TYPE_DECLARE(cfg, session)
  * `_merge` function of the declaration is not implemented.
  */
 OAUTH2_CFG_TYPE_DECLARE(cfg, openidc_provider_resolver)
+/**
+ * @fn oauth2_cfg_openidc_provider_resolver_init(oauth2_log_t *)
+ * @brief Allocate a new oauth2_cfg_openidc_provider_resolver_t with its
+ *        defaults applied; NULL on allocation failure.
+ */
+/**
+ * @fn oauth2_cfg_openidc_provider_resolver_clone(oauth2_log_t *,
+ *     const oauth2_cfg_openidc_provider_resolver_t *)
+ * @brief Deep-copy an oauth2_cfg_openidc_provider_resolver_t; release the copy
+ *        with oauth2_cfg_openidc_provider_resolver_free().
+ */
+/**
+ * @fn oauth2_cfg_openidc_provider_resolver_free(oauth2_log_t *,
+ *     oauth2_cfg_openidc_provider_resolver_t *)
+ * @brief Release an oauth2_cfg_openidc_provider_resolver_t and everything it
+ *        owns; NULL is ignored.
+ */
+/**
+ * @fn oauth2_cfg_openidc_provider_resolver_merge(oauth2_log_t *,
+ *     oauth2_cfg_openidc_provider_resolver_t *,
+ *     oauth2_cfg_openidc_provider_resolver_t *,
+ *     oauth2_cfg_openidc_provider_resolver_t *)
+ * @brief Declared by the object macro but not implemented.
+ */
 
 /**
  * @name Location-based OpenID Connect configuration
@@ -93,6 +117,27 @@ OAUTH2_CFG_TYPE_DECLARE(cfg, openidc_provider_resolver)
  * base configuration otherwise.
  */
 OAUTH2_CFG_TYPE_DECLARE(cfg, openidc)
+/**
+ * @fn oauth2_cfg_openidc_init(oauth2_log_t *)
+ * @brief Allocate a new oauth2_cfg_openidc_t with its defaults applied; NULL
+ *        on allocation failure.
+ */
+/**
+ * @fn oauth2_cfg_openidc_clone(oauth2_log_t *, const oauth2_cfg_openidc_t *)
+ * @brief Deep-copy an oauth2_cfg_openidc_t; release the copy with
+ *        oauth2_cfg_openidc_free().
+ */
+/**
+ * @fn oauth2_cfg_openidc_free(oauth2_log_t *, oauth2_cfg_openidc_t *)
+ * @brief Release an oauth2_cfg_openidc_t and everything it owns; NULL is
+ *        ignored.
+ */
+/**
+ * @fn oauth2_cfg_openidc_merge(oauth2_log_t *, oauth2_cfg_openidc_t *,
+ *     oauth2_cfg_openidc_t *, oauth2_cfg_openidc_t *)
+ * @brief Merge two oauth2_cfg_openidc_t objects into a third: a value set in
+ *        add takes precedence over base.
+ */
 
 /**
  * @brief The path under which the RP serves its internal endpoints;
@@ -101,6 +146,12 @@ OAUTH2_CFG_TYPE_DECLARE(cfg, openidc)
  *        "handler_path".
  */
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, handler_path, char *)
+/**
+ * @fn oauth2_cfg_openidc_handler_path_get(oauth2_log_t *,
+ *     const oauth2_cfg_openidc_t *)
+ * @brief Get the handler_path of an oauth2_cfg_openidc_t; see the setter above
+ *        for its meaning.
+ */
 /**
  * @brief The redirect URI registered with the provider: an absolute
  *        URL, or a path (starting with "/") that is resolved against
@@ -119,6 +170,12 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET(cfg, openidc, redirect_uri, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, unauth_action,
 				   oauth2_unauth_action_t)
 /**
+ * @fn oauth2_cfg_openidc_unauth_action_get(oauth2_log_t *,
+ *     const oauth2_cfg_openidc_t *)
+ * @brief Get the unauth_action of an oauth2_cfg_openidc_t; see the setter
+ *        above for its meaning.
+ */
+/**
  * @brief The session configuration (session.h) that the sessions
  *        established by the flow are loaded from and saved to. Stored
  *        by reference, not owned: it is one of the registered session
@@ -128,6 +185,12 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, unauth_action,
  */
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, session,
 				   oauth2_cfg_session_t *)
+/**
+ * @fn oauth2_cfg_openidc_session_get(oauth2_log_t *,
+ *     const oauth2_cfg_openidc_t *)
+ * @brief Get the session of an oauth2_cfg_openidc_t; see the setter above for
+ *        its meaning.
+ */
 
 /**
  * @brief The prefix of the state cookie names: a state cookie is named
@@ -138,6 +201,12 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, session,
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, state_cookie_name_prefix,
 				   char *)
 /**
+ * @fn oauth2_cfg_openidc_state_cookie_name_prefix_get(oauth2_log_t *,
+ *     const oauth2_cfg_openidc_t *)
+ * @brief Get the state_cookie_name_prefix of an oauth2_cfg_openidc_t; see the
+ *        setter above for its meaning.
+ */
+/**
  * @brief The number of seconds an authentication round-trip may take:
  *        the state cookie's max age and the age after which the state
  *        it carries is rejected and the cookie is cleaned up. Default
@@ -145,6 +214,12 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, state_cookie_name_prefix,
  */
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, state_cookie_timeout,
 				   oauth2_time_t)
+/**
+ * @fn oauth2_cfg_openidc_state_cookie_timeout_get(oauth2_log_t *,
+ *     const oauth2_cfg_openidc_t *)
+ * @brief Get the state_cookie_timeout of an oauth2_cfg_openidc_t; see the
+ *        setter above for its meaning.
+ */
 /**
  * @brief The maximum number of valid state cookies, i.e. outstanding
  *        authentication round-trips, per browser. Once reached, a new
@@ -154,6 +229,12 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, state_cookie_timeout,
  */
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(cfg, openidc, state_cookie_max,
 				   oauth2_uint_t)
+/**
+ * @fn oauth2_cfg_openidc_state_cookie_max_get(oauth2_log_t *,
+ *     const oauth2_cfg_openidc_t *)
+ * @brief Get the state_cookie_max of an oauth2_cfg_openidc_t; see the setter
+ *        above for its meaning.
+ */
 /**
  * @brief Whether to clear the oldest state cookie(s) to make room for
  *        a new authentication request when state_cookie_max is
@@ -200,6 +281,23 @@ char *oauth2_cfg_openidc_redirect_uri_get(oauth2_log_t *,
  *        and `_free` releases it.
  */
 OAUTH2_TYPE_DECLARE(openidc, proto_state)
+/**
+ * @fn oauth2_openidc_proto_state_init(oauth2_log_t *)
+ * @brief Allocate a new oauth2_openidc_proto_state_t with its defaults
+ *        applied; NULL on allocation failure.
+ */
+/**
+ * @fn oauth2_openidc_proto_state_clone(oauth2_log_t *,
+ *     const oauth2_openidc_proto_state_t *)
+ * @brief Deep-copy an oauth2_openidc_proto_state_t; release the copy with
+ *        oauth2_openidc_proto_state_free().
+ */
+/**
+ * @fn oauth2_openidc_proto_state_free(oauth2_log_t *,
+ *     oauth2_openidc_proto_state_t *)
+ * @brief Release an oauth2_openidc_proto_state_t and everything it owns; NULL
+ *        is ignored.
+ */
 
 /**
  * @brief Store a string value in the state, replacing any value stored
@@ -257,12 +355,34 @@ oauth2_openidc_proto_state_json_get(const oauth2_openidc_proto_state_t *p);
  */
 OAUTH2_TYPE_DECLARE(openidc, provider)
 /**
+ * @fn oauth2_openidc_provider_init(oauth2_log_t *)
+ * @brief Allocate a new oauth2_openidc_provider_t with its defaults applied;
+ *        NULL on allocation failure.
+ */
+/**
+ * @fn oauth2_openidc_provider_clone(oauth2_log_t *,
+ *     const oauth2_openidc_provider_t *)
+ * @brief Declared by the object macro but not implemented; an
+ *        oauth2_openidc_provider_t cannot be copied.
+ */
+/**
+ * @fn oauth2_openidc_provider_free(oauth2_log_t *, oauth2_openidc_provider_t *)
+ * @brief Release an oauth2_openidc_provider_t and everything it owns; NULL is
+ *        ignored.
+ */
+/**
  * @brief The provider's issuer identifier ("issuer"), the one member
  *        the provider document must carry. The "iss" claim of the
  *        id_token must equal it, and it is the key under which the
  *        resolved provider document is cached.
  */
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, issuer, char *)
+/**
+ * @fn oauth2_openidc_provider_issuer_get(oauth2_log_t *,
+ *     const oauth2_openidc_provider_t *)
+ * @brief Get the issuer of an oauth2_openidc_provider_t; see the setter above
+ *        for its meaning.
+ */
 /**
  * @brief The URL of the authorization endpoint
  *        ("authorization_endpoint") the user agent is redirected to
@@ -271,10 +391,22 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, issuer, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, authorization_endpoint,
 				   char *)
 /**
+ * @fn oauth2_openidc_provider_authorization_endpoint_get(oauth2_log_t *,
+ *     const oauth2_openidc_provider_t *)
+ * @brief Get the authorization_endpoint of an oauth2_openidc_provider_t; see
+ *        the setter above for its meaning.
+ */
+/**
  * @brief The URL of the token endpoint ("token_endpoint") the
  *        authorization code is exchanged at.
  */
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, token_endpoint, char *)
+/**
+ * @fn oauth2_openidc_provider_token_endpoint_get(oauth2_log_t *,
+ *     const oauth2_openidc_provider_t *)
+ * @brief Get the token_endpoint of an oauth2_openidc_provider_t; see the
+ *        setter above for its meaning.
+ */
 /**
  * @brief The URL of the userinfo endpoint ("userinfo_endpoint") the
  *        userinfo claims are retrieved from with the access token; no
@@ -282,10 +414,22 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, token_endpoint, char *)
  */
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, userinfo_endpoint, char *)
 /**
+ * @fn oauth2_openidc_provider_userinfo_endpoint_get(oauth2_log_t *,
+ *     const oauth2_openidc_provider_t *)
+ * @brief Get the userinfo_endpoint of an oauth2_openidc_provider_t; see the
+ *        setter above for its meaning.
+ */
+/**
  * @brief The URL of the provider's JSON Web Key Set ("jwks_uri") the
  *        id_token signature is verified against.
  */
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, provider, jwks_uri, char *)
+/**
+ * @fn oauth2_openidc_provider_jwks_uri_get(oauth2_log_t *,
+ *     const oauth2_openidc_provider_t *)
+ * @brief Get the jwks_uri of an oauth2_openidc_provider_t; see the setter
+ *        above for its meaning.
+ */
 
 /**
  * @brief Install a provider resolver on a configuration.
@@ -364,6 +508,22 @@ char *oauth2_cfg_openidc_provider_resolver_set_options(
  *        authentication and `_free` releases it.
  */
 OAUTH2_TYPE_DECLARE(openidc, client)
+/**
+ * @fn oauth2_openidc_client_init(oauth2_log_t *)
+ * @brief Allocate a new oauth2_openidc_client_t with its defaults applied;
+ *        NULL on allocation failure.
+ */
+/**
+ * @fn oauth2_openidc_client_clone(oauth2_log_t *,
+ *     const oauth2_openidc_client_t *)
+ * @brief Deep-copy an oauth2_openidc_client_t; release the copy with
+ *        oauth2_openidc_client_free().
+ */
+/**
+ * @fn oauth2_openidc_client_free(oauth2_log_t *, oauth2_openidc_client_t *)
+ * @brief Release an oauth2_openidc_client_t and everything it owns; NULL is
+ *        ignored.
+ */
 
 /**
  * @brief The "scope" parameter of the authentication request, e.g.
@@ -373,6 +533,12 @@ OAUTH2_TYPE_DECLARE(openidc, client)
  */
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, scope, char *)
 /**
+ * @fn oauth2_openidc_client_scope_get(oauth2_log_t *,
+ *     const oauth2_openidc_client_t *)
+ * @brief Get the scope of an oauth2_openidc_client_t; see the setter above for
+ *        its meaning.
+ */
+/**
  * @brief Extra authentication request parameters as a form-encoded
  *        string, e.g. "acr_values=mfa&prompt=login", merged into the
  *        authentication request. Set by the "authn_request_params"
@@ -380,6 +546,12 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, scope, char *)
  */
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, authn_request_params,
 				   char *)
+/**
+ * @fn oauth2_openidc_client_authn_request_params_get(oauth2_log_t *,
+ *     const oauth2_openidc_client_t *)
+ * @brief Get the authn_request_params of an oauth2_openidc_client_t; see the
+ *        setter above for its meaning.
+ */
 /**
  * @brief The client identifier: sent as "client_id" in the
  *        authentication request and required in the "aud" claim of
@@ -389,11 +561,23 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, authn_request_params,
  */
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, client_id, char *)
 /**
+ * @fn oauth2_openidc_client_client_id_get(oauth2_log_t *,
+ *     const oauth2_openidc_client_t *)
+ * @brief Get the client_id of an oauth2_openidc_client_t; see the setter above
+ *        for its meaning.
+ */
+/**
  * @brief The client secret, for the token endpoint authentication
  *        methods that use one. Set by the "client_secret" parameter or
  *        member of oauth2_openidc_client_set_options().
  */
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, client_secret, char *)
+/**
+ * @fn oauth2_openidc_client_client_secret_get(oauth2_log_t *,
+ *     const oauth2_openidc_client_t *)
+ * @brief Get the client_secret of an oauth2_openidc_client_t; see the setter
+ *        above for its meaning.
+ */
 /**
  * @brief The client authentication method and credentials for the
  *        token endpoint, applied to the code exchange with
@@ -406,6 +590,12 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, client_secret, char *)
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, token_endpoint_auth,
 				   oauth2_cfg_endpoint_auth_t *)
 /**
+ * @fn oauth2_openidc_client_token_endpoint_auth_get(oauth2_log_t *,
+ *     const oauth2_openidc_client_t *)
+ * @brief Get the token_endpoint_auth of an oauth2_openidc_client_t; see the
+ *        setter above for its meaning.
+ */
+/**
  * @brief Whether to verify the TLS server certificate on the calls to
  *        the token endpoint, the userinfo endpoint and the JWKS URI;
  *        unset counts as true. Set by the "ssl_verify" option of
@@ -413,11 +603,23 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, token_endpoint_auth,
  */
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, ssl_verify, oauth2_flag_t)
 /**
+ * @fn oauth2_openidc_client_ssl_verify_get(oauth2_log_t *,
+ *     const oauth2_openidc_client_t *)
+ * @brief Get the ssl_verify of an oauth2_openidc_client_t; see the setter
+ *        above for its meaning.
+ */
+/**
  * @brief The timeout in seconds of the calls to the token and userinfo
  *        endpoints; the getter returns 20 when unset. There is no
  *        option string for it.
  */
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, http_timeout, oauth2_uint_t)
+/**
+ * @fn oauth2_openidc_client_http_timeout_get(oauth2_log_t *,
+ *     const oauth2_openidc_client_t *)
+ * @brief Get the http_timeout of an oauth2_openidc_client_t; see the setter
+ *        above for its meaning.
+ */
 /**
  * @brief The number of times a failed call to the token or userinfo
  *        endpoint is retried. Default 1; there is no option string for
@@ -425,11 +627,23 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, http_timeout, oauth2_uint_t)
  */
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, http_retries, oauth2_uint_t)
 /**
+ * @fn oauth2_openidc_client_http_retries_get(oauth2_log_t *,
+ *     const oauth2_openidc_client_t *)
+ * @brief Get the http_retries of an oauth2_openidc_client_t; see the setter
+ *        above for its meaning.
+ */
+/**
  * @brief The interval in milliseconds between those retries. Default
  *        300; there is no option string for it.
  */
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(openidc, client, http_retry_interval,
 				   oauth2_uint_t)
+/**
+ * @fn oauth2_openidc_client_http_retry_interval_get(oauth2_log_t *,
+ *     const oauth2_openidc_client_t *)
+ * @brief Get the http_retry_interval of an oauth2_openidc_client_t; see the
+ *        setter above for its meaning.
+ */
 
 /**
  * @brief Configure the OpenID Connect client from an option string.

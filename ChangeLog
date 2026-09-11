@@ -1,3 +1,11 @@
+09/11/2026
+- doc: document every remaining public API member: briefs for the constants,
+  opaque types and struct fields that still lacked one, @fn blocks for the
+  functions and accessors the declaration macros generate (saying which of
+  them are not implemented), and a single entry for the session configuration
+  type that both openidc.h and session.h declare; the README no longer calls
+  the API reference a work in progress; closes #11
+
 09/10/2026
 - update copyright year to 2026
 - session: make the inactivity timeout slide, i.e. move the expiry forward

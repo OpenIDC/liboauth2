@@ -300,8 +300,11 @@ void oauth2_nginx_log(oauth2_log_sink_t *sink, const char *filename,
  *        request and its translation into the library's request type.
  */
 typedef struct oauth2_nginx_request_context_t {
+	/** @brief The per-request log handle, logging to r's connection log. */
 	oauth2_log_t *log;
+	/** @brief The NGINX request. */
 	ngx_http_request_t *r;
+	/** @brief The request translated into the library's type. */
 	oauth2_http_request_t *request;
 } oauth2_nginx_request_context_t;
 

@@ -62,6 +62,26 @@
  * the cache registry (cache.h).
  */
 OAUTH2_CFG_TYPE_DECLARE(cfg, session)
+/**
+ * @fn oauth2_cfg_session_init(oauth2_log_t *)
+ * @brief Allocate a new oauth2_cfg_session_t with its defaults applied; NULL
+ *        on allocation failure.
+ */
+/**
+ * @fn oauth2_cfg_session_clone(oauth2_log_t *, const oauth2_cfg_session_t *)
+ * @brief Declared by the object macro but not implemented; an
+ *        oauth2_cfg_session_t cannot be copied.
+ */
+/**
+ * @fn oauth2_cfg_session_free(oauth2_log_t *, oauth2_cfg_session_t *)
+ * @brief Release an oauth2_cfg_session_t and everything it owns; NULL is
+ *        ignored.
+ */
+/**
+ * @fn oauth2_cfg_session_merge(oauth2_log_t *, oauth2_cfg_session_t *,
+ *     oauth2_cfg_session_t *, oauth2_cfg_session_t *)
+ * @brief Declared by the object macro but not implemented.
+ */
 
 /**
  * @brief The name of the session cookie, default "openidc_session";
@@ -204,6 +224,21 @@ char *oauth2_cfg_session_set_options(oauth2_log_t *log,
  * oauth2_session_load() and not exposed.
  */
 OAUTH2_TYPE_DECLARE(session, rec);
+/**
+ * @fn oauth2_session_rec_init(oauth2_log_t *)
+ * @brief Allocate a new oauth2_session_rec_t with its defaults applied; NULL
+ *        on allocation failure.
+ */
+/**
+ * @fn oauth2_session_rec_clone(oauth2_log_t *, const oauth2_session_rec_t *)
+ * @brief Declared by the object macro but not implemented; an
+ *        oauth2_session_rec_t cannot be copied.
+ */
+/**
+ * @fn oauth2_session_rec_free(oauth2_log_t *, oauth2_session_rec_t *)
+ * @brief Release an oauth2_session_rec_t and everything it owns; NULL is
+ *        ignored.
+ */
 
 /**
  * @brief The authenticated user; the OpenID Connect RP flow stores
@@ -213,12 +248,23 @@ OAUTH2_TYPE_DECLARE(session, rec);
  */
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(session, rec, user, char *)
 /**
+ * @fn oauth2_session_rec_user_get(oauth2_log_t *, const oauth2_session_rec_t *)
+ * @brief Get the user of an oauth2_session_rec_t; see the setter above for its
+ *        meaning.
+ */
+/**
  * @brief The serialized id_token, for a binding that wants to keep it;
  *        the RP flow itself stores only its claims. The setter copies
  *        the string and rejects NULL, the getter returns a borrowed
  *        pointer.
  */
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(session, rec, id_token, char *)
+/**
+ * @fn oauth2_session_rec_id_token_get(oauth2_log_t *,
+ *     const oauth2_session_rec_t *)
+ * @brief Get the id_token of an oauth2_session_rec_t; see the setter above for
+ *        its meaning.
+ */
 /**
  * @brief The claims of the verified id_token, a borrowed JSON object
  *        or NULL; set with oauth2_session_rec_id_token_claims_set().
@@ -237,6 +283,12 @@ OAUTH2_TYPE_DECLARE_MEMBER_GET(session, rec, userinfo_claims, json_t *)
  */
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(session, rec, start, oauth2_time_t)
 /**
+ * @fn oauth2_session_rec_start_get(oauth2_log_t *,
+ *     const oauth2_session_rec_t *)
+ * @brief Get the start of an oauth2_session_rec_t; see the setter above for
+ *        its meaning.
+ */
+/**
  * @brief The time the session expires, in seconds since the epoch: 0
  *        in a new record, set to the current time plus the inactivity
  *        timeout by the first oauth2_session_save(), moved forward by
@@ -244,6 +296,12 @@ OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(session, rec, start, oauth2_time_t)
  *        on load, where a passed expiry discards the session.
  */
 OAUTH2_TYPE_DECLARE_MEMBER_SET_GET(session, rec, expiry, oauth2_time_t)
+/**
+ * @fn oauth2_session_rec_expiry_get(oauth2_log_t *,
+ *     const oauth2_session_rec_t *)
+ * @brief Get the expiry of an oauth2_session_rec_t; see the setter above for
+ *        its meaning.
+ */
 
 /**
  * @brief Store the claims of the id_token in the session record.
